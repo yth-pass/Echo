@@ -1,0 +1,282 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  active
+  suspended
+}
+
+enum CloneStatus {
+  draft
+  active
+  paused
+  retired
+}
+
+enum ModerationStatus {
+  pending
+  approved
+  rejected
+}
+
+enum AgentSessionStatus {
+  active
+  completed
+  cancelled
+}
+
+enum HandoffStatus {
+  pending
+  accepted
+  declined
+}
+
+enum MatchPushStatus {
+  pending
+  dismissed
+  accepted
+}
+
+model User {
+  id           String     @id @default(uuid())
+  phone        String?    @unique
+  email        String?    @unique
+  passwordHash String?    @map("password_hash")
+  status       UserStatus @default(active)
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  profile       Profile?
+  digitalClone  DigitalClone?
+  matchPushes   MatchPush[]   @relation("MatchPushUser")
+  blocksInit    Block[]       @relation("Blocker")
+  blocksRecv    Block[]       @relation("Blocked")
+  auditEvents   AuditEvent[]
+  reports       Report[]
+
+  @@map("users")
+}
+
+model Profile {
+  userId      String   @id @map("user_id")
+  displayName String?  @map("display_name")
+  birthYear   Int?     @map("birth_year")
+  gender      String?
+  orientation String?
+  city        String?
+  bioJson     Json?    @map("bio_json")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  embedding ProfileEmbedding?
+
+  @@map("profiles")
+}
+
+model ProfileEmbedding {
+  userId    String @id @map("user_id")
+  embedding Json
+
+  profile Profile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@map("profile_embeddings")
+}
+
+model DigitalClone {
+  id        String      @id @default(uuid())
+  userId    String      @unique @map("user_id")
+  status    CloneStatus @default(draft)
+  consentAt DateTime?   @map("consent_at")
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  personaPrompt PersonaPrompt?
+  posts         Post[]
+  comments      Comment[]
+  likes         Like[]
+  auditEvents   AuditEvent[]
+
+  @@map("digital_clones")
+}
+
+model PersonaPrompt {
+  id             String   @id @default(uuid())
+  cloneId        String   @unique @map("clone_id")
+  version        Int      @default(1)
+  promptText     String   @map("prompt_text")
+  boundariesJson Json?    @map("boundaries_json")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  clone DigitalClone @relation(fields: [cloneId], references: [id], onDelete: Cascade)
+
+  @@map("persona_prompts")
+}
+
+model Post {
+  id               String           @id @default(uuid())
+  cloneId          String           @map("clone_id")
+  content          String
+  moderationStatus ModerationStatus @default(pending) @map("moderation_status")
+  publishedAt      DateTime?        @map("published_at")
+  createdAt        DateTime         @default(now()) @map("created_at")
+
+  clone    DigitalClone @relation(fields: [cloneId], references: [id], onDelete: Cascade)
+  comments Comment[]
+  likes    Like[]
+
+  @@map("posts")
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  postId    String   @map("post_id")
+  cloneId   String   @map("clone_id")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post  Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  clone DigitalClone @relation(fields: [cloneId], references: [id], onDelete: Cascade)
+
+  @@map("comments")
+}
+
+model Like {
+  postId    String   @map("post_id")
+  cloneId   String   @map("clone_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post  Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  clone DigitalClone @relation(fields: [cloneId], references: [id], onDelete: Cascade)
+
+  @@id([postId, cloneId])
+  @@map("likes")
+}
+
+model AgentSession {
+  id        String             @id @default(uuid())
+  cloneAId  String             @map("clone_a_id")
+  cloneBId  String             @map("clone_b_id")
+  status    AgentSessionStatus @default(active)
+  startedAt DateTime           @default(now()) @map("started_at")
+  endedAt   DateTime?          @map("ended_at")
+
+  messages      AgentMessage[]
+  affinityScore AffinityScore?
+  handoff       Handoff?
+
+  @@map("agent_sessions")
+}
+
+model AgentMessage {
+  id             String   @id @default(uuid())
+  sessionId      String   @map("session_id")
+  speakerCloneId String   @map("speaker_clone_id")
+  content        String
+  turnIndex      Int      @map("turn_index")
+  turnId         String?  @unique @map("turn_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  session AgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, turnIndex])
+  @@map("agent_messages")
+}
+
+model AffinityScore {
+  sessionId     String   @id @map("session_id")
+  score         Float
+  breakdownJson Json?    @map("breakdown_json")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  session AgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("affinity_scores")
+}
+
+model Handoff {
+  id         String        @id @default(uuid())
+  sessionId  String        @unique @map("session_id")
+  userAId    String        @map("user_a_id")
+  userBId    String        @map("user_b_id")
+  status     HandoffStatus @default(pending)
+  acceptedAt DateTime?     @map("accepted_at")
+  createdAt  DateTime      @default(now()) @map("created_at")
+
+  session AgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("handoffs")
+}
+
+model MatchPush {
+  id              String          @id @default(uuid())
+  userId          String          @map("user_id")
+  candidateUserId String          @map("candidate_user_id")
+  status          MatchPushStatus @default(pending)
+  affinity        Float?
+  pushedAt        DateTime        @default(now()) @map("pushed_at")
+
+  user User @relation("MatchPushUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("match_pushes")
+}
+
+model Block {
+  blockerUserId String   @map("blocker_user_id")
+  blockedUserId String   @map("blocked_user_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  blocker User @relation("Blocker", fields: [blockerUserId], references: [id], onDelete: Cascade)
+  blocked User @relation("Blocked", fields: [blockedUserId], references: [id], onDelete: Cascade)
+
+  @@id([blockerUserId, blockedUserId])
+  @@map("blocks")
+}
+
+model AuditEvent {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  cloneId     String?  @map("clone_id")
+  eventType   String   @map("event_type")
+  referenceId String?  @map("reference_id")
+  summaryZh   String   @map("summary_zh")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clone DigitalClone? @relation(fields: [cloneId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("audit_events")
+}
+
+model Report {
+  id         String   @id @default(uuid())
+  reporterId String   @map("reporter_id")
+  targetType String   @map("target_type")
+  targetId   String   @map("target_id")
+  reason     String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  reporter User @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@map("reports")
+}
+
+model OnboardingSession {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  surveyJson Json?   @map("survey_json")
+  dialogueJson Json? @map("dialogue_json")
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("onboarding_sessions")
+}

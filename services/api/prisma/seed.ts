@@ -1,0 +1,143 @@
+import { Prisma, PrismaClient, CloneStatus, ModerationStatus } from '@prisma/client';
+import { buildPersonaSeedFromSurvey, type OnboardingSurveyJson } from '../src/onboarding/survey-schema';
+
+const prisma = new PrismaClient();
+
+const demoSurvey = (displayName: string, city: string, interests: string[]): OnboardingSurveyJson => ({
+  displayName,
+  city,
+  goal: '认真约会',
+  interests,
+  toneTags: ['温柔', '幽默'],
+  styleReplies: [
+    { scenarioId: 'weekend', choiceId: 'b', text: '冲！展览/徒步/新餐厅，清单已写好。' },
+    { scenarioId: 'disagree', choiceId: 'a', text: '先听完，委婉说「我理解，不过我这边是…」' },
+    { scenarioId: 'match', choiceId: 'b', text: '在～看到你喜欢 XX，我也！' },
+  ],
+  sampleMessage: '周末有空一起喝咖啡吗？',
+  valuesChoices: [
+    { questionId: 'pace', choiceId: 'slow', label: '慢热，先线上聊透' },
+    { questionId: 'conflict', choiceId: 'talk', label: '直接沟通说清楚' },
+  ],
+});
+
+const DEMOS = [
+  {
+    phone: '13800000001',
+    displayName: '林溪的分身',
+    city: '上海',
+    interests: ['艺术', '电影', '咖啡'],
+    persona: '林溪的分身：自由插画师，热爱黑白电影与咖啡香，语气温柔带幽默，慢热但真诚。',
+    post: '雨后的街道，霓虹灯倒映在积水里，像是一场未完成的梦。',
+  },
+  {
+    phone: '13800000002',
+    displayName: '陈默的分身',
+    city: '北京',
+    interests: ['滑板', '旅行', '摇滚'],
+    persona: '陈默的分身：产品经理兼滑手，直接理性，爱吐槽也爱探索，约会节奏偏快。',
+    post: '周一综合症的最佳解：夜跑 + 一张新发现的独立摇滚专辑。',
+  },
+];
+
+async function main() {
+  const users = [];
+  for (const d of DEMOS) {
+    const survey = demoSurvey(d.displayName, d.city, d.interests);
+    const u = await prisma.user.upsert({
+      where: { phone: d.phone },
+      create: { phone: d.phone },
+      update: {},
+    });
+    await prisma.profile.upsert({
+      where: { userId: u.id },
+      create: {
+        userId: u.id,
+        displayName: d.displayName,
+        city: d.city,
+        bioJson: survey as Prisma.InputJsonValue,
+      },
+      update: {
+        displayName: d.displayName,
+        city: d.city,
+        bioJson: survey as Prisma.InputJsonValue,
+      },
+    });
+    const vec = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.1];
+    await prisma.profileEmbedding.upsert({
+      where: { userId: u.id },
+      create: { userId: u.id, embedding: vec },
+      update: { embedding: vec },
+    });
+    const clone = await prisma.digitalClone.upsert({
+      where: { userId: u.id },
+      create: { userId: u.id, status: CloneStatus.active, consentAt: new Date() },
+      update: { status: CloneStatus.active, consentAt: new Date() },
+    });
+    await prisma.personaPrompt.upsert({
+      where: { cloneId: clone.id },
+      create: {
+        cloneId: clone.id,
+        promptText: d.persona || buildPersonaSeedFromSurvey(survey),
+      },
+      update: { promptText: d.persona || buildPersonaSeedFromSurvey(survey) },
+    });
+    const onboard = await prisma.onboardingSession.findFirst({
+      where: { userId: u.id, completed: true },
+    });
+    const dialogueJson = [
+      { role: 'user', content: '我比较看重真诚和节奏感。' },
+      { role: 'assistant', content: '很好，平时你会怎么开场？' },
+    ];
+    if (!onboard) {
+      await prisma.onboardingSession.create({
+        data: {
+          userId: u.id,
+          surveyJson: survey as Prisma.InputJsonValue,
+          dialogueJson,
+          completed: true,
+        },
+      });
+    } else {
+      await prisma.onboardingSession.update({
+        where: { id: onboard.id },
+        data: {
+          surveyJson: survey as Prisma.InputJsonValue,
+          dialogueJson,
+          completed: true,
+        },
+      });
+    }
+    const existing = await prisma.post.count({ where: { cloneId: clone.id } });
+    if (existing === 0) {
+      await prisma.post.create({
+        data: {
+          cloneId: clone.id,
+          content: d.post,
+          moderationStatus: ModerationStatus.approved,
+          publishedAt: new Date(),
+        },
+      });
+    }
+    users.push({ u, clone });
+  }
+
+  if (users.length >= 2) {
+    const exists = await prisma.matchPush.findFirst({
+      where: { userId: users[0].u.id, candidateUserId: users[1].u.id },
+    });
+    if (!exists) {
+      await prisma.matchPush.create({
+        data: {
+          userId: users[0].u.id,
+          candidateUserId: users[1].u.id,
+          affinity: 0.82,
+        },
+      });
+    }
+  }
+
+  console.log('Seed complete:', users.length, 'demo clones (林溪/陈默)');
+}
+
+main().finally(() => prisma.$disconnect());

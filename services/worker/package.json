@@ -1,0 +1,24 @@
+{
+  "name": "@echo/worker",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "node dist/main.js",
+    "start:dev": "ts-node src/main.ts",
+    "build": "tsc",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.5.0",
+    "bullmq": "^5.41.0",
+    "dotenv": "^17.4.2",
+    "ioredis": "^5.5.0",
+    "openai": "^4.85.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "prisma": "^6.5.0",
+    "ts-node": "^10.9.2",
+    "typescript": "~5.8.2"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "hooks": {
+    "postToolUse": [
+      {
+        "command": "python .cursor/hooks/sync-docs-cn.py",
+        "matcher": "Write"
+      },
+      {
+        "command": "python .cursor/hooks/phase1-context-nudge.py",
+        "matcher": "Write"
+      }
+    ]
+  }
+}
