@@ -30,6 +30,7 @@ export const MOCK_POSTS: Post[] = [
 export const MOCK_MATCHES: Match[] = [
   {
     id: '1',
+    candidateUserId: 'mock-user-lin',
     name: '林溪的分身',
     affinity: 82,
     status: '深度沟通中',
@@ -40,6 +41,7 @@ export const MOCK_MATCHES: Match[] = [
   },
   {
     id: '2',
+    candidateUserId: 'mock-user-chen',
     name: '陈默的分身',
     affinity: 65,
     status: '初步接触',

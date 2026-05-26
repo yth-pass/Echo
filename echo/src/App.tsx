@@ -7,10 +7,14 @@ import { useCallback, useEffect, useState } from 'react';
 import { Home, Fingerprint, History, Settings, Sparkles } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 import type { AppState, Match, Post, TabId } from './types';
-import { MOCK_MATCHES } from './data/mockData';
 import { loadFeed, type FeedSource } from './api/feed';
+import {
+  blockUser,
+  dismissMatch,
+  loadMatches,
+  type MatchSource,
+} from './api/match';
 import { pollFeedUntilNewPost } from './api/posts';
-import { loadMatches } from './api/resources';
 import { fetchMe, getStoredAccessToken, type AuthSession } from './api/auth';
 import { getApiBaseUrl } from './api/client';
 import { SplashScreen } from './features/splash/SplashScreen';
@@ -32,9 +36,12 @@ export default function App() {
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
-  const [matches, setMatches] = useState<Match[]>(MOCK_MATCHES);
+  const [matches, setMatches] = useState<Match[]>([]);
   const [feedLoading, setFeedLoading] = useState(false);
   const [feedSource, setFeedSource] = useState<FeedSource | 'idle'>('idle');
+  const [matchLoading, setMatchLoading] = useState(false);
+  const [matchSource, setMatchSource] = useState<MatchSource | 'idle'>('idle');
+  const [matchActionError, setMatchActionError] = useState<string | null>(null);
 
   const refreshFeed = useCallback(async (): Promise<Post[]> => {
     setFeedLoading(true);
@@ -44,6 +51,60 @@ export default function App() {
     setFeedLoading(false);
     return nextPosts;
   }, []);
+
+  const refreshMatches = useCallback(async (): Promise<Match[]> => {
+    setMatchLoading(true);
+    const { matches: nextMatches, source } = await loadMatches();
+    setMatches(nextMatches);
+    setMatchSource(source);
+    setMatchLoading(false);
+    return nextMatches;
+  }, []);
+
+  const removeMatchFromList = useCallback((matchId: string) => {
+    setMatches((prev) => prev.filter((m) => m.id !== matchId));
+    setSelectedMatch((prev) => (prev?.id === matchId ? null : prev));
+  }, []);
+
+  const handleDismissMatch = useCallback(
+    async (match: Match) => {
+      setMatchActionError(null);
+      const hasApi = Boolean(getApiBaseUrl());
+      if (!hasApi) {
+        removeMatchFromList(match.id);
+        return;
+      }
+      const ok = await dismissMatch(match.id);
+      if (!ok) {
+        setMatchActionError('忽略失败，请稍后重试');
+        return;
+      }
+      removeMatchFromList(match.id);
+    },
+    [removeMatchFromList],
+  );
+
+  const handleBlockMatch = useCallback(
+    async (match: Match) => {
+      setMatchActionError(null);
+      const hasApi = Boolean(getApiBaseUrl());
+      if (!hasApi) {
+        removeMatchFromList(match.id);
+        return;
+      }
+      if (!match.candidateUserId) {
+        setMatchActionError('无法拉黑：缺少用户标识');
+        return;
+      }
+      const ok = await blockUser(match.candidateUserId);
+      if (!ok) {
+        setMatchActionError('拉黑失败，请稍后重试');
+        return;
+      }
+      removeMatchFromList(match.id);
+    },
+    [removeMatchFromList],
+  );
 
   const handlePostQueued = useCallback(async () => {
     const previousIds = new Set(posts.map((p) => p.id));
@@ -78,15 +139,15 @@ export default function App() {
     let cancelled = false;
     void (async () => {
       setFeedLoading(true);
-      const [feedResult, nextMatches] = await Promise.all([
-        loadFeed(),
-        loadMatches(MOCK_MATCHES),
-      ]);
+      setMatchLoading(true);
+      const [feedResult, matchResult] = await Promise.all([loadFeed(), loadMatches()]);
       if (!cancelled) {
         setPosts(feedResult.posts);
         setFeedSource(feedResult.source);
         setFeedLoading(false);
-        setMatches(nextMatches);
+        setMatches(matchResult.matches);
+        setMatchSource(matchResult.source);
+        setMatchLoading(false);
       }
     })();
     return () => {
@@ -130,7 +191,18 @@ export default function App() {
             onOpenPost={(id) => setSelectedPostId(id)}
           />
         )}
-        {currentTab === 'match' && <MatchView matches={matches} onSelect={setSelectedMatch} />}
+        {currentTab === 'match' && (
+          <MatchView
+            matches={matches}
+            loading={matchLoading}
+            source={matchSource}
+            actionError={matchActionError}
+            onRefresh={() => void refreshMatches()}
+            onSelect={setSelectedMatch}
+            onDismiss={(m) => void handleDismissMatch(m)}
+            onBlock={(m) => void handleBlockMatch(m)}
+          />
+        )}
         {currentTab === 'clone' && (
           <CloneView onPostQueued={() => void handlePostQueued()} />
         )}
@@ -145,7 +217,12 @@ export default function App() {
 
       <AnimatePresence>
         {selectedMatch && (
-          <MatchDetailView match={selectedMatch} onBack={() => setSelectedMatch(null)} />
+          <MatchDetailView
+            match={selectedMatch}
+            onBack={() => setSelectedMatch(null)}
+            onDismiss={(m) => void handleDismissMatch(m)}
+            onBlock={(m) => void handleBlockMatch(m)}
+          />
         )}
         {selectedPostId && (
           <PostDetailView

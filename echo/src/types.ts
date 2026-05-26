@@ -27,4 +27,6 @@ export interface Match {
   matchReasons: string[];
   /** Present when API exposes pending handoff for this match */
   handoffId?: string;
+  /** Candidate user id for `POST /blocks` */
+  candidateUserId?: string;
 }

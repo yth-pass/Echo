@@ -7,8 +7,17 @@ export class MatchesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async list(userId: string) {
+    const blocks = await this.prisma.block.findMany({
+      where: { blockerUserId: userId },
+      select: { blockedUserId: true },
+    });
+    const blockedIds = blocks.map((b) => b.blockedUserId);
     const pushes = await this.prisma.matchPush.findMany({
-      where: { userId, status: { not: MatchPushStatus.dismissed } },
+      where: {
+        userId,
+        status: { not: MatchPushStatus.dismissed },
+        ...(blockedIds.length > 0 ? { candidateUserId: { notIn: blockedIds } } : {}),
+      },
       orderBy: { pushedAt: 'desc' },
       take: 50,
     });
@@ -29,6 +38,7 @@ export class MatchesService {
         });
         return {
           id: p.id,
+          candidate_user_id: p.candidateUserId,
           name: profile?.displayName ?? '候选用户',
           display_name: profile?.displayName ?? '候选用户',
           affinity: affinityPct,

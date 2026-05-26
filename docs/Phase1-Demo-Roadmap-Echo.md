@@ -87,7 +87,7 @@ Implement **one row at a time**. Update only the columns that changed.
 | P1-04c | Configure social boundaries | FR-021–022 | `echo` clone tab | `GET/PUT /clones/me` (`boundaries`) | boundaries in LLM prompts | `services/api`, `services/worker`, `echo` | done | done | done | n/a | `forbiddenWords` + `topicsToAvoid`; Worker `formatBoundariesClause` |
 | P1-05 | Feed read | FR-030–034 | `echo` feed | `GET /feed`, `GET /posts/{id}` | — | `services/api`, `echo` | done | n/a | done | n/a | `loadFeed()` — mock only without `VITE_API_BASE_URL`; empty/error do not substitute mock |
 | P1-06 | Scheduled posts + moderation | FR-030–034, FR-033 | feed + detail | — | `post-draft`, `moderation` | `services/worker`, `echo` | n/a | done | done | n/a | `POST /posts/draft` + Clone「让分身发帖」+ feed poll; activity `moderation_status` |
-| P1-07 | Match list + dismiss + block | FR-040–044 | `echo` match tab | `GET /matches`, dismiss, `POST /blocks` | `match-daily` | `services/api`, `services/worker` | done | done | todo | n/a | No dismiss/block UI in `echo` |
+| P1-07 | Match list + dismiss + block | FR-040–044 | `echo` match tab | `GET /matches`, dismiss, `POST /blocks` | `match-daily` | `services/api`, `services/worker` | done | done | done | n/a | `loadMatches()` + MatchView dismiss/block; list excludes blocks |
 | P1-08 | Agent sessions + messages (read) | FR-050–054 | match / activity | `GET /sessions`, `GET /sessions/{id}/messages` | `agent-turn` | `services/*`, `echo` | done | done | doing | n/a | `loadSessionMessages` OK; match detail dialogue still static copy |
 | P1-09 | Affinity + handoff | FR-060–065 | `echo` match detail | `GET/POST /handoffs/*` | affinity per turn | `services/*`, `echo` | done | done | doing | n/a | `respondHandoff` when `handoffId` present; much detail UI mock |
 | P1-10 | Activity audit log | FR-070–072 | `echo` activity tab | `GET /audit/events`, `GET /clones/me/activity` | audit writes | `services/api`, `echo` | done | doing | doing | n/a | Activity tab uses `/clones/me/activity` + mock fallback |
@@ -136,6 +136,7 @@ Hooks and skills **do not** enforce compliance automatically; PR reviewers shoul
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 1.1.5 | 2026-05-26 | P1-07 Web done: match list API path, dismiss/block UI, `candidate_user_id` on list |
 | 1.1.4 | 2026-05-26 | P1-06 Web done: Clone post draft UI, feed poll after queue, activity pending label |
 | 1.1.3 | 2026-05-26 | P1-05 Web done: `loadFeed()` + feed empty/error/mock UI; `PostDetailView` `initialPost` |
 | 1.1.2 | 2026-05-28 | P1-04c: boundaries API/Web/Worker + clone tab editor |

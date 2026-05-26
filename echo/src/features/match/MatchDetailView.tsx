@@ -10,7 +10,17 @@ import type { Match } from '../../types';
 import { getApiBaseUrl } from '../../api/client';
 import { respondHandoff } from '../../api/handoff';
 
-export function MatchDetailView({ match, onBack }: { match: Match; onBack: () => void }) {
+export function MatchDetailView({
+  match,
+  onBack,
+  onDismiss,
+  onBlock,
+}: {
+  match: Match;
+  onBack: () => void;
+  onDismiss?: (m: Match) => void;
+  onBlock?: (m: Match) => void;
+}) {
   const [handoffStatus, setHandoffStatus] = useState<string | null>(null);
   const hasApi = Boolean(getApiBaseUrl());
 
@@ -106,22 +116,58 @@ export function MatchDetailView({ match, onBack }: { match: Match; onBack: () =>
         </div>
       </div>
 
-      <div className="p-6 pb-10 glass border-t border-white/10 flex gap-4">
-        <button
-          type="button"
-          onClick={onBack}
-          className="flex-1 py-4 bg-white/5 rounded-2xl font-bold text-gray-400 text-sm"
-        >
-          再观察一下
-        </button>
-        <button
-          type="button"
-          onClick={() => void acceptHandoff()}
-          className="flex-[2] py-4 bg-echo-blue text-echo-dark rounded-2xl font-bold flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,242,255,0.4)]"
-        >
-          <Heart className="w-5 h-5 fill-current" />
-          {handoffStatus ? `已${handoffStatus}` : '开启真实联络'}
-        </button>
+      <div className="p-6 pb-10 glass border-t border-white/10 space-y-3">
+        {(onDismiss || onBlock) && (
+          <div className="flex gap-2">
+            {onDismiss && (
+              <button
+                type="button"
+                onClick={() => {
+                  onDismiss(match);
+                  onBack();
+                }}
+                className="flex-1 py-3 bg-white/5 rounded-2xl font-bold text-gray-400 text-xs"
+              >
+                忽略
+              </button>
+            )}
+            {onBlock && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (
+                    !window.confirm(`确定拉黑「${match.name}」？对方将不再出现在匹配列表中。`)
+                  ) {
+                    return;
+                  }
+                  onBlock(match);
+                  onBack();
+                }}
+                disabled={hasApi && !match.candidateUserId}
+                className="flex-1 py-3 bg-red-500/10 rounded-2xl font-bold text-red-400 text-xs disabled:opacity-40"
+              >
+                拉黑
+              </button>
+            )}
+          </div>
+        )}
+        <div className="flex gap-4">
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex-1 py-4 bg-white/5 rounded-2xl font-bold text-gray-400 text-sm"
+          >
+            再观察一下
+          </button>
+          <button
+            type="button"
+            onClick={() => void acceptHandoff()}
+            className="flex-[2] py-4 bg-echo-blue text-echo-dark rounded-2xl font-bold flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,242,255,0.4)]"
+          >
+            <Heart className="w-5 h-5 fill-current" />
+            {handoffStatus ? `已${handoffStatus}` : '开启真实联络'}
+          </button>
+        </div>
       </div>
     </motion.div>
   );

@@ -3,81 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { Match } from '../types';
 import { apiGetJson } from './client';
 
 export type { FeedLoadResult, FeedSource, PostDetail } from './feed';
 export { loadFeed, loadPostDetail } from './feed';
 export type { PostDraftResult } from './posts';
 export { enqueuePostDraft, pollFeedUntilNewPost } from './posts';
+export type { MatchLoadResult, MatchSource } from './match';
+export { blockUser, dismissMatch, loadMatches } from './match';
 
 function isPostRecord(x: unknown): x is Record<string, unknown> {
   return typeof x === 'object' && x !== null;
-}
-
-function mapApiMatch(row: Record<string, unknown>, index: number): Match | null {
-  const id = row.id != null ? String(row.id) : String(index);
-  const name =
-    typeof row.name === 'string'
-      ? row.name
-      : typeof row.display_name === 'string'
-        ? row.display_name
-        : null;
-  if (!name) return null;
-  const affinity =
-    typeof row.affinity === 'number'
-      ? row.affinity
-      : typeof row.affinity_score === 'number'
-        ? Math.round((row.affinity_score as number) * 100)
-        : 0;
-  const tags = Array.isArray(row.tags) ? row.tags.filter((t): t is string => typeof t === 'string') : [];
-  const matchReasons = Array.isArray(row.matchReasons)
-    ? row.matchReasons.filter((t): t is string => typeof t === 'string')
-    : Array.isArray(row.match_reasons)
-      ? row.match_reasons.filter((t): t is string => typeof t === 'string')
-      : [];
-  const handoffId =
-    typeof row.handoff_id === 'string'
-      ? row.handoff_id
-      : typeof row.handoffId === 'string'
-        ? row.handoffId
-        : undefined;
-  return {
-    id,
-    name,
-    affinity,
-    handoffId,
-    status: typeof row.status === 'string' ? row.status : '',
-    lastMessage:
-      typeof row.lastMessage === 'string'
-        ? row.lastMessage
-        : typeof row.last_message === 'string'
-          ? row.last_message
-          : '',
-    tags,
-    bio: typeof row.bio === 'string' ? row.bio : '',
-    matchReasons,
-  };
-}
-
-/** `GET /matches` — tolerant shapes; falls back to `mock`. */
-export async function loadMatches(mock: Match[]): Promise<Match[]> {
-  const raw = await apiGetJson<unknown>('/matches');
-  if (raw == null) return mock;
-
-  let rows: unknown[] = [];
-  if (Array.isArray(raw)) rows = raw;
-  else if (isPostRecord(raw)) {
-    if (Array.isArray(raw.items)) rows = raw.items;
-    else if (Array.isArray(raw.data)) rows = raw.data;
-    else if (Array.isArray(raw.matches)) rows = raw.matches;
-  }
-  if (!rows.length) return mock;
-
-  const mapped = rows
-    .map((r, i) => (isPostRecord(r) ? mapApiMatch(r, i) : null))
-    .filter((m): m is Match => m !== null);
-  return mapped.length ? mapped : mock;
 }
 
 export type AuditRow = { time: string; type: string; content: string };
