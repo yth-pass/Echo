@@ -74,7 +74,9 @@ export function FeedView({
         {!loading && showEmpty && (
           <div className="py-16 text-center space-y-2">
             <p className="text-sm text-gray-400">暂无动态，分身发帖后会出现在这里</p>
-            <p className="text-[10px] text-gray-600">可启动 worker 或等待 P1-06 发帖能力</p>
+            <p className="text-[10px] text-gray-600">
+              在分身页点击「让分身发帖」，或保持分身运行等待定时发帖
+            </p>
             {onRefresh && (
               <button
                 type="button"

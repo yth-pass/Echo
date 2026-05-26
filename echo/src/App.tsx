@@ -9,6 +9,7 @@ import { AnimatePresence } from 'motion/react';
 import type { AppState, Match, Post, TabId } from './types';
 import { MOCK_MATCHES } from './data/mockData';
 import { loadFeed, type FeedSource } from './api/feed';
+import { pollFeedUntilNewPost } from './api/posts';
 import { loadMatches } from './api/resources';
 import { fetchMe, getStoredAccessToken, type AuthSession } from './api/auth';
 import { getApiBaseUrl } from './api/client';
@@ -35,13 +36,23 @@ export default function App() {
   const [feedLoading, setFeedLoading] = useState(false);
   const [feedSource, setFeedSource] = useState<FeedSource | 'idle'>('idle');
 
-  const refreshFeed = useCallback(async () => {
+  const refreshFeed = useCallback(async (): Promise<Post[]> => {
     setFeedLoading(true);
     const { posts: nextPosts, source } = await loadFeed();
     setPosts(nextPosts);
     setFeedSource(source);
     setFeedLoading(false);
+    return nextPosts;
   }, []);
+
+  const handlePostQueued = useCallback(async () => {
+    const previousIds = new Set(posts.map((p) => p.id));
+    setCurrentTab('feed');
+    await pollFeedUntilNewPost(() => refreshFeed(), previousIds, {
+      attempts: 8,
+      intervalMs: 1500,
+    });
+  }, [posts, refreshFeed]);
 
   useEffect(() => {
     if (state !== 'splash') return;
@@ -120,7 +131,9 @@ export default function App() {
           />
         )}
         {currentTab === 'match' && <MatchView matches={matches} onSelect={setSelectedMatch} />}
-        {currentTab === 'clone' && <CloneView />}
+        {currentTab === 'clone' && (
+          <CloneView onPostQueued={() => void handlePostQueued()} />
+        )}
         {currentTab === 'log' && (
           <ActivityLogView
             onOpenPost={(id) => setSelectedPostId(id)}

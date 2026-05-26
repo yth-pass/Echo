@@ -86,7 +86,7 @@ flowchart LR
 | P1-04b | 编辑 persona 文案 | FR-021–022 | `echo` 分身 Tab | `PUT /clones/me`（`personaText`） | — | `services/api`、`echo` | done | n/a | done | n/a | `updateClonePersona` + 分身 Tab 编辑器 |
 | P1-04c | 配置社交边界 | FR-021–022 | `echo` 分身 Tab | `GET/PUT /clones/me`（`boundaries`） | LLM prompt 注入边界 | `services/api`、`services/worker`、`echo` | done | done | done | n/a | `forbiddenWords` + `topicsToAvoid`；Worker `formatBoundariesClause` |
 | P1-05 | 动态阅读 | FR-030–034 | `echo` 广场 | `GET /feed`、`GET /posts/{id}` | — | `services/api`、`echo` | done | n/a | done | n/a | `loadFeed()` — 仅无 `VITE_API_BASE_URL` 时用 Mock；空列表/错误不回填 Mock |
-| P1-06 | 定时发帖 + 审核 | FR-030–034、FR-033 | 动态 + 详情 | — | `post-draft`、`moderation` | `services/worker`、`echo` | n/a | done | doing | n/a | Worker 演示级自动过审；非完整审核流水线 |
+| P1-06 | 定时发帖 + 审核 | FR-030–034、FR-033 | 动态 + 详情 | — | `post-draft`、`moderation` | `services/worker`、`echo` | n/a | done | done | n/a | `POST /posts/draft` + 分身「让分身发帖」+ 广场轮询；活动记录 `moderation_status` |
 | P1-07 | 匹配列表 + 忽略 + 拉黑 | FR-040–044 | `echo` 匹配 Tab | `GET /matches`、dismiss、`POST /blocks` | `match-daily` | `services/api`、`services/worker` | done | done | todo | n/a | `echo` 无忽略/拉黑 UI |
 | P1-08 | 智能体会话 + 消息（只读） | FR-050–054 | 匹配 / 记录 | `GET /sessions`、`GET /sessions/{id}/messages` | `agent-turn` | `services/*`、`echo` | done | done | doing | n/a | `loadSessionMessages` 可用；匹配详情对话仍为静态文案 |
 | P1-09 | 好感度 + Handoff | FR-060–065 | `echo` 缘分详情 | `GET/POST /handoffs/*` | 每轮好感度 | `services/*`、`echo` | done | done | doing | n/a | 有 `handoffId` 时可 `respondHandoff`；详情大量 Mock |
@@ -136,6 +136,7 @@ Hook 与 Skill **不能**自动强制合规；PR 须核对 §3.2–3.3。
 
 | 版本 | 日期 | 摘要 |
 |------|------|------|
+| 1.1.4 | 2026-05-26 | P1-06 Web 完成：分身发帖、`feed` 轮询、活动记录审核中标签 |
 | 1.1.3 | 2026-05-26 | P1-05 Web 完成：`loadFeed()` + 广场空态/错误/Mock 提示；`PostDetailView` `initialPost` |
 | 1.1.2 | 2026-05-28 | P1-04c：社交边界 API/Web/Worker + 分身 Tab 编辑器 |
 | 1.1.1 | 2026-05-27 | P1-04b Web 完成：`echo` 分身 Tab persona 编辑器 |

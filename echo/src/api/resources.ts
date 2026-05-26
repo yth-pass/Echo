@@ -8,6 +8,8 @@ import { apiGetJson } from './client';
 
 export type { FeedLoadResult, FeedSource, PostDetail } from './feed';
 export { loadFeed, loadPostDetail } from './feed';
+export type { PostDraftResult } from './posts';
+export { enqueuePostDraft, pollFeedUntilNewPost } from './posts';
 
 function isPostRecord(x: unknown): x is Record<string, unknown> {
   return typeof x === 'object' && x !== null;
@@ -133,6 +135,7 @@ export type ActivityRow = {
   content: string;
   postId?: string;
   sessionId?: string;
+  moderationStatus?: string;
 };
 
 const KIND_TO_TYPE: Record<string, string> = {
@@ -171,6 +174,8 @@ export async function loadCloneActivity(
       const time = created
         ? new Date(created).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
         : '';
+      const moderationStatus =
+        typeof r.moderation_status === 'string' ? r.moderation_status : undefined;
       return {
         kind,
         id: String(r.id ?? ''),
@@ -179,6 +184,7 @@ export async function loadCloneActivity(
         content: String(r.summary_zh ?? r.content ?? ''),
         postId: r.post_id != null ? String(r.post_id) : undefined,
         sessionId: r.session_id != null ? String(r.session_id) : undefined,
+        moderationStatus,
       };
     })
     .filter((x): x is ActivityRow => x !== null);

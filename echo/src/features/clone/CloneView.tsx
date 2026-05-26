@@ -17,10 +17,21 @@ import {
   updateCloneBoundaries,
   updateClonePersona,
 } from '../../api/clone';
+import { enqueuePostDraft } from '../../api/posts';
 
 const EMPTY_BOUNDARIES: CloneBoundaries = { forbiddenWords: [], topicsToAvoid: null };
 
-export function CloneView() {
+const DRAFT_ERROR: Record<string, string> = {
+  no_api: '未配置 API，仅可离线演示',
+  no_clone: '尚未创建分身，请先完成入驻',
+  request_failed: '提交失败，请检查登录与 API',
+};
+
+export function CloneView({
+  onPostQueued,
+}: {
+  onPostQueued?: () => void | Promise<void>;
+}) {
   const [isActive, setIsActive] = useState(true);
   const [persona, setPersona] = useState<string | null>(null);
   const [boundaries, setBoundaries] = useState<CloneBoundaries>(EMPTY_BOUNDARIES);
@@ -31,6 +42,9 @@ export function CloneView() {
   const [draftTopics, setDraftTopics] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [postHint, setPostHint] = useState('');
+  const [postSubmitting, setPostSubmitting] = useState(false);
+  const [postMessage, setPostMessage] = useState<string | null>(null);
   const hasApi = Boolean(getApiBaseUrl());
 
   const applyClone = (c: {
@@ -131,6 +145,29 @@ export function CloneView() {
     }
     const next = isActive ? await pauseClone() : await resumeClone();
     if (next) applyClone(next);
+  };
+
+  const submitPost = async () => {
+    setPostMessage(null);
+    setError(null);
+    if (!hasApi) {
+      setPostMessage('演示模式：配置 VITE_API_BASE_URL 后可真实发帖');
+      return;
+    }
+    if (!isActive) {
+      setError('请先启动分身再发帖');
+      return;
+    }
+    setPostSubmitting(true);
+    const result = await enqueuePostDraft(postHint);
+    setPostSubmitting(false);
+    if (!result.ok) {
+      setError(DRAFT_ERROR[result.reason] ?? '提交失败');
+      return;
+    }
+    setPostMessage('已提交审核，通过后出现在广场（演示环境通常数秒内）');
+    setPostHint('');
+    await onPostQueued?.();
   };
 
   const personaPreview = persona?.trim() || '尚未设置人格设定，点击下方编辑。';
@@ -272,6 +309,34 @@ export function CloneView() {
         <div className="mt-6 w-full space-y-3">
           {!editing && !editingBoundaries && (
             <>
+              <div className="p-4 bg-echo-card rounded-2xl border border-white/5 text-left space-y-3">
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  分身运行中时，Worker 会按空闲节奏定时发帖（默认约 24 小时）。演示环境审核自动通过。
+                </p>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">发帖提示（可选）</p>
+                  <textarea
+                    value={postHint}
+                    onChange={(e) => setPostHint(e.target.value)}
+                    placeholder="留空则由分身根据人格自动生成…"
+                    rows={2}
+                    disabled={postSubmitting || !isActive}
+                    className="w-full bg-echo-dark border border-white/10 rounded-xl px-3 py-2 text-sm text-gray-200 disabled:opacity-50"
+                  />
+                </div>
+                {postMessage && <p className="text-xs text-emerald-400">{postMessage}</p>}
+                <button
+                  type="button"
+                  onClick={() => void submitPost()}
+                  disabled={postSubmitting || (!hasApi ? false : !isActive)}
+                  className="w-full py-3 bg-echo-blue text-echo-dark rounded-2xl font-bold text-sm disabled:opacity-50"
+                >
+                  {postSubmitting ? '提交中…' : '让分身发帖'}
+                </button>
+                {!isActive && hasApi && (
+                  <p className="text-[10px] text-amber-400/90">休眠中无法发帖，请先启动分身</p>
+                )}
+              </div>
               <button
                 type="button"
                 onClick={startEdit}

@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { ModerationStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -19,13 +20,17 @@ export class CloneActivityService {
         take: 30,
       });
       for (const p of posts) {
+        const pending = p.moderationStatus === ModerationStatus.pending;
         items.push({
           kind: 'post',
           id: p.id,
           post_id: p.id,
           content: p.content,
+          moderation_status: p.moderationStatus,
           created_at: (p.publishedAt ?? p.createdAt).toISOString(),
-          summary_zh: `发布动态：${p.content.slice(0, 48)}…`,
+          summary_zh: pending
+            ? `动态审核中：${p.content.slice(0, 48)}…`
+            : `发布动态：${p.content.slice(0, 48)}…`,
         });
       }
     }

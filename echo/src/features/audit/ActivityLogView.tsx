@@ -63,6 +63,7 @@ export function ActivityLogView({
   }, [filter, logs]);
 
   const openRow = (log: ActivityRow) => {
+    if (log.kind === 'post' && log.moderationStatus === 'pending') return;
     if (log.kind === 'session' && log.sessionId) onOpenSession(log.sessionId);
     else if (log.postId) onOpenPost(log.postId);
     else if (log.kind === 'post') onOpenPost(log.id);
@@ -92,20 +93,31 @@ export function ActivityLogView({
         </p>
 
         <div className="space-y-6 relative ml-4 before:absolute before:left-0 before:top-2 before:bottom-2 before:w-px before:bg-white/10">
-          {rows.map((log, i) => (
-            <button
-              key={`${log.id}-${i}`}
-              type="button"
-              onClick={() => openRow(log)}
-              className="relative pl-8 w-full text-left active:opacity-80"
-            >
-              <div className="absolute left-[-4.5px] top-1.5 w-2 h-2 rounded-full bg-echo-blue shadow-[0_0_8px_rgba(0,242,255,0.8)]" />
-              <p className="text-[10px] text-gray-500 mb-1">
-                {log.time} · {log.type}
-              </p>
-              <p className="text-sm text-gray-300 pr-4">{log.content}</p>
-            </button>
-          ))}
+          {rows.map((log, i) => {
+            const pending = log.kind === 'post' && log.moderationStatus === 'pending';
+            return (
+              <button
+                key={`${log.id}-${i}`}
+                type="button"
+                onClick={() => openRow(log)}
+                disabled={pending}
+                className={`relative pl-8 w-full text-left ${pending ? 'opacity-60 cursor-default' : 'active:opacity-80'}`}
+              >
+                <div
+                  className={`absolute left-[-4.5px] top-1.5 w-2 h-2 rounded-full ${
+                    pending ? 'bg-amber-500/80' : 'bg-echo-blue shadow-[0_0_8px_rgba(0,242,255,0.8)]'
+                  }`}
+                />
+                <p className="text-[10px] text-gray-500 mb-1">
+                  {log.time} · {log.type}
+                  {pending && (
+                    <span className="ml-2 text-amber-400/90 font-bold">审核中</span>
+                  )}
+                </p>
+                <p className="text-sm text-gray-300 pr-4">{log.content}</p>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>
