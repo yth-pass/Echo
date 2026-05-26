@@ -10,6 +10,7 @@ import { Worker, Queue } from 'bullmq';
 import { createRedisClient } from './create-redis';
 import { chat } from './clone-runtime/llm';
 import { bridgeMatchPushes, runDailyMatchJob } from './clone-runtime/match-bridge';
+import { formatBoundariesClause } from './clone-runtime/boundaries';
 import { generatePostContent, runCloneRuntimeTick, enqueueAffinityPost } from './clone-runtime/scheduler';
 import { getCloneMeta, setCloneMeta } from './clone-runtime/meta';
 
@@ -114,10 +115,11 @@ new Worker(
       include: { personaPrompt: true },
     });
     const persona = speaker?.personaPrompt?.promptText ?? '';
+    const boundaryClause = formatBoundariesClause(speaker?.personaPrompt?.boundariesJson);
     const content = await chat([
       {
         role: 'system',
-        content: `你是约会分身对话。用中文简短回复一句。persona: ${persona}`,
+        content: `你是约会分身对话。用中文简短回复一句。persona: ${persona}${boundaryClause}`,
       },
       ...history.map((m) => ({ role: 'user' as const, content: m.content })),
     ]);

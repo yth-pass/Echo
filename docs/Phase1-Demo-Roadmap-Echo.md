@@ -4,7 +4,7 @@
 |-------|-------|
 | **Document Version** | 1.1.0 |
 | **Status** | Active |
-| **Last Updated** | 2026-05-27 |
+| **Last Updated** | 2026-05-28 |
 | **Related Documents** | [PRD](./PRD-Echo.md), [Software Architecture](./Software-Architecture-Echo.md), [Deployment & Component Boundaries](./Deployment-and-Component-Boundaries-Echo.md), [Campus Pilot Launch Plan](./Campus-Pilot-Launch-Plan-Echo.md), [Glossary](./glossary.md) |
 
 **Language:** English (canonical). Simplified Chinese mirror: [`../docs_CN/Phase1-Demo-Roadmap-Echo.md`](../docs_CN/Phase1-Demo-Roadmap-Echo.md).
@@ -84,7 +84,7 @@ Implement **one row at a time**. Update only the columns that changed.
 | P1-03 | Onboarding survey + dialogue + finalize | FR-010–014 | `echo` wizard | `POST /onboarding/*` | LLM in API | `services/api`, `echo` | done | n/a | done | n/a | See [Onboarding Survey Design](./Onboarding-Survey-Design-Echo.md) |
 | P1-04a | Clone read + pause / resume | FR-020, FR-023–024 | `echo` clone tab | `GET /clones/me`, pause/resume | — | `services/api`, `echo` | done | n/a | done | n/a | Web: pause/resume wired; persona shown read-only |
 | P1-04b | Edit persona prompt | FR-021–022 | `echo` clone tab | `PUT /clones/me` (`personaText`) | — | `services/api`, `echo` | done | n/a | done | n/a | `updateClonePersona` + clone tab editor |
-| P1-04c | Configure social boundaries | FR-022 | `echo` clone tab | — (schema `boundaries_json` only) | — | `services/api`, `echo` | todo | n/a | todo | n/a | Placeholder at onboarding; edit button has no handler |
+| P1-04c | Configure social boundaries | FR-021–022 | `echo` clone tab | `GET/PUT /clones/me` (`boundaries`) | boundaries in LLM prompts | `services/api`, `services/worker`, `echo` | done | done | done | n/a | `forbiddenWords` + `topicsToAvoid`; Worker `formatBoundariesClause` |
 | P1-05 | Feed read | FR-030–034 | `echo` feed | `GET /feed`, `GET /posts/{id}` | — | `services/api`, `echo` | done | n/a | doing | n/a | `loadFeedPosts` falls back to mock if API empty/unreachable |
 | P1-06 | Scheduled posts + moderation | FR-030–034, FR-033 | feed + detail | — | `post-draft`, `moderation` | `services/worker`, `echo` | n/a | done | doing | n/a | Worker auto-approves posts (demo); not full mod pipeline |
 | P1-07 | Match list + dismiss + block | FR-040–044 | `echo` match tab | `GET /matches`, dismiss, `POST /blocks` | `match-daily` | `services/api`, `services/worker` | done | done | todo | n/a | No dismiss/block UI in `echo` |
@@ -136,6 +136,7 @@ Hooks and skills **do not** enforce compliance automatically; PR reviewers shoul
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 1.1.2 | 2026-05-28 | P1-04c: boundaries API/Web/Worker + clone tab editor |
 | 1.1.1 | 2026-05-27 | P1-04b Web done: persona editor in `echo` clone tab |
 | 1.1.0 | 2026-05-26 | Split status into API / Worker / Web / APK; split P1-04 into a/b/c; honest audit vs codebase |
 | 1.0.0 | 2026-05-20 | Initial feature matrix for full-function demo before APK |

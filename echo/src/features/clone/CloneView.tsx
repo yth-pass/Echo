@@ -7,36 +7,76 @@ import { useEffect, useState } from 'react';
 import { Pause, Play } from 'lucide-react';
 import { Header } from '../shell/Header';
 import { getApiBaseUrl } from '../../api/client';
-import { loadCloneMe, pauseClone, resumeClone, updateClonePersona } from '../../api/clone';
+import {
+  type CloneBoundaries,
+  forbiddenWordsToText,
+  loadCloneMe,
+  parseForbiddenWordsInput,
+  pauseClone,
+  resumeClone,
+  updateCloneBoundaries,
+  updateClonePersona,
+} from '../../api/clone';
+
+const EMPTY_BOUNDARIES: CloneBoundaries = { forbiddenWords: [], topicsToAvoid: null };
 
 export function CloneView() {
   const [isActive, setIsActive] = useState(true);
   const [persona, setPersona] = useState<string | null>(null);
+  const [boundaries, setBoundaries] = useState<CloneBoundaries>(EMPTY_BOUNDARIES);
   const [editing, setEditing] = useState(false);
+  const [editingBoundaries, setEditingBoundaries] = useState(false);
   const [draft, setDraft] = useState('');
+  const [draftForbidden, setDraftForbidden] = useState('');
+  const [draftTopics, setDraftTopics] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hasApi = Boolean(getApiBaseUrl());
+
+  const applyClone = (c: {
+    status: string;
+    persona: string | null;
+    boundaries: CloneBoundaries | null;
+  }) => {
+    setIsActive(c.status === 'active');
+    setPersona(c.persona);
+    setBoundaries(c.boundaries ?? EMPTY_BOUNDARIES);
+  };
 
   useEffect(() => {
     if (!hasApi) return;
     void loadCloneMe().then((c) => {
       if (!c) return;
-      setIsActive(c.status === 'active');
-      setPersona(c.persona);
+      applyClone(c);
     });
   }, [hasApi]);
 
   const startEdit = () => {
     setDraft(persona ?? '');
     setError(null);
+    setEditingBoundaries(false);
     setEditing(true);
+  };
+
+  const startEditBoundaries = () => {
+    setDraftForbidden(forbiddenWordsToText(boundaries.forbiddenWords));
+    setDraftTopics(boundaries.topicsToAvoid ?? '');
+    setError(null);
+    setEditing(false);
+    setEditingBoundaries(true);
   };
 
   const cancelEdit = () => {
     setDraft(persona ?? '');
     setError(null);
     setEditing(false);
+  };
+
+  const cancelEditBoundaries = () => {
+    setDraftForbidden(forbiddenWordsToText(boundaries.forbiddenWords));
+    setDraftTopics(boundaries.topicsToAvoid ?? '');
+    setError(null);
+    setEditingBoundaries(false);
   };
 
   const savePersona = async () => {
@@ -58,9 +98,30 @@ export function CloneView() {
       setError('保存失败，请稍后重试');
       return;
     }
-    setPersona(updated.persona);
-    setIsActive(updated.status === 'active');
+    applyClone(updated);
     setEditing(false);
+  };
+
+  const saveBoundaries = async () => {
+    const next: CloneBoundaries = {
+      forbiddenWords: parseForbiddenWordsInput(draftForbidden),
+      topicsToAvoid: draftTopics.trim() || null,
+    };
+    setError(null);
+    if (!hasApi) {
+      setBoundaries(next);
+      setEditingBoundaries(false);
+      return;
+    }
+    setSaving(true);
+    const updated = await updateCloneBoundaries(next);
+    setSaving(false);
+    if (!updated) {
+      setError('保存失败，请稍后重试');
+      return;
+    }
+    applyClone(updated);
+    setEditingBoundaries(false);
   };
 
   const toggle = async () => {
@@ -69,13 +130,15 @@ export function CloneView() {
       return;
     }
     const next = isActive ? await pauseClone() : await resumeClone();
-    if (next) {
-      setIsActive(next.status === 'active');
-      setPersona(next.persona);
-    }
+    if (next) applyClone(next);
   };
 
   const personaPreview = persona?.trim() || '尚未设置人格设定，点击下方编辑。';
+  const boundarySummary =
+    boundaries.forbiddenWords.length > 0
+      ? `禁忌词 ${boundaries.forbiddenWords.length} 个`
+      : '未设置禁忌词';
+  const topicsPreview = boundaries.topicsToAvoid?.trim() || '未设置回避话题';
 
   return (
     <div className="pb-24 px-6">
@@ -103,17 +166,22 @@ export function CloneView() {
             状态：{isActive ? '正在学习与社交' : '休眠中'}
             {!hasApi && '（Mock）'}
           </p>
-          {!editing && (
+          {!editing && !editingBoundaries && (
             <p className="text-xs text-gray-500 mt-2 line-clamp-3 text-left px-1">{personaPreview}</p>
           )}
         </div>
 
         <div className="mt-8 w-full grid grid-cols-2 gap-4">
-          <div className="p-4 bg-echo-card rounded-2xl border border-white/5 col-span-2 sm:col-span-1">
+          <div className="p-4 bg-echo-card rounded-2xl border border-white/5">
             <p className="text-xs text-gray-500 mb-1">人格设定</p>
-            <p className="text-xs text-gray-300 line-clamp-4 leading-relaxed">{personaPreview}</p>
+            <p className="text-xs text-gray-300 line-clamp-3 leading-relaxed">{personaPreview}</p>
           </div>
           <div className="p-4 bg-echo-card rounded-2xl border border-white/5">
+            <p className="text-xs text-gray-500 mb-1">社交边界</p>
+            <p className="text-xs text-echo-blue font-medium">{boundarySummary}</p>
+            <p className="text-xs text-gray-400 line-clamp-2 mt-1">{topicsPreview}</p>
+          </div>
+          <div className="p-4 bg-echo-card rounded-2xl border border-white/5 col-span-2">
             <p className="text-xs text-gray-500 mb-1">累计社交</p>
             <p className="text-xl font-bold">
               1,248 <span className="text-[10px] text-gray-500 font-normal">次互动</span>
@@ -154,21 +222,78 @@ export function CloneView() {
           </div>
         )}
 
+        {editingBoundaries && (
+          <div className="mt-6 w-full text-left space-y-3">
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">编辑社交边界</p>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">禁忌词（每行一词，或用逗号分隔）</p>
+              <textarea
+                value={draftForbidden}
+                onChange={(e) => setDraftForbidden(e.target.value)}
+                placeholder={'例如：政治\n借钱\n脏话'}
+                rows={4}
+                disabled={saving}
+                className="w-full bg-echo-card border border-white/10 rounded-xl px-3 py-2 text-sm text-gray-200 disabled:opacity-60"
+              />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">回避话题（可选）</p>
+              <textarea
+                value={draftTopics}
+                onChange={(e) => setDraftTopics(e.target.value)}
+                placeholder="例如：不谈前任、不索要联系方式"
+                rows={2}
+                disabled={saving}
+                className="w-full bg-echo-card border border-white/10 rounded-xl px-3 py-2 text-sm text-gray-200 disabled:opacity-60"
+              />
+            </div>
+            {error && <p className="text-sm text-red-400">{error}</p>}
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={cancelEditBoundaries}
+                disabled={saving}
+                className="flex-1 py-3 bg-white/5 rounded-2xl font-bold text-sm border border-white/5 text-gray-400 disabled:opacity-50"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={() => void saveBoundaries()}
+                disabled={saving}
+                className="flex-1 py-3 bg-echo-blue text-echo-dark rounded-2xl font-bold text-sm disabled:opacity-50"
+              >
+                {saving ? '保存中…' : '保存'}
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="mt-6 w-full space-y-3">
-          {!editing && (
-            <button
-              type="button"
-              onClick={startEdit}
-              className="w-full py-4 bg-white/5 rounded-2xl font-bold text-sm border border-white/5"
-            >
-              编辑人格设定
-            </button>
+          {!editing && !editingBoundaries && (
+            <>
+              <button
+                type="button"
+                onClick={startEdit}
+                className="w-full py-4 bg-white/5 rounded-2xl font-bold text-sm border border-white/5"
+              >
+                编辑人格设定
+              </button>
+              <button
+                type="button"
+                onClick={startEditBoundaries}
+                className="w-full py-4 bg-white/5 rounded-2xl font-bold text-sm border border-white/5"
+              >
+                编辑社交边界 (禁忌词)
+              </button>
+            </>
           )}
 
           <button
             type="button"
             onClick={() => void toggle()}
-            className={`w-full py-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-2 ${
+            disabled={editing || editingBoundaries}
+            className={`w-full py-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50 ${
               isActive
                 ? 'bg-echo-card text-red-500 border border-red-500/30'
                 : 'bg-echo-blue text-echo-dark'
@@ -176,13 +301,6 @@ export function CloneView() {
           >
             {isActive ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
             {isActive ? '暂停分身' : '启动分身'}
-          </button>
-
-          <button
-            type="button"
-            className="w-full py-4 bg-white/5 rounded-2xl font-bold text-sm border border-white/5 text-gray-500"
-          >
-            编辑社交边界 (禁忌词)
           </button>
         </div>
       </div>

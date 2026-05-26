@@ -2,6 +2,7 @@ import { CloneStatus, PrismaClient } from '@prisma/client';
 import { Queue } from 'bullmq';
 import type Redis from 'ioredis';
 import { chat } from './llm';
+import { formatBoundariesClause } from './boundaries';
 import { getCloneMeta } from './meta';
 
 const IDLE_MS = Number(process.env.CLONE_IDLE_POST_HOURS ?? 24) * 60 * 60 * 1000;
@@ -18,10 +19,11 @@ export async function generatePostContent(
   });
   const persona = clone?.personaPrompt?.promptText ?? '友好真诚的分身';
   const name = clone?.user.profile?.displayName ?? '分身';
+  const boundaryClause = formatBoundariesClause(clone?.personaPrompt?.boundariesJson);
   return chat([
     {
       role: 'system',
-      content: `你是 ${name} 的数字分身。根据 persona 用中文写一条广场动态（80字内），语气一致。触发原因：${trigger}。`,
+      content: `你是 ${name} 的数字分身。根据 persona 用中文写一条广场动态（80字内），语气一致。触发原因：${trigger}。${boundaryClause}`,
     },
     { role: 'user', content: `persona: ${persona}\ncontext: ${JSON.stringify(context)}` },
   ]);

@@ -1,7 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { CloneStatus } from '@prisma/client';
+import { CloneStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import {
+  CloneBoundariesDto,
+  mergeBoundariesJson,
+  parseBoundariesJson,
+} from './clone-boundaries';
 
 @Injectable()
 export class ClonesService {
@@ -21,33 +26,81 @@ export class ClonesService {
       status: clone.status,
       consentAt: clone.consentAt,
       persona: clone.personaPrompt?.promptText ?? null,
+      boundaries: clone.personaPrompt
+        ? (parseBoundariesJson(clone.personaPrompt.boundariesJson) ?? {
+            forbiddenWords: [],
+            topicsToAvoid: null,
+          })
+        : null,
     };
   }
 
-  async updateMe(userId: string, data: { status?: CloneStatus; personaText?: string }) {
-    let clone = await this.prisma.digitalClone.findUnique({ where: { userId } });
+  async updateMe(
+    userId: string,
+    data: { status?: CloneStatus; personaText?: string; boundaries?: CloneBoundariesDto },
+  ) {
+    let clone = await this.prisma.digitalClone.findUnique({
+      where: { userId },
+      include: { personaPrompt: true },
+    });
     if (!clone) {
       clone = await this.prisma.digitalClone.create({
         data: { userId, status: data.status ?? CloneStatus.draft },
+        include: { personaPrompt: true },
       });
     } else if (data.status) {
       clone = await this.prisma.digitalClone.update({
         where: { id: clone.id },
         data: { status: data.status },
+        include: { personaPrompt: true },
       });
     }
-    if (data.personaText) {
+
+    const needsPersonaUpsert =
+      data.personaText !== undefined || data.boundaries !== undefined;
+
+    if (needsPersonaUpsert) {
+      const existingJson = clone.personaPrompt?.boundariesJson ?? null;
+      const boundariesJson: Prisma.InputJsonValue = data.boundaries
+        ? (mergeBoundariesJson(existingJson, data.boundaries) as Prisma.InputJsonValue)
+        : ((existingJson ?? {
+            handoff: true,
+            forbiddenWords: [],
+            topicsToAvoid: null,
+          }) as Prisma.InputJsonValue);
+
+      const promptText =
+        data.personaText !== undefined
+          ? data.personaText
+          : (clone.personaPrompt?.promptText ?? '');
+
       await this.prisma.personaPrompt.upsert({
         where: { cloneId: clone.id },
-        create: { cloneId: clone.id, promptText: data.personaText },
-        update: { promptText: data.personaText, version: { increment: 1 } },
+        create: {
+          cloneId: clone.id,
+          promptText: promptText || ' ',
+          boundariesJson,
+        },
+        update: {
+          ...(data.personaText !== undefined
+            ? { promptText: data.personaText, version: { increment: 1 } }
+            : {}),
+          ...(data.boundaries !== undefined ? { boundariesJson } : {}),
+        },
       });
     }
+
+    const summaryZh = data.boundaries
+      ? '更新分身社交边界'
+      : data.personaText
+        ? '更新分身人格设定'
+        : `更新分身状态：${clone.status}`;
+
     await this.audit.log({
       userId,
       cloneId: clone.id,
       eventType: 'clone.update',
-      summaryZh: `更新分身状态：${clone.status}`,
+      summaryZh,
     });
     return this.getMe(userId);
   }

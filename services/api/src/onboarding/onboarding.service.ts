@@ -129,7 +129,11 @@ export class OnboardingService {
     }
     await this.prisma.personaPrompt.upsert({
       where: { cloneId: clone.id },
-      create: { cloneId: clone.id, promptText: personaText, boundariesJson: { handoff: true } },
+      create: {
+        cloneId: clone.id,
+        promptText: personaText,
+        boundariesJson: { handoff: true, forbiddenWords: [], topicsToAvoid: null },
+      },
       update: { promptText: personaText, version: { increment: 1 } },
     });
     if (session) {

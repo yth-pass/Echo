@@ -1,8 +1,10 @@
 import { Body, Controller, Get, Post, Put, Query, UseGuards } from '@nestjs/common';
-import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsEnum, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { CloneStatus } from '@prisma/client';
 import { JwtAuthGuard } from '../common/jwt-auth.guard';
 import { CurrentUser } from '../common/current-user.decorator';
+import { CloneBoundariesDto } from './clone-boundaries';
 import { CloneActivityService } from './clone-activity.service';
 import { ClonesService } from './clones.service';
 
@@ -14,6 +16,11 @@ class UpdateCloneDto {
   @IsOptional()
   @IsString()
   personaText?: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CloneBoundariesDto)
+  boundaries?: CloneBoundariesDto;
 }
 
 @Controller('clones')

@@ -4,7 +4,7 @@
 |------|-----|
 | **文档版本** | 1.1.0 |
 | **状态** | 生效中 |
-| **最后更新** | 2026-05-27 |
+| **最后更新** | 2026-05-28 |
 | **相关文档** | [PRD](./PRD-Echo.md)、[软件架构](./Software-Architecture-Echo.md)、[部署与组件边界](./Deployment-and-Component-Boundaries-Echo.md)、[校园试点发布计划](./Campus-Pilot-Launch-Plan-Echo.md)、[术语表](./glossary.md) |
 
 **语言：** 简体中文（镜像）。英文 canonical：[`../docs/Phase1-Demo-Roadmap-Echo.md`](../docs/Phase1-Demo-Roadmap-Echo.md)。
@@ -84,7 +84,7 @@ flowchart LR
 | P1-03 | 入驻问卷 + 对话 + 定稿 | FR-010–014 | `echo` 向导 | `POST /onboarding/*` | API 内 LLM | `services/api`、`echo` | done | n/a | done | n/a | 见 [入驻问卷设计](./Onboarding-Survey-Design-Echo.md) |
 | P1-04a | 分身查看 + 暂停/恢复 | FR-020、FR-023–024 | `echo` 分身 Tab | `GET /clones/me`、pause/resume | — | `services/api`、`echo` | done | n/a | done | n/a | Web：暂停/恢复已接；persona 只读展示 |
 | P1-04b | 编辑 persona 文案 | FR-021–022 | `echo` 分身 Tab | `PUT /clones/me`（`personaText`） | — | `services/api`、`echo` | done | n/a | done | n/a | `updateClonePersona` + 分身 Tab 编辑器 |
-| P1-04c | 配置社交边界 | FR-022 | `echo` 分身 Tab | —（仅 schema `boundaries_json`） | — | `services/api`、`echo` | todo | n/a | todo | n/a | 入驻占位；编辑按钮无逻辑 |
+| P1-04c | 配置社交边界 | FR-021–022 | `echo` 分身 Tab | `GET/PUT /clones/me`（`boundaries`） | LLM prompt 注入边界 | `services/api`、`services/worker`、`echo` | done | done | done | n/a | `forbiddenWords` + `topicsToAvoid`；Worker `formatBoundariesClause` |
 | P1-05 | 动态阅读 | FR-030–034 | `echo` 广场 | `GET /feed`、`GET /posts/{id}` | — | `services/api`、`echo` | done | n/a | doing | n/a | API 空/不可达时 `loadFeedPosts` 回退 Mock |
 | P1-06 | 定时发帖 + 审核 | FR-030–034、FR-033 | 动态 + 详情 | — | `post-draft`、`moderation` | `services/worker`、`echo` | n/a | done | doing | n/a | Worker 演示级自动过审；非完整审核流水线 |
 | P1-07 | 匹配列表 + 忽略 + 拉黑 | FR-040–044 | `echo` 匹配 Tab | `GET /matches`、dismiss、`POST /blocks` | `match-daily` | `services/api`、`services/worker` | done | done | todo | n/a | `echo` 无忽略/拉黑 UI |
@@ -136,6 +136,7 @@ Hook 与 Skill **不能**自动强制合规；PR 须核对 §3.2–3.3。
 
 | 版本 | 日期 | 摘要 |
 |------|------|------|
+| 1.1.2 | 2026-05-28 | P1-04c：社交边界 API/Web/Worker + 分身 Tab 编辑器 |
 | 1.1.1 | 2026-05-27 | P1-04b Web 完成：`echo` 分身 Tab persona 编辑器 |
 | 1.1.0 | 2026-05-26 | 状态拆为 API / Worker / Web / APK；P1-04 拆为 a/b/c；与代码库对齐的诚实审计 |
 | 1.0.0 | 2026-05-20 | 初版：APK 前全功能演示功能矩阵 |
