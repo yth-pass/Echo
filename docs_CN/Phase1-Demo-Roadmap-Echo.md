@@ -88,7 +88,7 @@ flowchart LR
 | P1-05 | 动态阅读 | FR-030–034 | `echo` 广场 | `GET /feed`、`GET /posts/{id}` | — | `services/api`、`echo` | done | n/a | done | n/a | `loadFeed()` — 仅无 `VITE_API_BASE_URL` 时用 Mock；空列表/错误不回填 Mock |
 | P1-06 | 定时发帖 + 审核 | FR-030–034、FR-033 | 动态 + 详情 | — | `post-draft`、`moderation` | `services/worker`、`echo` | n/a | done | done | n/a | `POST /posts/draft` + 分身「让分身发帖」+ 广场轮询；活动记录 `moderation_status` |
 | P1-07 | 匹配列表 + 忽略 + 拉黑 | FR-040–044 | `echo` 匹配 Tab | `GET /matches`、dismiss、`POST /blocks` | `match-daily` | `services/api`、`services/worker` | done | done | done | n/a | `loadMatches()` + 匹配 Tab 忽略/拉黑；列表排除已拉黑用户 |
-| P1-08 | 智能体会话 + 消息（只读） | FR-050–054 | 匹配 / 记录 | `GET /sessions`、`GET /sessions/{id}/messages` | `agent-turn` | `services/*`、`echo` | done | done | doing | n/a | `loadSessionMessages` 可用；匹配详情对话仍为静态文案 |
+| P1-08 | 智能体会话 + 消息（只读） | FR-050–054 | 匹配 / 记录 | `GET /sessions`、`GET /sessions/{id}/messages` | `agent-turn` | `services/*`、`echo` | done | done | done | n/a | 匹配含 `session_id`；详情/记录展示真实对话；消息含 `is_self` |
 | P1-09 | 好感度 + Handoff | FR-060–065 | `echo` 缘分详情 | `GET/POST /handoffs/*` | 每轮好感度 | `services/*`、`echo` | done | done | doing | n/a | 有 `handoffId` 时可 `respondHandoff`；详情大量 Mock |
 | P1-10 | 活动审计日志 | FR-070–072 | `echo` 记录 Tab | `GET /audit/events`、`GET /clones/me/activity` | 写 AuditEvent | `services/api`、`echo` | done | doing | doing | n/a | 记录 Tab 用 activity API + Mock 回退 |
 | P1-11 | 举报 | FR-080–082 | 设置 / 举报 | `POST /reports` | 审核队列（规划） | `services/api`、`echo` | done | todo | todo | n/a | `SettingsView` 无举报入口 |
@@ -136,6 +136,7 @@ Hook 与 Skill **不能**自动强制合规；PR 须核对 §3.2–3.3。
 
 | 版本 | 日期 | 摘要 |
 |------|------|------|
+| 1.1.6 | 2026-05-26 | P1-08 Web 完成：匹配/活动只读会话消息、`session_id` 与 `is_self` |
 | 1.1.5 | 2026-05-26 | P1-07 Web 完成：匹配列表真实 API、忽略/拉黑 UI、`candidate_user_id` |
 | 1.1.4 | 2026-05-26 | P1-06 Web 完成：分身发帖、`feed` 轮询、活动记录审核中标签 |
 | 1.1.3 | 2026-05-26 | P1-05 Web 完成：`loadFeed()` + 广场空态/错误/Mock 提示；`PostDetailView` `initialPost` |

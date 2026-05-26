@@ -29,4 +29,6 @@ export interface Match {
   handoffId?: string;
   /** Candidate user id for `POST /blocks` */
   candidateUserId?: string;
+  /** Agent session id for read-only transcript */
+  sessionId?: string;
 }

@@ -14,7 +14,7 @@ export class SessionsController {
   }
 
   @Get(':id/messages')
-  messages(@Param('id') id: string) {
-    return this.sessions.messages(id);
+  messages(@CurrentUser() userId: string, @Param('id') id: string) {
+    return this.sessions.messages(id, userId);
   }
 }

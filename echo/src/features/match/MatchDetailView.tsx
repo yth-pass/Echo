@@ -3,12 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Heart, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 import type { Match } from '../../types';
 import { getApiBaseUrl } from '../../api/client';
 import { respondHandoff } from '../../api/handoff';
+import { loadSessionMessages, type SessionMessage } from '../../api/session';
+import type { SessionMessagesSource } from '../../api/session';
+import { SessionChatMessages } from '../session/SessionChatMessages';
 
 export function MatchDetailView({
   match,
@@ -22,7 +25,37 @@ export function MatchDetailView({
   onBlock?: (m: Match) => void;
 }) {
   const [handoffStatus, setHandoffStatus] = useState<string | null>(null);
+  const [messages, setMessages] = useState<SessionMessage[]>([]);
+  const [msgLoading, setMsgLoading] = useState(false);
+  const [msgSource, setMsgSource] = useState<SessionMessagesSource | 'idle'>('idle');
   const hasApi = Boolean(getApiBaseUrl());
+
+  useEffect(() => {
+    if (!match.sessionId) {
+      setMessages([]);
+      setMsgSource('idle');
+      return;
+    }
+    if (!hasApi) {
+      void loadSessionMessages(match.sessionId).then(({ messages: m, source }) => {
+        setMessages(m);
+        setMsgSource(source);
+      });
+      return;
+    }
+    let cancelled = false;
+    setMsgLoading(true);
+    void loadSessionMessages(match.sessionId).then(({ messages: m, source }) => {
+      if (!cancelled) {
+        setMessages(m);
+        setMsgSource(source);
+        setMsgLoading(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [match.sessionId, hasApi]);
 
   const acceptHandoff = async () => {
     if (!hasApi || !match.handoffId) {
@@ -32,6 +65,9 @@ export function MatchDetailView({
     const res = await respondHandoff(match.handoffId, true);
     setHandoffStatus(res?.status ?? 'accepted');
   };
+
+  const showMockStaticDialogue = !hasApi;
+
   return (
     <motion.div
       initial={{ opacity: 0, x: 50 }}
@@ -98,20 +134,34 @@ export function MatchDetailView({
 
           <section className="text-left">
             <h4 className="text-xs font-bold text-gray-500 uppercase mb-3 text-left">分身对话精选</h4>
-            <div className="space-y-2">
-              <div className="p-3 bg-white/5 rounded-xl border-l-2 border-echo-blue text-left">
-                <p className="text-[10px] text-gray-500 mb-1">{match.name}：</p>
-                <p className="text-sm italic text-gray-300">
-                  “其实比起结局，我更在意那些在城市缝隙里独自看海的瞬间。”
-                </p>
+            {showMockStaticDialogue ? (
+              <div className="space-y-2">
+                <p className="text-[10px] text-amber-400/90 mb-2">演示对话（Mock）</p>
+                <div className="p-3 bg-white/5 rounded-xl border-l-2 border-echo-blue text-left">
+                  <p className="text-[10px] text-gray-500 mb-1">{match.name}：</p>
+                  <p className="text-sm italic text-gray-300">
+                    “其实比起结局，我更在意那些在城市缝隙里独自看海的瞬间。”
+                  </p>
+                </div>
+                <div className="p-3 bg-echo-blue/5 rounded-xl border-r-2 border-echo-blue text-right">
+                  <p className="text-[10px] text-echo-blue/50 mb-1">我的分身：</p>
+                  <p className="text-sm italic text-echo-blue/80">
+                    “那种孤独感并非缺失，而是一种清醒。很高兴我们的「算法」捕捉到了这一点。”
+                  </p>
+                </div>
               </div>
-              <div className="p-3 bg-echo-blue/5 rounded-xl border-r-2 border-echo-blue text-right">
-                <p className="text-[10px] text-echo-blue/50 mb-1">Felix的分身 (你)：</p>
-                <p className="text-sm italic text-echo-blue/80">
-                  “那种孤独感并非缺失，而是一种清醒。很高兴我们的‘算法’捕捉到了这一点。”
-                </p>
-              </div>
-            </div>
+            ) : (
+              <SessionChatMessages
+                messages={messages}
+                loading={msgLoading}
+                source={msgSource === 'idle' ? undefined : msgSource}
+                emptyHint={
+                  match.sessionId
+                    ? '暂无分身对话，请确认 worker 已运行 match-daily / agent-turn'
+                    : '尚未建立分身会话'
+                }
+              />
+            )}
           </section>
         </div>
       </div>

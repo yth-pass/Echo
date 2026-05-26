@@ -5,7 +5,9 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { loadSessionMessages, type SessionMessage } from '../../api/resources';
+import { loadSessionMessages, type SessionMessage } from '../../api/session';
+import type { SessionMessagesSource } from '../../api/session';
+import { SessionChatMessages } from '../session/SessionChatMessages';
 
 export function SessionTranscriptView({
   sessionId,
@@ -15,9 +17,22 @@ export function SessionTranscriptView({
   onBack: () => void;
 }) {
   const [messages, setMessages] = useState<SessionMessage[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [source, setSource] = useState<SessionMessagesSource | 'idle'>('idle');
 
   useEffect(() => {
-    void loadSessionMessages(sessionId).then(setMessages);
+    let cancelled = false;
+    setLoading(true);
+    void loadSessionMessages(sessionId).then(({ messages: m, source: s }) => {
+      if (!cancelled) {
+        setMessages(m);
+        setSource(s);
+        setLoading(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [sessionId]);
 
   return (
@@ -33,16 +48,13 @@ export function SessionTranscriptView({
         <h2 className="font-bold text-sm">分身对话记录</h2>
         <div className="w-8" />
       </div>
-      <div className="flex-1 overflow-y-auto p-5 space-y-3">
-        {messages.length === 0 && (
-          <p className="text-gray-500 text-sm text-center">暂无消息或 API 未连接</p>
-        )}
-        {messages.map((m) => (
-          <div key={m.id} className="p-3 rounded-xl bg-echo-card border border-white/5">
-            <p className="text-[10px] text-gray-500 mb-1">轮次 {m.turn_index + 1}</p>
-            <p className="text-sm text-gray-200 leading-relaxed">{m.content}</p>
-          </div>
-        ))}
+      <div className="flex-1 overflow-y-auto p-5">
+        <SessionChatMessages
+          messages={messages}
+          loading={loading}
+          source={source === 'idle' ? undefined : source}
+          emptyHint="暂无消息或会话尚未产生对话"
+        />
       </div>
     </motion.div>
   );

@@ -11,6 +11,8 @@ export type { PostDraftResult } from './posts';
 export { enqueuePostDraft, pollFeedUntilNewPost } from './posts';
 export type { MatchLoadResult, MatchSource } from './match';
 export { blockUser, dismissMatch, loadMatches } from './match';
+export type { SessionMessage, SessionMessagesResult, SessionMessagesSource } from './session';
+export { loadSessionMessages } from './session';
 
 function isPostRecord(x: unknown): x is Record<string, unknown> {
   return typeof x === 'object' && x !== null;
@@ -126,31 +128,4 @@ export async function loadCloneActivity(
     .filter((x): x is ActivityRow => x !== null);
 
   return mapped.length ? mapped : mock;
-}
-
-export type SessionMessage = {
-  id: string;
-  content: string;
-  speaker_clone_id: string;
-  turn_index: number;
-  created_at: string;
-};
-
-export async function loadSessionMessages(sessionId: string): Promise<SessionMessage[]> {
-  const raw = await apiGetJson<unknown>(`/sessions/${sessionId}/messages`);
-  if (raw == null) return [];
-  let rows: unknown[] = [];
-  if (isPostRecord(raw) && Array.isArray(raw.items)) rows = raw.items;
-  return rows
-    .map((r) => {
-      if (!isPostRecord(r)) return null;
-      return {
-        id: String(r.id ?? ''),
-        content: String(r.content ?? ''),
-        speaker_clone_id: String(r.speaker_clone_id ?? ''),
-        turn_index: Number(r.turn_index ?? 0),
-        created_at: String(r.created_at ?? ''),
-      };
-    })
-    .filter((m): m is SessionMessage => m !== null);
 }

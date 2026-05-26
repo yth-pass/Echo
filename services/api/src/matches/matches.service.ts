@@ -12,6 +12,7 @@ export class MatchesService {
       select: { blockedUserId: true },
     });
     const blockedIds = blocks.map((b) => b.blockedUserId);
+    const myClone = await this.prisma.digitalClone.findUnique({ where: { userId } });
     const pushes = await this.prisma.matchPush.findMany({
       where: {
         userId,
@@ -36,15 +37,46 @@ export class MatchesService {
             status: 'pending',
           },
         });
+        const candidateClone = await this.prisma.digitalClone.findUnique({
+          where: { userId: p.candidateUserId },
+        });
+        let sessionId: string | null = null;
+        let lastMessage = '';
+        if (myClone && candidateClone) {
+          const session = await this.prisma.agentSession.findFirst({
+            where: {
+              OR: [
+                { cloneAId: myClone.id, cloneBId: candidateClone.id },
+                { cloneAId: candidateClone.id, cloneBId: myClone.id },
+              ],
+            },
+            orderBy: { startedAt: 'desc' },
+          });
+          if (session) {
+            sessionId = session.id;
+            const lastMsg = await this.prisma.agentMessage.findFirst({
+              where: { sessionId: session.id },
+              orderBy: { turnIndex: 'desc' },
+            });
+            if (lastMsg?.content) {
+              lastMessage =
+                lastMsg.content.length > 80
+                  ? `${lastMsg.content.slice(0, 80)}…`
+                  : lastMsg.content;
+            }
+          }
+        }
         return {
           id: p.id,
           candidate_user_id: p.candidateUserId,
+          session_id: sessionId,
           name: profile?.displayName ?? '候选用户',
           display_name: profile?.displayName ?? '候选用户',
           affinity: affinityPct,
           affinity_score: p.affinity ?? 0,
           status: p.status,
           handoff_id: handoff?.id ?? null,
+          last_message: lastMessage,
           tags: profile?.city ? [profile.city] : [],
           bio: typeof profile?.bioJson === 'object' ? JSON.stringify(profile.bioJson) : '',
           match_reasons: ['向量相似度 MVP'],

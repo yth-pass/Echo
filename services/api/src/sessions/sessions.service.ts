@@ -23,13 +23,22 @@ export class SessionsService {
     };
   }
 
-  async messages(sessionId: string) {
+  async messages(sessionId: string, userId: string) {
     const session = await this.prisma.agentSession.findUnique({ where: { id: sessionId } });
     if (!session) throw new NotFoundException('Session not found');
+    const myClone = await this.prisma.digitalClone.findUnique({ where: { userId } });
     const messages = await this.prisma.agentMessage.findMany({
       where: { sessionId },
       orderBy: { turnIndex: 'asc' },
     });
+    const speakerIds = [...new Set(messages.map((m) => m.speakerCloneId))];
+    const clones = await this.prisma.digitalClone.findMany({
+      where: { id: { in: speakerIds } },
+      include: { user: { include: { profile: true } } },
+    });
+    const nameByCloneId = new Map(
+      clones.map((c) => [c.id, c.user.profile?.displayName ?? '分身']),
+    );
     return {
       items: messages.map((m) => ({
         id: m.id,
@@ -37,6 +46,8 @@ export class SessionsService {
         content: m.content,
         turn_index: m.turnIndex,
         created_at: m.createdAt.toISOString(),
+        is_self: myClone ? m.speakerCloneId === myClone.id : false,
+        speaker_name: nameByCloneId.get(m.speakerCloneId) ?? '分身',
       })),
     };
   }

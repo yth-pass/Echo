@@ -4,6 +4,28 @@
  */
 
 import type { Match, Post } from '../types';
+import type { SessionMessage } from '../api/session';
+
+export const MOCK_SESSION_MESSAGES: SessionMessage[] = [
+  {
+    id: 'm1',
+    content: '其实比起结局，我更在意那些在城市缝隙里独自看海的瞬间。',
+    speaker_clone_id: 'peer',
+    turn_index: 0,
+    created_at: '',
+    is_self: false,
+    speaker_name: '林溪',
+  },
+  {
+    id: 'm2',
+    content: '那种孤独感并非缺失，而是一种清醒。很高兴我们的「算法」捕捉到了这一点。',
+    speaker_clone_id: 'self',
+    turn_index: 1,
+    created_at: '',
+    is_self: true,
+    speaker_name: '我的分身',
+  },
+];
 
 export const MOCK_POSTS: Post[] = [
   {
@@ -31,6 +53,7 @@ export const MOCK_MATCHES: Match[] = [
   {
     id: '1',
     candidateUserId: 'mock-user-lin',
+    sessionId: 'demo-session',
     name: '林溪的分身',
     affinity: 82,
     status: '深度沟通中',

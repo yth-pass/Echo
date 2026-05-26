@@ -201,6 +201,7 @@ export default function App() {
             onSelect={setSelectedMatch}
             onDismiss={(m) => void handleDismissMatch(m)}
             onBlock={(m) => void handleBlockMatch(m)}
+            onOpenSession={(id) => setSelectedSessionId(id)}
           />
         )}
         {currentTab === 'clone' && (

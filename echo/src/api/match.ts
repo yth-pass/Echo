@@ -51,12 +51,19 @@ function mapApiMatch(row: Record<string, unknown>, index: number): Match | null 
       : typeof row.candidateUserId === 'string'
         ? row.candidateUserId
         : undefined;
+  const sessionId =
+    typeof row.session_id === 'string'
+      ? row.session_id
+      : typeof row.sessionId === 'string'
+        ? row.sessionId
+        : undefined;
   return {
     id,
     name,
     affinity,
     handoffId,
     candidateUserId,
+    sessionId,
     status: typeof row.status === 'string' ? row.status : '',
     lastMessage:
       typeof row.lastMessage === 'string'

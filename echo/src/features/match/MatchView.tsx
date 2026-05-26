@@ -18,6 +18,7 @@ export function MatchView({
   onSelect,
   onDismiss,
   onBlock,
+  onOpenSession,
 }: {
   matches: Match[];
   loading?: boolean;
@@ -27,6 +28,7 @@ export function MatchView({
   onSelect: (m: Match) => void;
   onDismiss: (m: Match) => void;
   onBlock: (m: Match) => void;
+  onOpenSession?: (sessionId: string) => void;
 }) {
   const hasApi = Boolean(getApiBaseUrl());
   const showMockBanner = source === 'mock';
@@ -175,6 +177,15 @@ export function MatchView({
                   </button>
                 </div>
 
+                {match.sessionId && onOpenSession && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenSession(match.sessionId!)}
+                    className="w-full mt-2 py-3 bg-echo-blue/10 hover:bg-echo-blue/20 rounded-xl text-xs font-bold text-echo-blue transition-colors"
+                  >
+                    查看对话记录
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => onSelect(match)}
