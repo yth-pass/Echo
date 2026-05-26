@@ -69,7 +69,7 @@ flowchart LR
 
 ## 2. MVP 就绪清单（第 1–3 周）
 
-在 [功能矩阵](./Phase1-Demo-Roadmap-Echo.md) 中 MVP 所需 Phase 1 行均为 `done` 之前，**不要**启动大规模侧载——尤其 **P1-15**（签名 release APK）。
+在 [Phase 1 路线图 §3.3 校园 APK 门槛](./Phase1-Demo-Roadmap-Echo.md) 满足之前（各适用列 `API` / `Worker` / `Web` / `APK` 为 `done`），**不要**启动大规模侧载——尤其 **P1-15** 签名 **release** APK（`APK` = `done`，非仅 debug CI）。
 
 ### 2.1 产品闭环（映射 Echo 能力）
 
@@ -77,7 +77,7 @@ flowchart LR
 |------------|-----------|-----------------|
 | 创建 AI 智能体 | Onboarding 问卷 + AI 对话 → **Digital Clone** | FR-010–014，P1-03 |
 | 智能体社交 / 互聊 | Clone 间 **Agent-to-agent** 会话 | FR-050–054，P1-08 |
-| 个人主页 /「AI 名片」 | Clone 资料 + **Activity audit** 日志 | FR-020–024，P1-04；FR-070–072，P1-10 |
+| 个人主页 /「AI 名片」 | Clone 资料 + **Activity audit** 日志 | FR-020–024，P1-04a–c；FR-070–072，P1-10 |
 | 每日推荐 | **Match list** + 每日匹配任务 | FR-040–044，P1-07 |
 | 真人破冰 | **Affinity** 评分 + **Human Handoff** | FR-060–065，P1-09 |
 | 动态与分身发帖 | 定时发帖 + 审核 | FR-030–034，P1-05，P1-06 |
@@ -86,7 +86,7 @@ flowchart LR
 
 | 项 | 负责方 | 说明 |
 |----|--------|------|
-| 签名 release APK | 工程 | [`apps/android`](../../apps/android/)；CI 产出 `assembleRelease`（P1-15） |
+| 签名 release APK | 工程 | [`apps/android`](../../apps/android/)；`assembleRelease`（P1-15 `APK` = `done`；当前 CI 仅 debug） |
 | Staging API | 工程 | HTTPS 域名；`infra/` 环境模板；密钥不入库 |
 | Android 最小权限 | 工程 | 降低侧载摩擦与信任顾虑 |
 | 安装引导 | 增长 + 设计 | App 内 + 落地页：「允许安装未知来源应用」（Android） |
@@ -248,7 +248,7 @@ flowchart LR
 
 | 周 | 阶段 | 关键任务 | 工程门槛 |
 |----|------|----------|----------|
-| 1–3 | 产品准备与种子招募 | MVP 验收、签名 APK、反馈与埋点、招募 20–50 种子用户 | P1-03–P1-11 `done`；P1-15 签名 APK 就绪 |
+| 1–3 | 产品准备与种子招募 | MVP 验收、签名 APK、反馈与埋点、招募 20–50 种子用户 | 路线图 §3.3 本地演示门槛；P1-15 `APK` = `done`（release） |
 | 3 | 种子内测 | 2–3 版迭代；种子反馈 | P0 崩溃修复 |
 | 4 | 预热 | 海报、预约、种子截图 | — |
 | 5–6 | 校园 APK 推广 | 线下 booth、大使、线上活动 | Staging API 负载稳定 |

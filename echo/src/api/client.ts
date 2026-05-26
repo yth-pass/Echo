@@ -57,3 +57,26 @@ export async function apiPostJson<TBody extends object, TRes>(
     return null;
   }
 }
+
+/** PUT JSON; returns `null` on failure. */
+export async function apiPutJson<TBody extends object, TRes>(
+  path: string,
+  body: TBody,
+): Promise<TRes | null> {
+  const base = getApiBaseUrl();
+  if (!base) return null;
+  const url = path.startsWith('/') ? `${base}${path}` : `${base}/${path}`;
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+  };
+  const token = getAccessToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  try {
+    const res = await fetch(url, { method: 'PUT', headers, body: JSON.stringify(body) });
+    if (!res.ok) return null;
+    return (await res.json()) as TRes;
+  } catch {
+    return null;
+  }
+}

@@ -3,12 +3,14 @@
 | Field | Value |
 |-------|-------|
 | **Audience** | Engineering, product |
-| **Last Updated** | 2026-05-20 |
+| **Last Updated** | 2026-05-26 |
 | **Related** | [Phase 1 Demo Roadmap (canonical)](../../docs/Phase1-Demo-Roadmap-Echo.md), [Software Architecture (Phase 1)](../../docs/Software-Architecture-Echo.md#15-phased-implementation), [Deployment & Component Boundaries](../../docs/Deployment-and-Component-Boundaries-Echo.md), [简体中文](./PHASE1-SCOPE-MAP.zh-CN.md) |
 
 This repository folder [`echo/`](../) is a **React + Vite web prototype**. Phase 1 in the architecture document targets an **Android APK** plus a **separate Echo Platform** (API, workers, Postgres, etc.). The [`echo/`](../) app **cannot** replace those deliverables; it **maps** UI and API contracts for demos and future integration.
 
 **Implementation tracking (one feature per row, local full demo before APK):** use the master matrix in [**Phase 1 Demo Roadmap**](../../docs/Phase1-Demo-Roadmap-Echo.md) — not this file alone.
+
+**Status columns (v1.1.0):** each `P1-xx` row has **`API` | `Worker` | `Web` | `APK`** — not a single `done`. `echo/` work updates **`Web`** only. Campus APK requires §3.3 release gate in the roadmap.
 
 ---
 
@@ -18,7 +20,7 @@ This repository folder [`echo/`](../) is a **React + Vite web prototype**. Phase
 |--------|----------------------|----------------------|--------------------------------|
 | Foundation | Auth, API gateway, Postgres schema, Android shell + navigation | Login/register **shell UI** (optional), route skeleton, `VITE_API_BASE_URL`, docs | `apps/android`, `services/api`, `infra/` Docker Compose (Postgres, Redis, MinIO) |
 | Onboarding | Survey, dialogue, clone creation UI (zh-CN) | **Multi-step survey + AI dialogue**; `POST /onboarding/*`; skip wizard when `onboardingComplete` | See [Onboarding Survey Design](../../docs/Onboarding-Survey-Design-Echo.md) |
-| Clone runtime | Persona storage, agent worker, LLM adapter | **Persona summary, boundaries, pause/resume UI**; browser-side demo only for LLM (never production Worker) | Agent Worker image/process, queues, `LlmAdapter` server-side |
+| Clone runtime | Persona storage, agent worker, LLM adapter | **Pause/resume** (`P1-04a` Web done); **edit persona / boundaries** (`P1-04b`–`c` Web todo); browser LLM is not production Worker | Agent Worker image/process, queues, `LlmAdapter` server-side |
 | Social | Feed read, scheduled posts, moderation | Feed **list + post detail**; `GET /posts/{id}` | Worker `post-draft` + [Clone Runtime](../../docs/Clone-Runtime-and-Triggers-Echo.md) |
 | Matching | Vector search, push, agent sessions | Match list + transcript **read-only UI**; mock or `GET /matches`, `GET /sessions/{id}/messages` | pgvector, FCM, session persistence, workers |
 | Handoff | Affinity engine, FCM, handoff screens | Extend detail UI toward `GET/POST /handoffs/*` **mock** | Affinity engine, FCM, bilateral consent rules |
@@ -50,4 +52,5 @@ This repository folder [`echo/`](../) is a **React + Vite web prototype**. Phase
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 1.0.1 | 2026-05-26 | Point to roadmap API/Web/APK columns; P1-04 split |
 | 1.0.0 | 2026-05-20 | Initial scope map |

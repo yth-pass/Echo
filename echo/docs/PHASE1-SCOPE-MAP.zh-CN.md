@@ -3,12 +3,14 @@
 | 字段 | 值 |
 |------|-----|
 | **读者** | 工程、产品 |
-| **最后更新** | 2026-05-20 |
+| **最后更新** | 2026-05-26 |
 | **相关文档** | [Phase 1 演示路线图（主清单）](../../docs_CN/Phase1-Demo-Roadmap-Echo.md)、[软件架构（Phase 1）](../../docs_CN/Software-Architecture-Echo.md#15-分阶段实施)、[部署与组件边界](../../docs_CN/Deployment-and-Component-Boundaries-Echo.md)、[English](./PHASE1-SCOPE-MAP.md) |
 
 仓库目录 [`echo/`](../) 为 **React + Vite Web 原型**。架构文档中的 Phase 1 指 **Android APK** 与独立的 **Echo Platform**（API、worker、Postgres 等）。[`echo/`](../) **不能**替代这些交付物；仅用于**映射** UI 与 API 契约，供演示与未来联调。
 
 **实现进度（一项一行、APK 前先完成本地全功能演示）：** 以 [**Phase 1 演示路线图**](../../docs_CN/Phase1-Demo-Roadmap-Echo.md) 中的功能矩阵为准，勿仅依赖本文件。
+
+**状态列（v1.1.0）：** 每行 `P1-xx` 分列 **`API` | `Worker` | `Web` | `APK`**，不再使用单一 `done`。`echo/` 工作只更新 **`Web`**。校园 APK 须满足路线图 §3.3 发布门槛。
 
 ---
 
@@ -18,7 +20,7 @@
 |--------|------------|------------------------|------------------------|
 | Foundation | 认证、API 网关、Postgres 模式、Android 壳 + 导航 | 登录/注册**壳 UI**（可选）、路由骨架、`VITE_API_BASE_URL`、文档 | `apps/android`、`services/api`、`infra/` Docker Compose（Postgres、Redis、MinIO） |
 | Onboarding | 问卷、对话、分身创建 UI（zh-CN） | **多步问卷 + AI 对话**；`POST /onboarding/*`；`onboardingComplete` 时跳过向导 | 见 [入驻问卷设计](../../docs_CN/Onboarding-Survey-Design-Echo.md) |
-| Clone runtime | 人格存储、智能体 worker、LLM 适配器 | **人格摘要、边界、暂停/恢复 UI**；浏览器内 LLM 仅为演示（**非**生产 Worker） | Agent Worker 进程/镜像、队列、服务端 `LlmAdapter` |
+| Clone runtime | 人格存储、智能体 worker、LLM 适配器 | **暂停/恢复**（`P1-04a` Web 已 done）；**编辑 persona / 边界**（`P1-04b`–`c` Web 为 todo）；浏览器 LLM 非生产 Worker | Agent Worker 进程/镜像、队列、服务端 `LlmAdapter` |
 | Social | 动态阅读、定时发帖、审核 | Feed **列表 + 详情**；`GET /posts/{id}` | Worker `post-draft` + [分身运行时](../../docs_CN/Clone-Runtime-and-Triggers-Echo.md) |
 | Matching | 向量检索、推送、智能体会话 | 匹配列表 + 会话只读 UI；mock 或 `GET /matches`、`GET /sessions/{id}/messages` | pgvector、FCM、会话持久化、worker |
 | Handoff | 好感度引擎、FCM、handoff 界面 | 详情页对齐 `GET/POST /handoffs/*` 的 **mock** | Affinity 引擎、FCM、双边同意规则 |
@@ -50,4 +52,5 @@
 
 | 版本 | 日期 | 摘要 |
 |------|------|------|
+| 1.0.1 | 2026-05-26 | 指向路线图 API/Web/APK 分列；P1-04 拆分 |
 | 1.0.0 | 2026-05-20 | 初版范围映射 |

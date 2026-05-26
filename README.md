@@ -98,21 +98,14 @@ flowchart LR
 
 ### 3.3 Phase 1 功能矩阵摘要
 
-主清单：[`docs/Phase1-Demo-Roadmap-Echo.md`](docs/Phase1-Demo-Roadmap-Echo.md)（中文：[`docs_CN/Phase1-Demo-Roadmap-Echo.md`](docs_CN/Phase1-Demo-Roadmap-Echo.md)）。
+主清单（**v1.1.0**：每行分列 `API` | `Worker` | `Web` | `APK`，勿用单一 `done`）：[`docs/Phase1-Demo-Roadmap-Echo.md`](docs/Phase1-Demo-Roadmap-Echo.md)（中文：[`docs_CN/Phase1-Demo-Roadmap-Echo.md`](docs_CN/Phase1-Demo-Roadmap-Echo.md)）。
 
-| ID | 能力 | 状态（文档记录） |
-|----|------|------------------|
-| P1-00 | 开发基础设施（Compose） | done |
-| P1-01 | API 壳 + Schema | done |
-| P1-02 | 注册 / OTP / 登录 | done |
-| P1-03 | 入驻问卷 + 对话 + finalize | done |
-| P1-04 | 分身 CRUD + 暂停/恢复 | done |
-| P1-05–P1-06 | 广场阅读 + 定时发帖/审核 | done |
-| P1-07–P1-09 | 匹配 + 会话 + Handoff | done |
-| P1-10–P1-11 | 审计活动 + 举报 | done |
-| **P1-12** | **WebSocket 实时更新** | **todo** |
-| P1-13 | 演示客户端对接 API | done |
-| P1-14–P1-15 | Android 壳 + 签名 APK | done |
+| 层级 | 当前概况（2026-05-26 审计） |
+|------|---------------------------|
+| **API + Worker** | P1-00–P1-11 主路径大体可本地演示（P1-04c、P1-11 Worker、P1-12 除外或未完成） |
+| **Web (`echo`)** | 认证/入驻/分身暂停已完成；匹配忽略、举报、分身编辑/边界、部分详情页仍为 `todo`/`doing` |
+| **APK** | P1-14–P1-15 为 `todo`（仅占位壳 + debug CI） |
+| **校园侧载门槛** | 见路线图 §3.3 |
 
 ---
 

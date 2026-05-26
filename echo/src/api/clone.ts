@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { apiGetJson, apiPostJson, getApiBaseUrl } from './client';
+import { apiGetJson, apiPostJson, apiPutJson, getApiBaseUrl } from './client';
 
 export type CloneMe = {
   id: string;
@@ -22,4 +22,9 @@ export async function pauseClone(): Promise<CloneMe | null> {
 
 export async function resumeClone(): Promise<CloneMe | null> {
   return apiPostJson<object, CloneMe>('/clones/me/resume', {});
+}
+
+export async function updateClonePersona(personaText: string): Promise<CloneMe | null> {
+  if (!getApiBaseUrl()) return null;
+  return apiPutJson<{ personaText: string }, CloneMe>('/clones/me', { personaText });
 }

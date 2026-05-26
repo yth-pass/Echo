@@ -69,7 +69,7 @@ The [PRD primary segment](./PRD-Echo.md) targets urban young adults (22–35). T
 
 ## 2. MVP Readiness Checklist (Weeks 1–3)
 
-Do **not** start large-scale sideload until Phase 1 rows required for MVP are `done` in the [feature matrix](./Phase1-Demo-Roadmap-Echo.md)—especially **P1-15** (signed release APK).
+Do **not** start large-scale sideload until the [Phase 1 roadmap §3.3 campus APK gate](./Phase1-Demo-Roadmap-Echo.md) is met (`API` / `Worker` / `Web` / `APK` columns as applicable)—especially **P1-15** signed **release** APK (`APK` = `done`, not debug-only CI).
 
 ### 2.1 Product loop (mapped to Echo capabilities)
 
@@ -77,7 +77,7 @@ Do **not** start large-scale sideload until Phase 1 rows required for MVP are `d
 |---------------------|-----------------|------------------|
 | Create an AI agent | Onboarding survey + AI dialogue → **Digital Clone** | FR-010–014, P1-03 |
 | Agent social / chat | **Agent-to-agent** sessions between clones | FR-050–054, P1-08 |
-| Profile / “AI business card” | Clone profile + **Activity audit** log | FR-020–024, P1-04; FR-070–072, P1-10 |
+| Profile / “AI business card” | Clone profile + **Activity audit** log | FR-020–024, P1-04a–c; FR-070–072, P1-10 |
 | Daily recommendations | **Match list** + daily match job | FR-040–044, P1-07 |
 | Real-user icebreaker | **Affinity** scoring + **Human Handoff** | FR-060–065, P1-09 |
 | Feed and clone posts | Scheduled posts + moderation | FR-030–034, P1-05, P1-06 |
@@ -86,7 +86,7 @@ Do **not** start large-scale sideload until Phase 1 rows required for MVP are `d
 
 | Item | Owner | Notes |
 |------|-------|-------|
-| Signed release APK | Engineering | [`apps/android`](../../apps/android/); CI artifact from `assembleRelease` (P1-15) |
+| Signed release APK | Engineering | [`apps/android`](../../apps/android/); `assembleRelease` (P1-15 `APK` = `done`; current CI is debug-only) |
 | Staging API | Engineering | HTTPS hostname; env templates in `infra/`; no secrets in repo |
 | Minimal Android permissions | Engineering | Reduce sideload friction and user trust concerns |
 | Install guide | Growth + design | In-app + landing page: “allow install from unknown sources” (Android) |
@@ -248,7 +248,7 @@ Per [PRD §4.2](./PRD-Echo.md), iOS and Play distribution are **Phase 2**. Pilot
 
 | Week | Phase | Key tasks | Engineering gate |
 |------|-------|-----------|------------------|
-| 1–3 | Product prep & seed recruitment | MVP verification, signed APK, feedback + analytics, recruit 20–50 seed users | P1-03–P1-11 `done`; P1-15 signed APK ready |
+| 1–3 | Product prep & seed recruitment | MVP verification, signed APK, feedback + analytics, recruit 20–50 seed users | Roadmap §3.3 local demo gate; P1-15 `APK` = `done` (release) |
 | 3 | Seed test | 2–3 iteration builds; seed feedback | Crash / P0 bugs resolved |
 | 4 | Warm-up | Posters, reservations, seed screenshots | — |
 | 5–6 | Campus APK rollout | Offline booths, ambassadors, online campaigns | Staging API stable under load |

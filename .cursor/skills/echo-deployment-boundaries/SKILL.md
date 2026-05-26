@@ -16,7 +16,7 @@ description: >-
 
 ## Canonical references (read before large changes)
 
-1. [docs/Phase1-Demo-Roadmap-Echo.md](../../../docs/Phase1-Demo-Roadmap-Echo.md) — **feature matrix** (`P1-xx`, `status` column); single source for one-feature-at-a-time work
+1. [docs/Phase1-Demo-Roadmap-Echo.md](../../../docs/Phase1-Demo-Roadmap-Echo.md) — **feature matrix** (`P1-xx`, columns **`API` | `Worker` | `Web` | `APK`**); single source for one-feature-at-a-time work
 2. [docs_CN/Phase1-Demo-Roadmap-Echo.md](../../../docs_CN/Phase1-Demo-Roadmap-Echo.md) — Chinese mirror
 3. [docs/Deployment-and-Component-Boundaries-Echo.md](../../../docs/Deployment-and-Component-Boundaries-Echo.md)
 4. [docs_CN/Deployment-and-Component-Boundaries-Echo.md](../../../docs_CN/Deployment-and-Component-Boundaries-Echo.md)
@@ -30,9 +30,9 @@ description: >-
 |------|--------|
 | Demo client | [`echo/`](../../../echo/) is the **debug client** via `VITE_API_BASE_URL`; not the long-term production client (Android is). |
 | Real stack | Auth, onboarding, feed, match, handoff, audit, etc. live in **`services/api`**, **`services/worker`**, **`infra/`** — not inside `echo` as a monolith. |
-| Mock policy | Mock is **fallback only** when API is down. A roadmap row is `done` only when the happy path uses the real API for that row. |
-| One feature | Pick one `P1-xx` row; set `status` to `doing`, implement, verify, set `done` in the roadmap (both EN + CN mirrors if prose changed). |
-| APK gate | Do **not** prioritize release APK until roadmap rows required for MVP demo are `done` and user has signed off (see P1-13, P1-14, P1-15). |
+| Mock policy | Mock is **fallback only** when API is down. Set **`API` / `Worker` / `Web` / `APK`** = `done` only when that layer’s happy path is verified (see roadmap §4). |
+| One feature | Pick one `P1-xx` row; update the relevant column(s) (`doing` → `done`) in the roadmap (sync EN + CN mirrors if prose changed). |
+| APK gate | Do **not** prioritize campus/release APK until roadmap **§3.3 release gate** is met (not merely `API` = `done` on all rows). |
 
 ## Hard rules (deployment)
 
@@ -46,7 +46,7 @@ description: >-
 1. Open roadmap matrix; choose next `todo` row (or user-specified `P1-xx`).
 2. Implement only in paths listed in **Implementation** column.
 3. Wire `echo` client to new endpoints if the row has a **Client** cell.
-4. Update roadmap `status`; if editing `docs/Phase1-Demo-Roadmap-Echo.md`, sync [docs_CN mirror](../../../docs_CN/Phase1-Demo-Roadmap-Echo.md) (docs-cn-mirror skill).
+4. Update roadmap `API` / `Worker` / `Web` / `APK` columns; if editing `docs/Phase1-Demo-Roadmap-Echo.md`, sync [docs_CN mirror](../../../docs_CN/Phase1-Demo-Roadmap-Echo.md) (docs-cn-mirror skill).
 
 ## Related
 
