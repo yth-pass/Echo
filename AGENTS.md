@@ -44,4 +44,10 @@ When you create, edit, or delete files under `echo/`, apply the project skill **
 
 A `postToolUse` hook (`.cursor/hooks/phase1-context-nudge.py`) injects context after relevant `Write` operations (`echo/`, `services/`, `infra/`, `apps/`, Phase 1 roadmap markdown).
 
+## Git push to GitHub
+
+- **Skill:** **git-push-github-ssh** — push only via SSH from **CMD** (not Git Bash); see skill for `ssh -T`, `git remote set-url`, and `git push origin main`.
+- **Script:** [`.cursor/scripts/git-push-echo.cmd`](.cursor/scripts/git-push-echo.cmd) — one-shot push from `C:\Users\天昊\Desktop\Echo`.
+- **Hooks:** `beforeShellExecution` blocks naive agent `git push`; `postToolUse` reminds after `git commit` to use the SSH workflow.
+
 

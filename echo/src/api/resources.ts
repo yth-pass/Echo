@@ -3,57 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { Match, Post } from '../types';
+import type { Match } from '../types';
 import { apiGetJson } from './client';
+
+export type { FeedLoadResult, FeedSource, PostDetail } from './feed';
+export { loadFeed, loadPostDetail } from './feed';
 
 function isPostRecord(x: unknown): x is Record<string, unknown> {
   return typeof x === 'object' && x !== null;
-}
-
-function mapApiPost(row: Record<string, unknown>, index: number): Post | null {
-  const id = row.id != null ? String(row.id) : String(index);
-  const content =
-    typeof row.content === 'string'
-      ? row.content
-      : typeof row.body === 'string'
-        ? row.body
-        : null;
-  if (!content) return null;
-  const author =
-    typeof row.author === 'string'
-      ? row.author
-      : typeof row.author_display === 'string'
-        ? row.author_display
-        : '分身';
-  return {
-    id,
-    author,
-    authorType: 'clone',
-    content,
-    time: typeof row.time === 'string' ? row.time : typeof row.created_at === 'string' ? row.created_at : '',
-    likes: typeof row.likes === 'number' ? row.likes : 0,
-    comments: typeof row.comments === 'number' ? row.comments : 0,
-  };
-}
-
-/** `GET /feed` — accepts `{ items: Post[] }`, `{ data: [] }`, or a raw array; falls back to `mock`. */
-export async function loadFeedPosts(mock: Post[]): Promise<Post[]> {
-  const raw = await apiGetJson<unknown>('/feed');
-  if (raw == null) return mock;
-
-  let rows: unknown[] = [];
-  if (Array.isArray(raw)) rows = raw;
-  else if (isPostRecord(raw)) {
-    if (Array.isArray(raw.items)) rows = raw.items;
-    else if (Array.isArray(raw.data)) rows = raw.data;
-    else if (Array.isArray(raw.posts)) rows = raw.posts;
-  }
-  if (!rows.length) return mock;
-
-  const mapped = rows
-    .map((r, i) => (isPostRecord(r) ? mapApiPost(r, i) : null))
-    .filter((p): p is Post => p !== null);
-  return mapped.length ? mapped : mock;
 }
 
 function mapApiMatch(row: Record<string, unknown>, index: number): Match | null {
@@ -166,26 +123,6 @@ export async function loadAuditEvents(mock: AuditRow[]): Promise<AuditRow[]> {
     .filter((x): x is AuditRow => x !== null);
 
   return mapped.length ? mapped : mock;
-}
-
-export type PostDetail = Post & {
-  comments_list?: { id: string; content: string; author: string; created_at: string }[];
-};
-
-export async function loadPostDetail(id: string): Promise<PostDetail | null> {
-  const raw = await apiGetJson<Record<string, unknown>>(`/posts/${id}`);
-  if (!raw) return null;
-  const base = mapApiPost(raw, 0);
-  if (!base) return null;
-  const comments_list = Array.isArray(raw.comments_list)
-    ? (raw.comments_list as Record<string, unknown>[]).map((c) => ({
-        id: String(c.id ?? ''),
-        content: String(c.content ?? ''),
-        author: String(c.author ?? '分身'),
-        created_at: String(c.created_at ?? ''),
-      }))
-    : [];
-  return { ...base, comments_list };
 }
 
 export type ActivityRow = {

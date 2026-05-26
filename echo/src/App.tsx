@@ -3,12 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Home, Fingerprint, History, Settings, Sparkles } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 import type { AppState, Match, Post, TabId } from './types';
-import { MOCK_MATCHES, MOCK_POSTS } from './data/mockData';
-import { loadFeedPosts, loadMatches } from './api/resources';
+import { MOCK_MATCHES } from './data/mockData';
+import { loadFeed, type FeedSource } from './api/feed';
+import { loadMatches } from './api/resources';
 import { fetchMe, getStoredAccessToken, type AuthSession } from './api/auth';
 import { getApiBaseUrl } from './api/client';
 import { SplashScreen } from './features/splash/SplashScreen';
@@ -29,8 +30,18 @@ export default function App() {
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
-  const [posts, setPosts] = useState<Post[]>(MOCK_POSTS);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [matches, setMatches] = useState<Match[]>(MOCK_MATCHES);
+  const [feedLoading, setFeedLoading] = useState(false);
+  const [feedSource, setFeedSource] = useState<FeedSource | 'idle'>('idle');
+
+  const refreshFeed = useCallback(async () => {
+    setFeedLoading(true);
+    const { posts: nextPosts, source } = await loadFeed();
+    setPosts(nextPosts);
+    setFeedSource(source);
+    setFeedLoading(false);
+  }, []);
 
   useEffect(() => {
     if (state !== 'splash') return;
@@ -55,12 +66,15 @@ export default function App() {
     if (state !== 'main') return;
     let cancelled = false;
     void (async () => {
-      const [nextPosts, nextMatches] = await Promise.all([
-        loadFeedPosts(MOCK_POSTS),
+      setFeedLoading(true);
+      const [feedResult, nextMatches] = await Promise.all([
+        loadFeed(),
         loadMatches(MOCK_MATCHES),
       ]);
       if (!cancelled) {
-        setPosts(nextPosts);
+        setPosts(feedResult.posts);
+        setFeedSource(feedResult.source);
+        setFeedLoading(false);
         setMatches(nextMatches);
       }
     })();
@@ -81,6 +95,8 @@ export default function App() {
     }
   };
 
+  const selectedPost = selectedPostId ? posts.find((p) => p.id === selectedPostId) : undefined;
+
   if (state === 'splash') {
     return <SplashScreen onFinish={() => setState('auth')} />;
   }
@@ -95,7 +111,13 @@ export default function App() {
     <div className="max-w-md mx-auto min-h-screen bg-echo-dark text-white relative">
       <div className="pb-20">
         {currentTab === 'feed' && (
-          <FeedView posts={posts} onOpenPost={(id) => setSelectedPostId(id)} />
+          <FeedView
+            posts={posts}
+            loading={feedLoading}
+            source={feedSource}
+            onRefresh={() => void refreshFeed()}
+            onOpenPost={(id) => setSelectedPostId(id)}
+          />
         )}
         {currentTab === 'match' && <MatchView matches={matches} onSelect={setSelectedMatch} />}
         {currentTab === 'clone' && <CloneView />}
@@ -113,7 +135,11 @@ export default function App() {
           <MatchDetailView match={selectedMatch} onBack={() => setSelectedMatch(null)} />
         )}
         {selectedPostId && (
-          <PostDetailView postId={selectedPostId} onBack={() => setSelectedPostId(null)} />
+          <PostDetailView
+            postId={selectedPostId}
+            initialPost={selectedPost}
+            onBack={() => setSelectedPostId(null)}
+          />
         )}
         {selectedSessionId && (
           <SessionTranscriptView

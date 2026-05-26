@@ -1,6 +1,12 @@
 {
   "version": 1,
   "hooks": {
+    "beforeShellExecution": [
+      {
+        "command": "python .cursor/hooks/git-push-github-guard.py",
+        "matcher": "git\\s+push"
+      }
+    ],
     "postToolUse": [
       {
         "command": "python .cursor/hooks/sync-docs-cn.py",
@@ -9,6 +15,10 @@
       {
         "command": "python .cursor/hooks/phase1-context-nudge.py",
         "matcher": "Write"
+      },
+      {
+        "command": "python .cursor/hooks/git-push-after-commit.py",
+        "matcher": "Shell"
       }
     ]
   }
