@@ -8,7 +8,7 @@
 | **Last Updated** | 2026-05-18 |
 | **Authors** | Product Team |
 | **Audience** | Stakeholders, design, engineering, QA |
-| **Related Documents** | [Software Architecture](./Software-Architecture-Echo.md), [Deployment & Component Boundaries](./Deployment-and-Component-Boundaries-Echo.md), [Phase 1 Demo Roadmap](./Phase1-Demo-Roadmap-Echo.md), [Glossary](./glossary.md) |
+| **Related Documents** | [Software Architecture](./Software-Architecture-Echo.md), [Deployment & Component Boundaries](./Deployment-and-Component-Boundaries-Echo.md), [Phase 1 Demo Roadmap](./Phase1-Demo-Roadmap-Echo.md), [Campus Pilot Launch Plan](./Campus-Pilot-Launch-Plan-Echo.md), [Glossary](./glossary.md) |
 
 ## Change Log
 

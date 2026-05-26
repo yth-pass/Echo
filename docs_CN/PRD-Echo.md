@@ -8,7 +8,7 @@
 | **最后更新** | 2026-05-18 |
 | **作者** | 产品团队 |
 | **受众** | 干系人、设计、工程、QA |
-| **相关文档** | [软件架构](./Software-Architecture-Echo.md)、[部署与组件边界](./Deployment-and-Component-Boundaries-Echo.md)、[Phase 1 演示路线图](./Phase1-Demo-Roadmap-Echo.md)、[术语表](./glossary.md) |
+| **相关文档** | [软件架构](./Software-Architecture-Echo.md)、[部署与组件边界](./Deployment-and-Component-Boundaries-Echo.md)、[Phase 1 演示路线图](./Phase1-Demo-Roadmap-Echo.md)、[校园试点发布计划](./Campus-Pilot-Launch-Plan-Echo.md)、[术语表](./glossary.md) |
 
 ## 变更记录
 
