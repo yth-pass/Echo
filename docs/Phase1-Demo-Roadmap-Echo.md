@@ -90,7 +90,7 @@ Implement **one row at a time**. Update only the columns that changed.
 | P1-07 | Match list + dismiss + block | FR-040–044 | `echo` match tab | `GET /matches`, dismiss, `POST /blocks` | `match-daily` | `services/api`, `services/worker` | done | done | done | n/a | `loadMatches()` + MatchView dismiss/block; list excludes blocks |
 | P1-08 | Agent sessions + messages (read) | FR-050–054 | match / activity | `GET /sessions`, `GET /sessions/{id}/messages` | `agent-turn` | `services/*`, `echo` | done | done | done | n/a | `session_id` on matches; real transcript in detail + activity; `is_self` on messages |
 | P1-09 | Affinity + handoff | FR-060–065 | `echo` match detail | `GET/POST /handoffs/*` | affinity per turn | `services/*`, `echo` | done | done | done | n/a | `GET /sessions/:id/affinity`; accept/decline handoff; session affinity in detail |
-| P1-10 | Activity audit log | FR-070–072 | `echo` activity tab | `GET /audit/events`, `GET /clones/me/activity` | audit writes | `services/api`, `echo` | done | doing | doing | n/a | Activity tab uses `/clones/me/activity` + mock fallback |
+| P1-10 | Activity audit log | FR-070–072 | `echo` activity tab | `GET /audit/events`, `GET /clones/me/activity` | audit writes | `services/api`, `echo` | done | done | done | n/a | `loadCloneActivity` tri-state source; no silent mock on API path |
 | P1-11 | Reports | FR-080–082 | settings / report | `POST /reports` | mod queue (planned) | `services/api`, `echo` | done | todo | todo | n/a | No report entry in `SettingsView` |
 | P1-12 | WebSocket live updates (optional) | — | `echo` optional | `wss://.../v1/ws` | Redis pub/sub | `services/api` | todo | n/a | todo | n/a | Optional; not started |
 | P1-13 | Demo client API integration | — | `echo` all tabs | via `VITE_API_BASE_URL` | — | `echo/src/api/*` | n/a | n/a | doing | n/a | Per-tab maturity varies; heavy mock when env unset |
@@ -136,6 +136,7 @@ Hooks and skills **do not** enforce compliance automatically; PR reviewers shoul
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 1.1.8 | 2026-05-26 | P1-10 Web done: activity tab real API, loading/error/empty, no silent mock |
 | 1.1.7 | 2026-05-26 | P1-09 Web done: session affinity + handoff accept/decline in match detail |
 | 1.1.6 | 2026-05-26 | P1-08 Web done: session messages in match detail + transcript; `session_id` / `is_self` |
 | 1.1.5 | 2026-05-26 | P1-07 Web done: match list API path, dismiss/block UI, `candidate_user_id` on list |

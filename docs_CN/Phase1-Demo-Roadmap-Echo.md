@@ -90,7 +90,7 @@ flowchart LR
 | P1-07 | 匹配列表 + 忽略 + 拉黑 | FR-040–044 | `echo` 匹配 Tab | `GET /matches`、dismiss、`POST /blocks` | `match-daily` | `services/api`、`services/worker` | done | done | done | n/a | `loadMatches()` + 匹配 Tab 忽略/拉黑；列表排除已拉黑用户 |
 | P1-08 | 智能体会话 + 消息（只读） | FR-050–054 | 匹配 / 记录 | `GET /sessions`、`GET /sessions/{id}/messages` | `agent-turn` | `services/*`、`echo` | done | done | done | n/a | 匹配含 `session_id`；详情/记录展示真实对话；消息含 `is_self` |
 | P1-09 | 好感度 + Handoff | FR-060–065 | `echo` 缘分详情 | `GET/POST /handoffs/*` | 每轮好感度 | `services/*`、`echo` | done | done | done | n/a | `GET /sessions/:id/affinity`；接受/拒绝 handoff；详情展示会话好感度 |
-| P1-10 | 活动审计日志 | FR-070–072 | `echo` 记录 Tab | `GET /audit/events`、`GET /clones/me/activity` | 写 AuditEvent | `services/api`、`echo` | done | doing | doing | n/a | 记录 Tab 用 activity API + Mock 回退 |
+| P1-10 | 活动审计日志 | FR-070–072 | `echo` 记录 Tab | `GET /audit/events`、`GET /clones/me/activity` | 写 AuditEvent | `services/api`、`echo` | done | done | done | n/a | `loadCloneActivity` 三态 source；API 路径无静默 Mock |
 | P1-11 | 举报 | FR-080–082 | 设置 / 举报 | `POST /reports` | 审核队列（规划） | `services/api`、`echo` | done | todo | todo | n/a | `SettingsView` 无举报入口 |
 | P1-12 | WebSocket 实时（可选） | — | `echo` 可选 | `wss://.../v1/ws` | Redis pub/sub | `services/api` | todo | n/a | todo | n/a | 可选；未开始 |
 | P1-13 | 演示客户端 API 集成 | — | `echo` 各 Tab | `VITE_API_BASE_URL` | — | `echo/src/api/*` | n/a | n/a | doing | n/a | 各 Tab 成熟度不一；未配 env 时大量 Mock |
@@ -136,6 +136,7 @@ Hook 与 Skill **不能**自动强制合规；PR 须核对 §3.2–3.3。
 
 | 版本 | 日期 | 摘要 |
 |------|------|------|
+| 1.1.8 | 2026-05-26 | P1-10 Web 完成：活动记录真实 API、加载/错误/空态、无静默 Mock |
 | 1.1.7 | 2026-05-26 | P1-09 Web 完成：会话好感度、Handoff 接受/拒绝、动态契合理由 |
 | 1.1.6 | 2026-05-26 | P1-08 Web 完成：匹配/活动只读会话消息、`session_id` 与 `is_self` |
 | 1.1.5 | 2026-05-26 | P1-07 Web 完成：匹配列表真实 API、忽略/拉黑 UI、`candidate_user_id` |
