@@ -91,7 +91,7 @@ Implement **one row at a time**. Update only the columns that changed.
 | P1-08 | Agent sessions + messages (read) | FR-050–054 | match / activity | `GET /sessions`, `GET /sessions/{id}/messages` | `agent-turn` | `services/*`, `echo` | done | done | done | n/a | `session_id` on matches; real transcript in detail + activity; `is_self` on messages |
 | P1-09 | Affinity + handoff | FR-060–065 | `echo` match detail | `GET/POST /handoffs/*` | affinity per turn | `services/*`, `echo` | done | done | done | n/a | `GET /sessions/:id/affinity`; accept/decline handoff; session affinity in detail |
 | P1-10 | Activity audit log | FR-070–072 | `echo` activity tab | `GET /audit/events`, `GET /clones/me/activity` | audit writes | `services/api`, `echo` | done | done | done | n/a | `loadCloneActivity` tri-state source; no silent mock on API path |
-| P1-11 | Reports | FR-080–082 | settings / report | `POST /reports` | mod queue (planned) | `services/api`, `echo` | done | todo | done | n/a | `submitReport`; Settings + post/comment/user report UI |
+| P1-11 | Reports | FR-080–082 | settings / report | `POST /reports` | `report-triage` | `services/api`, `echo` | done | done | done | n/a | `submitReport` + UI; `report-triage` re-flags reported posts |
 | P1-12 | WebSocket live updates (optional) | — | `echo` optional | `wss://.../v1/ws` | Redis pub/sub | `services/api` | todo | n/a | todo | n/a | Optional; not started |
 | P1-13 | Demo client API integration | — | `echo` all tabs | via `VITE_API_BASE_URL` | — | `echo/src/api/*` | n/a | n/a | doing | n/a | Per-tab maturity varies; heavy mock when env unset |
 | P1-14 | Android shell + navigation | — | APK | same REST as API | — | `apps/android` | n/a | n/a | n/a | todo | `MainActivity` placeholder text only; no tabs |
@@ -136,6 +136,7 @@ Hooks and skills **do not** enforce compliance automatically; PR reviewers shoul
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 1.1.10 | 2026-05-26 | P1-11 Worker done: `report-triage` queue; session report UI in transcript/match |
 | 1.1.9 | 2026-05-26 | P1-11 Web done: report sheet + Settings/post/match report → `POST /reports` |
 | 1.1.8 | 2026-05-26 | P1-10 Web done: activity tab real API, loading/error/empty, no silent mock |
 | 1.1.7 | 2026-05-26 | P1-09 Web done: session affinity + handoff accept/decline in match detail |

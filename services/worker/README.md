@@ -28,7 +28,7 @@ npm run start:dev
 
 
 
-Queues: `post-draft`, `moderation`, `match-daily`, `agent-turn` (must match API `QueueService` names).
+Queues: `post-draft`, `moderation`, `match-daily`, `agent-turn`, `report-triage` (must match API `QueueService` names).
 
 
 

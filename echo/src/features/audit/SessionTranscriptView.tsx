@@ -8,6 +8,7 @@ import { motion } from 'motion/react';
 import { loadSessionMessages, type SessionMessage } from '../../api/session';
 import type { SessionMessagesSource } from '../../api/session';
 import { SessionChatMessages } from '../session/SessionChatMessages';
+import { ReportSheet } from '../report/ReportSheet';
 
 export function SessionTranscriptView({
   sessionId,
@@ -19,6 +20,7 @@ export function SessionTranscriptView({
   const [messages, setMessages] = useState<SessionMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [source, setSource] = useState<SessionMessagesSource | 'idle'>('idle');
+  const [showReport, setShowReport] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -46,7 +48,13 @@ export function SessionTranscriptView({
           返回
         </button>
         <h2 className="font-bold text-sm">分身对话记录</h2>
-        <div className="w-8" />
+        <button
+          type="button"
+          onClick={() => setShowReport(true)}
+          className="text-amber-400/90 text-xs font-bold"
+        >
+          举报
+        </button>
       </div>
       <div className="flex-1 overflow-y-auto p-5">
         <SessionChatMessages
@@ -56,6 +64,14 @@ export function SessionTranscriptView({
           emptyHint="暂无消息或会话尚未产生对话"
         />
       </div>
+
+      {showReport && (
+        <ReportSheet
+          initialTargetType="session"
+          initialTargetId={sessionId}
+          onClose={() => setShowReport(false)}
+        />
+      )}
     </motion.div>
   );
 }

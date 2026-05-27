@@ -37,6 +37,22 @@ async function auditForClone(
   });
 }
 
+async function auditForUser(
+  userId: string,
+  eventType: string,
+  summaryZh: string,
+  referenceId?: string,
+) {
+  const clone = await prisma.digitalClone.findUnique({ where: { userId } });
+  if (clone) {
+    await auditForClone(clone.id, eventType, summaryZh, referenceId);
+    return;
+  }
+  await prisma.auditEvent.create({
+    data: { userId, eventType, summaryZh, referenceId },
+  });
+}
+
 new Worker(
   'post-draft',
   async (job) => {
@@ -199,7 +215,46 @@ new Worker(
   { connection },
 );
 
-console.log('Echo worker started (post-draft, moderation, match-daily, agent-turn, clone-runtime)');
+new Worker(
+  'report-triage',
+  async (job) => {
+    const { reportId, targetType, targetId, reporterId, reason } = job.data as {
+      reportId: string;
+      targetType: string;
+      targetId: string;
+      reporterId: string;
+      reason?: string;
+    };
+    const reasonSnippet = reason?.trim() ? reason.trim().slice(0, 48) : '';
+    const summary = reasonSnippet
+      ? `举报已受理（${targetType}）：${reasonSnippet}…`
+      : `举报已受理（${targetType}）`;
+
+    if (targetType === 'post') {
+      const post = await prisma.post.findUnique({ where: { id: targetId } });
+      if (post?.moderationStatus === ModerationStatus.approved) {
+        await prisma.post.update({
+          where: { id: targetId },
+          data: { moderationStatus: ModerationStatus.pending, publishedAt: null },
+        });
+        await auditForClone(
+          post.cloneId,
+          'report.post_flagged',
+          `动态因举报重新进入审核：${post.content.slice(0, 40)}…`,
+          reportId,
+        );
+      }
+    }
+
+    await auditForUser(reporterId, 'report.submit', summary, reportId);
+    console.log('[report-triage]', reportId, targetType, targetId);
+  },
+  { connection },
+);
+
+console.log(
+  'Echo worker started (post-draft, moderation, match-daily, agent-turn, report-triage, clone-runtime)',
+);
 
 async function bootstrap() {
   const q = new Queue('match-daily', { connection });

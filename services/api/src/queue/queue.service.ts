@@ -7,6 +7,7 @@ export const QUEUE_NAMES = {
   MODERATION: 'moderation',
   MATCH_DAILY: 'match-daily',
   AGENT_TURN: 'agent-turn',
+  REPORT_TRIAGE: 'report-triage',
 } as const;
 
 @Injectable()
@@ -48,6 +49,16 @@ export class QueueService implements OnModuleDestroy {
 
   async enqueueAgentTurn(payload: { sessionId: string }) {
     await this.getQueue(QUEUE_NAMES.AGENT_TURN).add('turn', payload);
+  }
+
+  async enqueueReportTriage(payload: {
+    reportId: string;
+    targetType: string;
+    targetId: string;
+    reporterId: string;
+    reason?: string;
+  }) {
+    await this.getQueue(QUEUE_NAMES.REPORT_TRIAGE).add('triage', payload);
   }
 
   onModuleDestroy() {

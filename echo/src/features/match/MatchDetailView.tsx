@@ -63,6 +63,7 @@ export function MatchDetailView({
   const [msgLoading, setMsgLoading] = useState(false);
   const [msgSource, setMsgSource] = useState<SessionMessagesSource | 'idle'>('idle');
   const [showReport, setShowReport] = useState(false);
+  const [reportMode, setReportMode] = useState<'user' | 'session' | 'manual'>('user');
   const hasApi = Boolean(getApiBaseUrl());
 
   const effectiveHandoffId = match.handoffId ?? sessionAffinity?.handoff?.id ?? null;
@@ -386,25 +387,49 @@ export function MatchDetailView({
             )}
           </div>
         )}
-        <button
-          type="button"
-          onClick={() => setShowReport(true)}
-          disabled={hasApi && !match.candidateUserId}
-          className="w-full py-3 bg-amber-500/10 rounded-2xl font-bold text-amber-400/90 text-xs disabled:opacity-40"
-        >
-          举报分身
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setReportMode(match.candidateUserId ? 'user' : 'manual');
+              setShowReport(true);
+            }}
+            disabled={hasApi && !match.candidateUserId}
+            className="flex-1 py-3 bg-amber-500/10 rounded-2xl font-bold text-amber-400/90 text-xs disabled:opacity-40"
+          >
+            举报分身
+          </button>
+          {match.sessionId && (
+            <button
+              type="button"
+              onClick={() => {
+                setReportMode('session');
+                setShowReport(true);
+              }}
+              className="flex-1 py-3 bg-amber-500/10 rounded-2xl font-bold text-amber-400/90 text-xs"
+            >
+              举报会话
+            </button>
+          )}
+        </div>
         {renderHandoffActions()}
       </div>
 
-      {showReport && match.candidateUserId && (
+      {showReport && reportMode === 'user' && match.candidateUserId && (
         <ReportSheet
           initialTargetType="user"
           initialTargetId={match.candidateUserId}
           onClose={() => setShowReport(false)}
         />
       )}
-      {showReport && !match.candidateUserId && !hasApi && (
+      {showReport && reportMode === 'session' && match.sessionId && (
+        <ReportSheet
+          initialTargetType="session"
+          initialTargetId={match.sessionId}
+          onClose={() => setShowReport(false)}
+        />
+      )}
+      {showReport && reportMode === 'manual' && (
         <ReportSheet onClose={() => setShowReport(false)} />
       )}
     </motion.div>
