@@ -2,12 +2,14 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { HandoffStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { LivePublisherService } from '../live/live-publisher.service';
 
 @Injectable()
 export class HandoffsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly live: LivePublisherService,
   ) {}
 
   async getOne(userId: string, id: string) {
@@ -48,6 +50,17 @@ export class HandoffsService {
       eventType: 'handoff.respond',
       referenceId: id,
       summaryZh: accept ? '接受真人接力' : '拒绝真人接力',
+    });
+    const payload = { handoffId: id, sessionId: handoff.sessionId, status };
+    await this.live.publish({
+      type: 'handoff',
+      userId: handoff.userAId,
+      payload,
+    });
+    await this.live.publish({
+      type: 'handoff',
+      userId: handoff.userBId,
+      payload,
     });
     console.log(`[FCM stub] handoff ${id} -> ${status} for user ${userId}`);
     return { id: updated.id, status: updated.status };

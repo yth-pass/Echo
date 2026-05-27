@@ -16,6 +16,7 @@ import { AuditApiModule } from './audit-api/audit-api.module';
 import { ReportsModule } from './reports/reports.module';
 import { PostsModule } from './posts/posts.module';
 import { QueueModule } from './queue/queue.module';
+import { LiveModule } from './live/live.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { QueueModule } from './queue/queue.module';
     AuditApiModule,
     ReportsModule,
     PostsModule,
+    LiveModule,
   ],
 })
 export class AppModule {}

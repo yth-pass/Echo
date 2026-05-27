@@ -30,6 +30,8 @@ npm run start:dev
 
 Queues: `post-draft`, `moderation`, `match-daily`, `agent-turn`, `report-triage` (must match API `QueueService` names).
 
+Live events: workers `PUBLISH` to Redis channel `echo:live` (`match`, `handoff`, `affinity`, `feed`); API WebSocket hub forwards to clients.
+
 
 
 ## Clone runtime

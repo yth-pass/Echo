@@ -24,6 +24,14 @@ npm run start:dev
 curl http://localhost:4000/v1/health
 ```
 
+## WebSocket (live events, P1-12)
+
+After login, connect with the access token from `POST /auth/login`:
+
+- URL: `ws://localhost:4000/v1/ws?token=<access_token>`
+- Server pushes JSON: `{ "type": "match"|"handoff"|"affinity"|"feed", "payload": { ... } }`
+- Worker publishes to Redis channel `echo:live`; API forwards to connected clients for that `userId`
+
 Auth (MVP OTP logged to console; dev code `123456` if set in `.env`):
 
 ```bash

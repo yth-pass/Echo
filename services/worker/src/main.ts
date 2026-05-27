@@ -13,6 +13,7 @@ import { bridgeMatchPushes, runDailyMatchJob } from './clone-runtime/match-bridg
 import { formatBoundariesClause } from './clone-runtime/boundaries';
 import { generatePostContent, runCloneRuntimeTick, enqueueAffinityPost } from './clone-runtime/scheduler';
 import { getCloneMeta, setCloneMeta } from './clone-runtime/meta';
+import { publishLiveEvent } from './live-event';
 
 const prisma = new PrismaClient();
 const redisUrl = process.env.REDIS_URL ?? 'redis://localhost:6379';
@@ -90,6 +91,11 @@ new Worker(
     const now = Date.now();
     await setCloneMeta(connection, cid, { lastPostAt: now });
     await auditForClone(cid, 'post.publish', `发布动态：${post.content.slice(0, 48)}…`, postId);
+    await publishLiveEvent(connection, {
+      type: 'feed',
+      userId: post.clone.userId,
+      payload: { postId },
+    });
     console.log('[moderation] approved', postId);
   },
   { connection },
@@ -99,6 +105,19 @@ new Worker(
   'match-daily',
   async () => {
     const newPushes = await runDailyMatchJob(prisma);
+    for (const pushId of newPushes) {
+      const push = await prisma.matchPush.findUnique({ where: { id: pushId } });
+      if (push) {
+        await publishLiveEvent(connection, {
+          type: 'match',
+          userId: push.userId,
+          payload: {
+            matchPushId: push.id,
+            candidateUserId: push.candidateUserId,
+          },
+        });
+      }
+    }
     await bridgeMatchPushes(prisma, connection, connection, newPushes);
     console.log('[match-daily] processed pushes', newPushes.length);
   },
@@ -164,6 +183,23 @@ new Worker(
       include: { user: { include: { profile: true } } },
     });
 
+    const affinityPercent = Math.round(score * 100);
+    const affinityPayload = { sessionId, affinityPercent, score };
+    if (cloneA) {
+      await publishLiveEvent(connection, {
+        type: 'affinity',
+        userId: cloneA.userId,
+        payload: affinityPayload,
+      });
+    }
+    if (cloneB) {
+      await publishLiveEvent(connection, {
+        type: 'affinity',
+        userId: cloneB.userId,
+        payload: affinityPayload,
+      });
+    }
+
     if (cloneA) {
       await auditForClone(
         cloneA.id,
@@ -188,13 +224,28 @@ new Worker(
     if (score >= 0.75 && turnIndex >= 4 && cloneA && cloneB) {
       const existing = await prisma.handoff.findUnique({ where: { sessionId } });
       if (!existing) {
-        await prisma.handoff.create({
+        const handoff = await prisma.handoff.create({
           data: {
             sessionId,
             userAId: cloneA.userId,
             userBId: cloneB.userId,
             status: HandoffStatus.pending,
           },
+        });
+        const handoffPayload = {
+          handoffId: handoff.id,
+          sessionId,
+          status: 'pending',
+        };
+        await publishLiveEvent(connection, {
+          type: 'handoff',
+          userId: cloneA.userId,
+          payload: handoffPayload,
+        });
+        await publishLiveEvent(connection, {
+          type: 'handoff',
+          userId: cloneB.userId,
+          payload: handoffPayload,
         });
         console.log('[handoff] created for session', sessionId);
       }

@@ -17,6 +17,7 @@ import {
 import { pollFeedUntilNewPost } from './api/posts';
 import { fetchMe, getStoredAccessToken, type AuthSession } from './api/auth';
 import { getApiBaseUrl } from './api/client';
+import { connectLiveEvents, type LiveWsMessage } from './api/ws';
 import { SplashScreen } from './features/splash/SplashScreen';
 import { AuthShell } from './features/auth/AuthShell';
 import { Onboarding } from './features/onboarding/Onboarding';
@@ -154,6 +155,23 @@ export default function App() {
       cancelled = true;
     };
   }, [state]);
+
+  useEffect(() => {
+    if (state !== 'main' || !getApiBaseUrl() || !getStoredAccessToken()) return;
+
+    const handleLive = (msg: LiveWsMessage) => {
+      if (msg.type === 'connected') return;
+      if (msg.type === 'feed') {
+        void refreshFeed();
+        return;
+      }
+      if (msg.type === 'match' || msg.type === 'handoff' || msg.type === 'affinity') {
+        void refreshMatches();
+      }
+    };
+
+    return connectLiveEvents({ onEvent: handleLive });
+  }, [state, refreshFeed, refreshMatches]);
 
   const handleAuthComplete = (session: AuthSession | null) => {
     if (!getApiBaseUrl()) {

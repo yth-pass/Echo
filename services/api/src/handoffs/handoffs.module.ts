@@ -1,6 +1,13 @@
 import { Module } from '@nestjs/common';
+import { AuditModule } from '../audit/audit.module';
+import { LiveModule } from '../live/live.module';
+import { PrismaModule } from '../prisma/prisma.module';
 import { HandoffsController } from './handoffs.controller';
 import { HandoffsService } from './handoffs.service';
 
-@Module({ controllers: [HandoffsController], providers: [HandoffsService] })
+@Module({
+  imports: [PrismaModule, AuditModule, LiveModule],
+  controllers: [HandoffsController],
+  providers: [HandoffsService],
+})
 export class HandoffsModule {}
