@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -49,6 +49,27 @@ export class SessionsService {
         is_self: myClone ? m.speakerCloneId === myClone.id : false,
         speaker_name: nameByCloneId.get(m.speakerCloneId) ?? '分身',
       })),
+    };
+  }
+
+  async affinityForUser(userId: string, sessionId: string) {
+    const session = await this.prisma.agentSession.findUnique({
+      where: { id: sessionId },
+      include: { affinityScore: true },
+    });
+    if (!session) throw new NotFoundException('Session not found');
+    const myClone = await this.prisma.digitalClone.findUnique({ where: { userId } });
+    if (!myClone || (session.cloneAId !== myClone.id && session.cloneBId !== myClone.id)) {
+      throw new ForbiddenException();
+    }
+    const handoff = await this.prisma.handoff.findUnique({ where: { sessionId } });
+    const score = session.affinityScore?.score ?? 0;
+    return {
+      session_id: session.id,
+      affinity_score: score,
+      affinity_percent: Math.round(score * 100),
+      breakdown_json: session.affinityScore?.breakdownJson ?? null,
+      handoff: handoff ? { id: handoff.id, status: handoff.status } : null,
     };
   }
 }

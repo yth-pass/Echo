@@ -3,15 +3,46 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Heart, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 import type { Match } from '../../types';
 import { getApiBaseUrl } from '../../api/client';
-import { respondHandoff } from '../../api/handoff';
-import { loadSessionMessages, type SessionMessage } from '../../api/session';
+import { fetchHandoff, respondHandoff } from '../../api/handoff';
+import {
+  loadSessionAffinity,
+  loadSessionMessages,
+  type SessionAffinity,
+  type SessionMessage,
+} from '../../api/session';
 import type { SessionMessagesSource } from '../../api/session';
 import { SessionChatMessages } from '../session/SessionChatMessages';
+
+const HANDOFF_THRESHOLD_PERCENT = 75;
+
+function formatBio(bio: string): string {
+  const t = bio.trim();
+  if (!t || t === '{}') return '暂无简介';
+  if (t.startsWith('{')) {
+    try {
+      const o = JSON.parse(t) as Record<string, unknown>;
+      const parts = Object.values(o).filter((v): v is string => typeof v === 'string' && Boolean(v));
+      if (parts.length) return parts.join(' · ');
+    } catch {
+      /* ignore */
+    }
+    return '暂无简介';
+  }
+  return t;
+}
+
+function breakdownTurns(breakdown: unknown): number | null {
+  if (breakdown && typeof breakdown === 'object' && 'turns' in breakdown) {
+    const n = Number((breakdown as { turns: unknown }).turns);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
 
 export function MatchDetailView({
   match,
@@ -25,10 +56,44 @@ export function MatchDetailView({
   onBlock?: (m: Match) => void;
 }) {
   const [handoffStatus, setHandoffStatus] = useState<string | null>(null);
+  const [handoffResponding, setHandoffResponding] = useState(false);
+  const [sessionAffinity, setSessionAffinity] = useState<SessionAffinity | null>(null);
   const [messages, setMessages] = useState<SessionMessage[]>([]);
   const [msgLoading, setMsgLoading] = useState(false);
   const [msgSource, setMsgSource] = useState<SessionMessagesSource | 'idle'>('idle');
   const hasApi = Boolean(getApiBaseUrl());
+
+  const effectiveHandoffId = match.handoffId ?? sessionAffinity?.handoff?.id ?? null;
+  const resolvedHandoffStatus = handoffStatus ?? sessionAffinity?.handoff?.status ?? null;
+
+  const displayAffinityPercent = hasApi
+    ? (sessionAffinity?.affinityPercent ?? match.affinity)
+    : match.affinity;
+
+  useEffect(() => {
+    if (!hasApi || !match.sessionId) {
+      setSessionAffinity(null);
+      return;
+    }
+    let cancelled = false;
+    void loadSessionAffinity(match.sessionId).then((a) => {
+      if (!cancelled) setSessionAffinity(a);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [match.sessionId, hasApi]);
+
+  useEffect(() => {
+    if (!hasApi || !match.handoffId) return;
+    let cancelled = false;
+    void fetchHandoff(match.handoffId).then((h) => {
+      if (!cancelled && h?.status) setHandoffStatus(h.status);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [match.handoffId, hasApi]);
 
   useEffect(() => {
     if (!match.sessionId) {
@@ -57,16 +122,129 @@ export function MatchDetailView({
     };
   }, [match.sessionId, hasApi]);
 
-  const acceptHandoff = async () => {
-    if (!hasApi || !match.handoffId) {
-      onBack();
-      return;
-    }
-    const res = await respondHandoff(match.handoffId, true);
-    setHandoffStatus(res?.status ?? 'accepted');
+  const respond = async (accept: boolean) => {
+    if (!hasApi || !effectiveHandoffId) return;
+    setHandoffResponding(true);
+    const res = await respondHandoff(effectiveHandoffId, accept);
+    setHandoffResponding(false);
+    if (res?.status) setHandoffStatus(res.status);
   };
 
+  const affinityReasons = useMemo(() => {
+    if (!hasApi) return match.matchReasons;
+    const turns = breakdownTurns(sessionAffinity?.breakdown) ?? messages.length;
+    const reasons: string[] = [];
+    if (turns > 0) reasons.push(`分身对话已进行 ${turns} 轮`);
+    reasons.push(`当前会话好感度 ${displayAffinityPercent}%`);
+    if (resolvedHandoffStatus === 'pending') {
+      reasons.push('已达接力阈值，可确认真人联络');
+    } else if (
+      displayAffinityPercent >= HANDOFF_THRESHOLD_PERCENT &&
+      !effectiveHandoffId
+    ) {
+      reasons.push('好感度较高，接力邀请生成中，请稍后刷新');
+    } else if (displayAffinityPercent < HANDOFF_THRESHOLD_PERCENT) {
+      reasons.push(`好感度未达接力阈值（演示约 ${HANDOFF_THRESHOLD_PERCENT}%）`);
+    }
+    return reasons.length ? reasons : match.matchReasons;
+  }, [
+    hasApi,
+    match.matchReasons,
+    sessionAffinity,
+    messages.length,
+    displayAffinityPercent,
+    resolvedHandoffStatus,
+    effectiveHandoffId,
+  ]);
+
   const showMockStaticDialogue = !hasApi;
+  const showMockHandoff = !hasApi;
+  const handoffPending = resolvedHandoffStatus === 'pending';
+  const handoffSettled =
+    resolvedHandoffStatus === 'accepted' || resolvedHandoffStatus === 'declined';
+
+  const renderHandoffActions = () => {
+    if (showMockHandoff) {
+      return (
+        <div className="flex gap-4">
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex-1 py-4 bg-white/5 rounded-2xl font-bold text-gray-400 text-sm"
+          >
+            再观察一下
+          </button>
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex-[2] py-4 bg-echo-blue text-echo-dark rounded-2xl font-bold flex items-center justify-center gap-2"
+          >
+            <Heart className="w-5 h-5 fill-current" />
+            开启真实联络（Mock）
+          </button>
+        </div>
+      );
+    }
+    if (effectiveHandoffId && handoffPending) {
+      return (
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => void respond(false)}
+            disabled={handoffResponding}
+            className="flex-1 py-4 bg-white/5 rounded-2xl font-bold text-gray-400 text-sm disabled:opacity-50"
+          >
+            拒绝
+          </button>
+          <button
+            type="button"
+            onClick={() => void respond(true)}
+            disabled={handoffResponding}
+            className="flex-[2] py-4 bg-echo-blue text-echo-dark rounded-2xl font-bold flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,242,255,0.4)] disabled:opacity-50"
+          >
+            <Heart className="w-5 h-5 fill-current" />
+            {handoffResponding ? '处理中…' : '接受真人联络'}
+          </button>
+        </div>
+      );
+    }
+    if (effectiveHandoffId && handoffSettled) {
+      return (
+        <div className="flex gap-4">
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex-1 py-4 bg-white/5 rounded-2xl font-bold text-gray-400 text-sm"
+          >
+            返回
+          </button>
+          <button
+            type="button"
+            disabled
+            className="flex-[2] py-4 bg-white/10 rounded-2xl font-bold text-gray-400 text-sm"
+          >
+            {resolvedHandoffStatus === 'accepted' ? '已接受联络' : '已拒绝联络'}
+          </button>
+        </div>
+      );
+    }
+    return (
+      <div className="space-y-2">
+        <p className="text-xs text-gray-500 text-center">
+          {displayAffinityPercent < HANDOFF_THRESHOLD_PERCENT
+            ? `好感度未达接力阈值（演示约 ${HANDOFF_THRESHOLD_PERCENT}%）`
+            : '接力邀请生成中，请稍后刷新或继续让分身对话'}
+        </p>
+        <button
+          type="button"
+          onClick={onBack}
+          className="w-full py-4 bg-white/5 rounded-2xl font-bold text-gray-400 text-sm"
+        >
+          返回
+        </button>
+      </div>
+    );
+  };
 
   return (
     <motion.div
@@ -106,16 +284,21 @@ export function MatchDetailView({
             </div>
           </div>
           <div className="absolute top-4 right-6 text-right">
-            <p className="text-4xl font-bold text-echo-blue">{match.affinity}%</p>
-            <p className="text-[10px] text-echo-blue/50 uppercase tracking-tighter">契合度报告</p>
+            <p className="text-4xl font-bold text-echo-blue">{displayAffinityPercent}%</p>
+            <p className="text-[10px] text-echo-blue/50 uppercase tracking-tighter">
+              {hasApi && sessionAffinity ? '会话好感度' : '契合度报告'}
+            </p>
           </div>
         </div>
 
         <div className="px-6 py-8 space-y-8">
           <section>
             <h4 className="text-xs font-bold text-gray-500 uppercase mb-3 text-left">分身契合理由</h4>
+            {!hasApi && (
+              <p className="text-[10px] text-amber-400/90 mb-2">演示数据（Mock）</p>
+            )}
             <div className="space-y-3 text-left">
-              {match.matchReasons.map((reason, i) => (
+              {affinityReasons.map((reason, i) => (
                 <div
                   key={i}
                   className="flex gap-3 bg-echo-card p-4 rounded-2xl border border-white/5"
@@ -129,7 +312,7 @@ export function MatchDetailView({
 
           <section className="text-left">
             <h4 className="text-xs font-bold text-gray-500 uppercase mb-3 text-left">关于她 (真人摘要)</h4>
-            <p className="text-gray-400 leading-relaxed text-sm">{match.bio}</p>
+            <p className="text-gray-400 leading-relaxed text-sm">{formatBio(match.bio)}</p>
           </section>
 
           <section className="text-left">
@@ -201,23 +384,7 @@ export function MatchDetailView({
             )}
           </div>
         )}
-        <div className="flex gap-4">
-          <button
-            type="button"
-            onClick={onBack}
-            className="flex-1 py-4 bg-white/5 rounded-2xl font-bold text-gray-400 text-sm"
-          >
-            再观察一下
-          </button>
-          <button
-            type="button"
-            onClick={() => void acceptHandoff()}
-            className="flex-[2] py-4 bg-echo-blue text-echo-dark rounded-2xl font-bold flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,242,255,0.4)]"
-          >
-            <Heart className="w-5 h-5 fill-current" />
-            {handoffStatus ? `已${handoffStatus}` : '开启真实联络'}
-          </button>
-        </div>
+        {renderHandoffActions()}
       </div>
     </motion.div>
   );

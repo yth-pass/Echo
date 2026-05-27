@@ -11,8 +11,15 @@ export type { PostDraftResult } from './posts';
 export { enqueuePostDraft, pollFeedUntilNewPost } from './posts';
 export type { MatchLoadResult, MatchSource } from './match';
 export { blockUser, dismissMatch, loadMatches } from './match';
-export type { SessionMessage, SessionMessagesResult, SessionMessagesSource } from './session';
-export { loadSessionMessages } from './session';
+export type {
+  SessionAffinity,
+  SessionMessage,
+  SessionMessagesResult,
+  SessionMessagesSource,
+} from './session';
+export { loadSessionAffinity, loadSessionMessages } from './session';
+export type { HandoffDetail } from './handoff';
+export { fetchHandoff, respondHandoff } from './handoff';
 
 function isPostRecord(x: unknown): x is Record<string, unknown> {
   return typeof x === 'object' && x !== null;

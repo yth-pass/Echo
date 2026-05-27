@@ -64,3 +64,38 @@ export async function loadSessionMessages(sessionId: string): Promise<SessionMes
 
   return { messages, source: 'api' };
 }
+
+export type SessionAffinity = {
+  affinityPercent: number;
+  affinityScore: number;
+  breakdown?: unknown;
+  handoff?: { id: string; status: string } | null;
+};
+
+/** `GET /sessions/{id}/affinity` — session score + optional handoff summary. */
+export async function loadSessionAffinity(sessionId: string): Promise<SessionAffinity | null> {
+  if (!getApiBaseUrl()) return null;
+  const raw = await apiGetJson<Record<string, unknown>>(`/sessions/${sessionId}/affinity`);
+  if (!raw) return null;
+  const score =
+    typeof raw.affinity_score === 'number'
+      ? raw.affinity_score
+      : Number(raw.affinity_score ?? 0);
+  const percent =
+    typeof raw.affinity_percent === 'number'
+      ? raw.affinity_percent
+      : Math.round(score * 100);
+  let handoff: SessionAffinity['handoff'] = null;
+  if (isRecord(raw.handoff)) {
+    handoff = {
+      id: String(raw.handoff.id ?? ''),
+      status: String(raw.handoff.status ?? 'pending'),
+    };
+  }
+  return {
+    affinityPercent: percent,
+    affinityScore: score,
+    breakdown: raw.breakdown_json,
+    handoff,
+  };
+}

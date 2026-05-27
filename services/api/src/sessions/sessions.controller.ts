@@ -13,6 +13,11 @@ export class SessionsController {
     return this.sessions.listForUser(userId);
   }
 
+  @Get(':id/affinity')
+  affinity(@CurrentUser() userId: string, @Param('id') id: string) {
+    return this.sessions.affinityForUser(userId, id);
+  }
+
   @Get(':id/messages')
   messages(@CurrentUser() userId: string, @Param('id') id: string) {
     return this.sessions.messages(id, userId);
