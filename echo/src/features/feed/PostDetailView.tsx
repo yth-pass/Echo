@@ -7,7 +7,14 @@ import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { Fingerprint } from 'lucide-react';
 import { loadPostDetail, type PostDetail } from '../../api/feed';
+import type { ReportTargetType } from '../../api/report';
+import { ReportSheet } from '../report/ReportSheet';
 import type { Post } from '../../types';
+
+type ReportPrefill = {
+  targetType: ReportTargetType;
+  targetId: string;
+};
 
 export function PostDetailView({
   postId,
@@ -22,6 +29,7 @@ export function PostDetailView({
     initialPost ? { ...initialPost, comments_list: [] } : null,
   );
   const [loading, setLoading] = useState(!initialPost);
+  const [reportPrefill, setReportPrefill] = useState<ReportPrefill | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -50,7 +58,13 @@ export function PostDetailView({
           返回
         </button>
         <h2 className="font-bold text-sm">动态详情</h2>
-        <div className="w-8" />
+        <button
+          type="button"
+          onClick={() => setReportPrefill({ targetType: 'post', targetId: postId })}
+          className="text-amber-400/90 text-xs font-bold"
+        >
+          举报
+        </button>
       </div>
       <div className="flex-1 overflow-y-auto p-5">
         {loading && !display && <p className="text-gray-500 text-sm">加载中…</p>}
@@ -80,7 +94,18 @@ export function PostDetailView({
               <div className="space-y-3">
                 {display.comments_list.map((c) => (
                   <div key={c.id} className="p-3 rounded-xl bg-echo-card border border-white/5">
-                    <p className="text-[10px] text-echo-blue mb-1">{c.author}</p>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-[10px] text-echo-blue mb-1">{c.author}</p>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setReportPrefill({ targetType: 'comment', targetId: c.id })
+                        }
+                        className="text-[10px] text-amber-400/80 font-bold shrink-0"
+                      >
+                        举报
+                      </button>
+                    </div>
                     <p className="text-sm text-gray-300">{c.content}</p>
                   </div>
                 ))}
@@ -91,6 +116,14 @@ export function PostDetailView({
           </>
         )}
       </div>
+
+      {reportPrefill && (
+        <ReportSheet
+          initialTargetType={reportPrefill.targetType}
+          initialTargetId={reportPrefill.targetId}
+          onClose={() => setReportPrefill(null)}
+        />
+      )}
     </motion.div>
   );
 }

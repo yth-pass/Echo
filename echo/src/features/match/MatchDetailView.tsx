@@ -17,6 +17,7 @@ import {
 } from '../../api/session';
 import type { SessionMessagesSource } from '../../api/session';
 import { SessionChatMessages } from '../session/SessionChatMessages';
+import { ReportSheet } from '../report/ReportSheet';
 
 const HANDOFF_THRESHOLD_PERCENT = 75;
 
@@ -61,6 +62,7 @@ export function MatchDetailView({
   const [messages, setMessages] = useState<SessionMessage[]>([]);
   const [msgLoading, setMsgLoading] = useState(false);
   const [msgSource, setMsgSource] = useState<SessionMessagesSource | 'idle'>('idle');
+  const [showReport, setShowReport] = useState(false);
   const hasApi = Boolean(getApiBaseUrl());
 
   const effectiveHandoffId = match.handoffId ?? sessionAffinity?.handoff?.id ?? null;
@@ -384,8 +386,27 @@ export function MatchDetailView({
             )}
           </div>
         )}
+        <button
+          type="button"
+          onClick={() => setShowReport(true)}
+          disabled={hasApi && !match.candidateUserId}
+          className="w-full py-3 bg-amber-500/10 rounded-2xl font-bold text-amber-400/90 text-xs disabled:opacity-40"
+        >
+          举报分身
+        </button>
         {renderHandoffActions()}
       </div>
+
+      {showReport && match.candidateUserId && (
+        <ReportSheet
+          initialTargetType="user"
+          initialTargetId={match.candidateUserId}
+          onClose={() => setShowReport(false)}
+        />
+      )}
+      {showReport && !match.candidateUserId && !hasApi && (
+        <ReportSheet onClose={() => setShowReport(false)} />
+      )}
     </motion.div>
   );
 }

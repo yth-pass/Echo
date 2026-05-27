@@ -22,3 +22,9 @@ export type { ActivityLoadResult, ActivityRow, ActivitySource } from './activity
 export { loadCloneActivity } from './activity';
 export type { AuditRow } from './audit';
 export { loadAuditEvents } from './audit';
+export type {
+  ReportTargetType,
+  SubmitReportParams,
+  SubmitReportResult,
+} from './report';
+export { submitReport } from './report';
