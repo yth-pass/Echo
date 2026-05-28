@@ -14,8 +14,11 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import {
+  DIALOGUE_GUIDE,
+  DIALOGUE_INPUT_PLACEHOLDER,
   DIALOGUE_MAX_TURNS,
   DIALOGUE_MIN_TURNS,
+  DIALOGUE_PROMPT_CHIPS,
   INTEREST_PRESETS,
   STYLE_SCENARIOS,
   TONE_OPTIONS,
@@ -72,12 +75,18 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
     [],
   );
   const [dialogueTurns, setDialogueTurns] = useState(0);
+  const [dialogueReady, setDialogueReady] = useState(false);
+  const [dialogueSending, setDialogueSending] = useState(false);
+  const [dialogueError, setDialogueError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [finalizePhase, setFinalizePhase] = useState<FinalizePhase>('idle');
   const [finalizeError, setFinalizeError] = useState<string | null>(null);
   const [minDelayDone, setMinDelayDone] = useState(false);
   const finalizeStartedAtRef = useRef<number | null>(null);
   const finalizeRanRef = useRef(false);
+
+  const DIALOGUE_ASSISTANT_FALLBACK =
+    '能再用你自己的话说说吗？比如：约会时最看重什么，或你会如何拒绝让你不适的暧昧～';
 
   const step = STEP_ORDER[stepIndex];
   const hasApi = Boolean(getApiBaseUrl());
@@ -112,6 +121,7 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
     [city, displayName, goal, interests, sampleMessage, stylePicks, toneTags, valuesPicks],
   );
 
+  const dialogueTurnsDisplay = Math.min(dialogueTurns, DIALOGUE_MAX_TURNS);
   const dialogueAtMax = dialogueTurns >= DIALOGUE_MAX_TURNS;
 
   const toggleInterest = (tag: string) => {
@@ -135,36 +145,87 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
     if (res?.sessionId) setSessionId(res.sessionId);
   };
 
+  const resetDialogueSession = async (): Promise<boolean> => {
+    if (!hasApi) {
+      setDialogueLog([
+        {
+          role: 'assistant',
+          text:
+            '嗨～随便聊聊：约会时你最看重什么？不喜欢暧昧时你会怎么开口？用你自己的话说几句就行～',
+        },
+      ]);
+      setDialogueTurns(0);
+      setDialogueReady(true);
+      return true;
+    }
+    setDialogueError(null);
+    const res = await apiPostJson<
+      { sessionId?: string },
+      {
+        sessionId?: string;
+        turnCount?: number;
+        history?: { role: 'user' | 'assistant'; text: string }[];
+      }
+    >('/onboarding/dialogue/start', { sessionId });
+    if (!res?.sessionId) {
+      setDialogueError('对话初始化失败（请重启 API 后重试）；仍可尝试发送消息');
+      setDialogueReady(true);
+      return true;
+    }
+    setSessionId(res.sessionId);
+    setDialogueLog(
+      (res.history ?? []).map((m) => ({
+        role: m.role,
+        text: m.text,
+      })),
+    );
+    setDialogueTurns(Math.min(DIALOGUE_MAX_TURNS, res.turnCount ?? 0));
+    setDialogueInput('');
+    setDialogueReady(true);
+    return true;
+  };
+
   const sendDialogue = async () => {
-    if (!dialogueInput.trim() || dialogueAtMax) return;
+    if (!dialogueInput.trim() || dialogueAtMax || dialogueSending) return;
+    if (hasApi && !dialogueReady) return;
     const msg = dialogueInput.trim();
     setDialogueInput('');
+    setDialogueError(null);
     setDialogueLog((prev) => [...prev, { role: 'user', text: msg }]);
-    setLoading(true);
-    if (hasApi) {
-      const res = await apiPostJson<
-        { message: string; sessionId?: string },
-        { reply?: string; sessionId?: string; turnCount?: number; maxReached?: boolean }
-      >('/onboarding/dialogue/turn', { message: msg, sessionId });
-      if (res?.sessionId) setSessionId(res.sessionId);
-      if (res?.reply) {
-        setDialogueLog((prev) => [...prev, { role: 'assistant', text: res.reply! }]);
+    setDialogueSending(true);
+    try {
+      if (hasApi) {
+        const res = await apiPostJson<
+          { message: string; sessionId?: string },
+          { reply?: string; sessionId?: string; turnCount?: number; maxReached?: boolean }
+        >('/onboarding/dialogue/turn', { message: msg, sessionId });
+        if (res?.sessionId) setSessionId(res.sessionId);
+        const assistantText = res?.reply?.trim() || DIALOGUE_ASSISTANT_FALLBACK;
+        setDialogueLog((prev) => [...prev, { role: 'assistant', text: assistantText }]);
+        if (!res) {
+          setDialogueError('发送失败，请检查网络后重试');
+        }
+        const nextTurns = Math.min(
+          DIALOGUE_MAX_TURNS,
+          res?.turnCount ?? dialogueTurns + 1,
+        );
+        setDialogueTurns(nextTurns);
+      } else {
+        setDialogueLog((prev) => [
+          ...prev,
+          { role: 'assistant', text: '谢谢，这很有帮助！还有想补充的吗？' },
+        ]);
+        setDialogueTurns((t) => Math.min(DIALOGUE_MAX_TURNS, t + 1));
       }
-      setDialogueTurns(res?.turnCount ?? dialogueTurns + 1);
-    } else {
-      setDialogueLog((prev) => [
-        ...prev,
-        { role: 'assistant', text: '谢谢，这很有帮助！还有想补充的吗？' },
-      ]);
-      setDialogueTurns((t) => Math.min(DIALOGUE_MAX_TURNS, t + 1));
+    } finally {
+      setDialogueSending(false);
     }
-    setLoading(false);
   };
 
   const handleDialogueKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (!loading && dialogueInput.trim() && !dialogueAtMax) {
+      if (!dialogueSending && dialogueInput.trim() && !dialogueAtMax && dialogueReady) {
         void sendDialogue();
       }
     }
@@ -222,6 +283,20 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
     void runFinalize();
   }, [step, finalizePhase, runFinalize]);
 
+  useEffect(() => {
+    if (step !== 'dialogue') {
+      setDialogueReady(false);
+      setDialogueError(null);
+      return;
+    }
+    if (!hasApi) {
+      setDialogueReady(true);
+      return;
+    }
+    if (dialogueReady) return;
+    void resetDialogueSession();
+  }, [step, hasApi, dialogueReady]);
+
   const canNext = () => {
     switch (step) {
       case 'basics':
@@ -271,6 +346,12 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
         return;
       }
       const nextIndex = stepIndex + 1;
+      if (STEP_ORDER[nextIndex] === 'dialogue') {
+        setLoading(true);
+        const ok = await resetDialogueSession();
+        setLoading(false);
+        if (!ok) return;
+      }
       if (STEP_ORDER[nextIndex] === 'finalize') {
         setFinalizePhase('pending');
         finalizeRanRef.current = false;
@@ -296,7 +377,7 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
       ? finalizePhase === 'running' ||
         (finalizePhase === 'done' && !minDelayDone) ||
         (finalizePhase !== 'done' && finalizePhase !== 'error')
-      : !canNext() || loading;
+      : !canNext() || loading || (step === 'dialogue' && !dialogueReady);
 
   const primaryClassName =
     step === 'finalize' && (finalizePhase === 'running' || (finalizePhase === 'done' && !minDelayDone))
@@ -497,15 +578,27 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
                 <MessageCircle className="w-5 h-5 text-echo-blue shrink-0" />
                 <h2 className="font-bold">再聊几句，捕捉你的语气</h2>
               </div>
-              <p className="text-xs text-gray-500 mb-3">
-                建议聊 4–6 轮，最多 {DIALOGUE_MAX_TURNS} 轮（当前 {dialogueTurns} / {DIALOGUE_MAX_TURNS}）
+              <p className="text-xs text-gray-500 mb-2">
+                建议聊 4–6 轮，最多 {DIALOGUE_MAX_TURNS} 轮（当前 {dialogueTurnsDisplay} /{' '}
+                {DIALOGUE_MAX_TURNS}）
               </p>
+              <p className="text-xs text-gray-400 leading-relaxed mb-3 rounded-lg bg-white/5 border border-white/10 px-3 py-2">
+                {DIALOGUE_GUIDE}
+              </p>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {DIALOGUE_PROMPT_CHIPS.map((chip) => (
+                  <button
+                    key={chip}
+                    type="button"
+                    disabled={dialogueAtMax || dialogueSending || !dialogueReady}
+                    onClick={() => setDialogueInput(chip)}
+                    className="text-[11px] px-2.5 py-1.5 rounded-full border border-white/15 text-gray-400 hover:border-echo-blue/40 hover:text-echo-blue disabled:opacity-40"
+                  >
+                    {chip}
+                  </button>
+                ))}
+              </div>
               <div className="flex-1 overflow-y-auto space-y-2 mb-3 max-h-48">
-                {dialogueLog.length === 0 && (
-                  <p className="text-xs text-gray-500 whitespace-pre-wrap">
-                    助手：你好，用你自己的话介绍一下约会时你最看重什么？
-                  </p>
-                )}
                 {dialogueLog.map((m, i) => (
                   <p
                     key={i}
@@ -521,19 +614,30 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
                 value={dialogueInput}
                 onChange={(e) => setDialogueInput(e.target.value)}
                 onKeyDown={handleDialogueKeyDown}
-                placeholder="输入回复…（Enter 发送，Shift+Enter 换行）"
+                placeholder={DIALOGUE_INPUT_PLACEHOLDER}
                 rows={3}
-                disabled={dialogueAtMax || loading}
+                disabled={dialogueAtMax || dialogueSending || !dialogueReady}
                 className="w-full bg-echo-card border border-white/10 rounded-xl px-3 py-2.5 text-sm mb-2 resize-y break-words disabled:opacity-50"
               />
               <button
                 type="button"
                 onClick={() => void sendDialogue()}
-                disabled={loading || !dialogueInput.trim() || dialogueAtMax}
+                disabled={
+                  dialogueSending || !dialogueReady || !dialogueInput.trim() || dialogueAtMax
+                }
                 className="w-full py-2.5 px-5 rounded-xl bg-echo-blue/20 border border-echo-blue/40 text-echo-blue text-sm font-bold mb-2 disabled:opacity-40"
               >
                 发送
               </button>
+              {!dialogueReady && hasApi && (
+                <p className="text-xs text-gray-500 mb-2">正在准备对话…</p>
+              )}
+              {dialogueError && (
+                <p className="text-xs text-amber-400 mb-2">{dialogueError}</p>
+              )}
+              {dialogueSending && (
+                <p className="text-xs text-gray-500 mb-2">助手正在回复，首次约需几秒…</p>
+              )}
               <p className="text-[10px] text-gray-600">
                 {dialogueTurns < DIALOGUE_MIN_TURNS
                   ? `至少 ${DIALOGUE_MIN_TURNS} 轮后可继续（当前 ${dialogueTurns} 轮）`

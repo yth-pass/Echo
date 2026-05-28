@@ -27,11 +27,24 @@ export class LlmService {
       return null;
     }
     const model = process.env.DEEPSEEK_MODEL ?? 'deepseek-chat';
-    const completion = await client.chat.completions.create({
-      model,
-      messages,
-      stream: false,
-    });
-    return completion.choices[0]?.message?.content ?? null;
+    const timeoutMs = Number(process.env.LLM_TIMEOUT_MS ?? 25_000);
+    try {
+      const completion = await Promise.race([
+        client.chat.completions.create({
+          model,
+          messages,
+          stream: false,
+        }),
+        new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('LLM request timed out')), timeoutMs);
+        }),
+      ]);
+      return completion.choices[0]?.message?.content ?? null;
+    } catch (err) {
+      this.logger.warn(
+        `LLM chat failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return null;
+    }
   }
 }

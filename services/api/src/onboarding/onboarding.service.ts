@@ -7,14 +7,24 @@ import { AuditService } from '../audit/audit.service';
 import { QueueService } from '../queue/queue.service';
 import { RedisService } from '../redis/redis.service';
 import {
+  buildDialogueOpening,
+  buildGreetingReply,
+  buildOfflineDialogueReply,
+  isGreetingOnly,
+} from './dialogue-copy';
+import {
   buildPersonaSeedFromSurvey,
   type OnboardingSurveyJson,
 } from './survey-schema';
 
+export const DIALOGUE_MIN_TURNS = 4;
 export const DIALOGUE_MAX_TURNS = 8;
 
 const DIALOGUE_WRAP_UP_REPLY =
-  '太好了，你的语气我已经捕捉得差不多了。点击下方「继续」，进入分身孵化吧～';
+  '聊得不错，你的语气特点我已经记下了。点击下方「继续」，进入分身孵化吧～';
+
+const DIALOGUE_FALLBACK_REPLY =
+  '谢谢分享！能再用你自己的话说说，约会时你最看重对方哪一点吗？';
 
 @Injectable()
 export class OnboardingService {
@@ -39,7 +49,10 @@ export class OnboardingService {
     } else {
       session = await this.prisma.onboardingSession.update({
         where: { id: session.id },
-        data: { surveyJson: body as Prisma.InputJsonValue },
+        data: {
+          surveyJson: body as Prisma.InputJsonValue,
+          dialogueJson: [],
+        },
       });
     }
     await this.prisma.profile.upsert({
@@ -59,7 +72,7 @@ export class OnboardingService {
     return { sessionId: session.id, saved: true };
   }
 
-  async dialogueTurn(userId: string, message: string, sessionId?: string) {
+  async startDialogue(userId: string, sessionId?: string) {
     let session = sessionId
       ? await this.prisma.onboardingSession.findFirst({ where: { id: sessionId, userId } })
       : null;
@@ -75,54 +88,98 @@ export class OnboardingService {
       });
     }
     const survey = (session.surveyJson ?? {}) as OnboardingSurveyJson;
-    const surveyBrief = buildPersonaSeedFromSurvey(survey);
-    const history = Array.isArray(session.dialogueJson)
-      ? (session.dialogueJson as { role: string; content: string }[])
-      : [];
+    const opening = buildDialogueOpening(survey);
+    const history = [{ role: 'assistant', content: opening }];
+    session = await this.prisma.onboardingSession.update({
+      where: { id: session.id },
+      data: { dialogueJson: history },
+    });
+    return {
+      sessionId: session.id,
+      turnCount: 0,
+      history: [{ role: 'assistant' as const, text: opening }],
+    };
+  }
 
-    const userTurnsBefore = history.filter((h) => h.role === 'user').length;
-    if (userTurnsBefore >= DIALOGUE_MAX_TURNS) {
-      return {
-        sessionId: session.id,
-        reply: DIALOGUE_WRAP_UP_REPLY,
-        turnCount: userTurnsBefore,
-        maxReached: true,
-      };
-    }
+  async dialogueTurn(userId: string, message: string, sessionId?: string) {
+    try {
+      let session = sessionId
+        ? await this.prisma.onboardingSession.findFirst({ where: { id: sessionId, userId } })
+        : null;
+      if (!session) {
+        session = await this.prisma.onboardingSession.findFirst({
+          where: { userId, completed: false },
+          orderBy: { createdAt: 'desc' },
+        });
+      }
+      if (!session) {
+        session = await this.prisma.onboardingSession.create({
+          data: { userId, dialogueJson: [] },
+        });
+      }
+      const survey = (session.surveyJson ?? {}) as OnboardingSurveyJson;
+      const surveyBrief = buildPersonaSeedFromSurvey(survey);
+      const history = Array.isArray(session.dialogueJson)
+        ? (session.dialogueJson as { role: string; content: string }[])
+        : [];
 
-    history.push({ role: 'user', content: message });
-    const turnCount = history.filter((h) => h.role === 'user').length;
+      const userTurnsBefore = history.filter((h) => h.role === 'user').length;
+      if (userTurnsBefore >= DIALOGUE_MAX_TURNS) {
+        return {
+          sessionId: session.id,
+          reply: DIALOGUE_WRAP_UP_REPLY,
+          turnCount: userTurnsBefore,
+          maxReached: true,
+        };
+      }
 
-    let reply: string;
-    let maxReached = false;
+      history.push({ role: 'user', content: message });
+      const turnCount = history.filter((h) => h.role === 'user').length;
 
-    if (turnCount >= DIALOGUE_MAX_TURNS) {
-      reply = DIALOGUE_WRAP_UP_REPLY;
-      maxReached = true;
-    } else {
-      const wrapUpHint =
-        turnCount >= 6
-          ? '这是第 6 轮或之后：用一句简短总结收尾，并提示用户可点击「继续」进入分身孵化，不要再提新问题。'
-          : '整体对话控制在 8 轮以内；每次只问一个问题，不要重复问卷已问过的事实。';
-      reply =
-        (await this.llm.chat([
+      let reply: string;
+      let maxReached = false;
+
+      if (turnCount >= DIALOGUE_MAX_TURNS) {
+        reply = DIALOGUE_WRAP_UP_REPLY;
+        maxReached = true;
+      } else if (isGreetingOnly(message)) {
+        reply = buildGreetingReply(survey);
+      } else {
+        const wrapUpHint =
+          turnCount >= 7
+            ? '这是第 7 轮：简短回应并自然收尾，可提示用户若还想补充可再说一句，或点击「继续」进入孵化；不要声称已完全掌握语气。'
+            : turnCount >= DIALOGUE_MIN_TURNS
+              ? `这是第 ${turnCount} 轮（至少需 ${DIALOGUE_MIN_TURNS} 轮）：继续用一句话追问，挖掘语气与价值观，不要提前结束或让用户去点「继续」。`
+              : `这是第 ${turnCount} 轮（未满 ${DIALOGUE_MIN_TURNS} 轮）：必须继续追问，每次只问一个问题，不要重复问卷内容，不要提示用户结束对话。`;
+        const llmReply = await this.llm.chat([
           {
             role: 'system',
-            content: `你是 Echo 入驻助手。根据用户问卷与语气样本，用简短中文再追问 1 个问题，以捕捉其语言风格与价值观。问卷摘要：\n${surveyBrief}\n${wrapUpHint}`,
+            content:
+              `你是 Echo 入驻助手。根据用户问卷，用简短、口语化的中文回复：先简短承接用户刚说的话（1 句），再只追问 1 个具体问题。` +
+              `若用户只是打招呼，引导其举例说明约会看重什么、如何拒绝暧昧等。问卷摘要：\n${surveyBrief}\n${wrapUpHint}`,
           },
           ...history.map((h) => ({
             role: h.role as 'user' | 'assistant',
             content: h.content,
           })),
-        ])) ?? '谢谢分享！还有什么想补充的吗？';
-    }
+        ]);
+        reply = llmReply ?? buildOfflineDialogueReply(turnCount, survey);
+      }
 
-    history.push({ role: 'assistant', content: reply });
-    await this.prisma.onboardingSession.update({
-      where: { id: session.id },
-      data: { dialogueJson: history },
-    });
-    return { sessionId: session.id, reply, turnCount, maxReached };
+      history.push({ role: 'assistant', content: reply });
+      await this.prisma.onboardingSession.update({
+        where: { id: session.id },
+        data: { dialogueJson: history },
+      });
+      return { sessionId: session.id, reply, turnCount, maxReached };
+    } catch {
+      return {
+        sessionId: sessionId ?? '',
+        reply: DIALOGUE_FALLBACK_REPLY,
+        turnCount: 0,
+        maxReached: false,
+      };
+    }
   }
 
   async finalize(userId: string) {

@@ -60,6 +60,12 @@ export class SurveyDto {
   extra?: Record<string, unknown>;
 }
 
+export class DialogueStartDto {
+  @IsOptional()
+  @IsString()
+  sessionId?: string;
+}
+
 export class DialogueTurnDto {
   @IsString()
   @MinLength(1)

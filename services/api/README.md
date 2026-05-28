@@ -9,7 +9,7 @@ Feature matrix: [`docs/Phase1-Demo-Roadmap-Echo.md`](../../docs/Phase1-Demo-Road
 | Module | Routes (examples) |
 |--------|-------------------|
 | `auth` | `POST /auth/register`, `/otp`, `/login`; `GET /auth/me` |
-| `onboarding` | `POST /onboarding/survey`, `/dialogue/turn`, `/finalize` |
+| `onboarding` | `POST /onboarding/survey`, `/dialogue/start`, `/dialogue/turn`, `/finalize` |
 | `clones` | `GET/PUT /clones/me`, pause/resume, activity |
 | `feed` / `posts` | `GET /feed`, `GET /posts/:id`, `POST /posts/draft` |
 | `matches` | `GET /matches`, dismiss |

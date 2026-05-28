@@ -54,10 +54,24 @@ export const VALUES_QUESTIONS = [
   },
 ] as const;
 
-/** Minimum user dialogue turns before continuing to finalize. */
-export const DIALOGUE_MIN_TURNS = 2;
+/** Minimum user dialogue turns before continuing to finalize (aligned with API). */
+export const DIALOGUE_MIN_TURNS = 4;
 
 /** Maximum user dialogue turns (aligned with API `DIALOGUE_MAX_TURNS`). */
 export const DIALOGUE_MAX_TURNS = 8;
+
+/** Shown above the input — what users can talk about. */
+export const DIALOGUE_GUIDE =
+  '任选一种方式聊即可（每条 1–3 句话）：① 最看重对方什么 ② 如何拒绝不适的暧昧 ③ 平时怎么开玩笑、吐槽';
+
+export const DIALOGUE_INPUT_PLACEHOLDER =
+  '例如：我比较看重人品；不喜欢会直接说；熟了爱开玩笑…';
+
+/** Tap-to-fill example openers. */
+export const DIALOGUE_PROMPT_CHIPS = [
+  '我比较看重人品和边界感',
+  '不喜欢我会直接但礼貌地说清楚',
+  '熟了之后会损友式开玩笑',
+] as const;
 
 export const INTEREST_PRESETS = ['电影', '音乐', '旅行', '美食', '阅读', '运动', '艺术', '科技'];
