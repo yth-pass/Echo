@@ -5,7 +5,7 @@
 | **产品名称** | Echo |
 | **文档版本** | 1.0.0 |
 | **状态** | 草案 |
-| **最后更新** | 2026-05-20 |
+| **最后更新** | 2026-05-28 |
 | **相关文档** | [PRD](./PRD-Echo.md)、[软件架构](./Software-Architecture-Echo.md)、[Phase 1 演示路线图](./Phase1-Demo-Roadmap-Echo.md)、[术语表](./glossary.md) |
 
 **语言：** 简体中文（镜像）。英文 canonical：[`../docs/Deployment-and-Component-Boundaries-Echo.md`](../docs/Deployment-and-Component-Boundaries-Echo.md)。
@@ -31,6 +31,8 @@
 ## 2. 系统结构（运行时视角）
 
 Echo Phase 1 为 **Android APK** 对接 **Echo Platform** 后端。架构将**同步请求路径**（用户驱动的 REST/WebSocket）与**异步路径**（定时匹配、社交草稿、分身对话轮次、审核）分开。
+
+**Phase 1 本仓库映射：** BullMQ 队列含 `post-draft`、`moderation`、`match-daily`、`agent-turn`、`report-triage`。Worker 向 Redis 频道 `echo:live` 发布实时事件（`match`、`handoff`、`affinity`、`feed`）；`services/api` 经 `GET /v1/ws` 转发给已认证客户端（见 [`services/api/README.md`](../services/api/README.md)）。Web 演示客户端：[`echo/`](../echo/)。
 
 ```mermaid
 flowchart TB
@@ -199,4 +201,5 @@ flowchart TB
 
 | 版本 | 日期 | 摘要 |
 |------|------|------|
+| 1.0.1 | 2026-05-28 | 补充 `report-triage`、Redis `echo:live`、`/v1/ws` 与 Phase 1 仓库映射 |
 | 1.0.0 | 2026-05-20 | 初版：部署拓扑与边界指引 |

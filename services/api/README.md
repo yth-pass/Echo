@@ -2,6 +2,25 @@
 
 NestJS + Prisma REST API for Phase 1 full-function demo. Base URL: `http://localhost:4000/v1`.
 
+Feature matrix: [`docs/Phase1-Demo-Roadmap-Echo.md`](../../docs/Phase1-Demo-Roadmap-Echo.md).
+
+## Modules (NestJS domains)
+
+| Module | Routes (examples) |
+|--------|-------------------|
+| `auth` | `POST /auth/register`, `/otp`, `/login`; `GET /auth/me` |
+| `onboarding` | `POST /onboarding/survey`, `/dialogue/turn`, `/finalize` |
+| `clones` | `GET/PUT /clones/me`, pause/resume, activity |
+| `feed` / `posts` | `GET /feed`, `GET /posts/:id`, `POST /posts/draft` |
+| `matches` | `GET /matches`, dismiss |
+| `sessions` | `GET /sessions/:id/messages`, affinity |
+| `handoffs` | `GET/POST /handoffs/*` |
+| `audit` / `audit-api` | `GET /audit/events`, clone activity |
+| `reports` | `POST /reports` |
+| `blocks` | `POST /blocks` |
+| `live` | WebSocket `GET /v1/ws?token=…` |
+| `health` | `GET /health` |
+
 ## Prerequisites
 
 - Node.js 20+
@@ -41,7 +60,7 @@ curl -X POST http://localhost:4000/v1/auth/login -H "Content-Type: application/j
 
 ## Worker
 
-Async jobs (post draft, moderation, match cron, agent turns) are processed by [`../worker`](../worker). Start after Redis is up:
+Async jobs (`post-draft`, `moderation`, `match-daily`, `agent-turn`, `report-triage`) are processed by [`../worker`](../worker). Start after Redis is up:
 
 ```bash
 cd ../worker && npm install && npm run start:dev

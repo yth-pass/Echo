@@ -28,7 +28,7 @@
 ```text
 Echo/
 ├── AGENTS.md              # Cursor Agent 工作说明（文档镜像、Phase 1 顺序）
-├── README.zh-CN.md        # 本文件（仓库中文总览）
+├── README.md              # 本文件（仓库中文总览）
 ├── docs/                  # 英文工程主文档（PRD、架构、路线图）
 ├── docs_CN/               # docs/ 简体中文镜像
 ├── echo/                  # Phase 1 Web 演示客户端（Vite + React）★ 见第 5 节
@@ -50,9 +50,9 @@ Echo/
 | [`services/worker/`](services/worker/) | 队列消费者、分身调度、LLM | [`services/worker/README.md`](services/worker/README.md) |
 | [`infra/`](infra/) | 本地数据面（Compose） | [`infra/README.md`](infra/README.md) |
 | [`apps/android/`](apps/android/) | Android 演示壳 / APK | [`apps/android/README.md`](apps/android/README.md) |
-| [`docs/`](docs/) / [`docs_CN/`](docs_CN/) | 产品与架构蓝图 | [`docs_CN/README.md`](docs_CN/README.md) |
+| [`docs/`](docs/) / [`docs_CN/`](docs_CN/) | 产品与架构蓝图 | [`docs/README.md`](docs/README.md) · [`docs_CN/README.md`](docs_CN/README.md) |
 
-**Mock 策略（Phase 1）：** 客户端 Mock 仅在 API 不可达时作为回退；**不能**用 Mock 替代 `services/*` 的实现。功能完成以 [`docs/Phase1-Demo-Roadmap-Echo.md`](docs/Phase1-Demo-Roadmap-Echo.md) 矩阵 `status=done` 为准。
+**Mock 策略（Phase 1）：** 未配置 `VITE_API_BASE_URL` 时为纯 Mock；配置 API 后 happy path 须走真实接口（见路线图 §4）。**不能**用客户端 Mock 替代 `services/*` 实现。进度以 [`docs/Phase1-Demo-Roadmap-Echo.md`](docs/Phase1-Demo-Roadmap-Echo.md) 矩阵 **`API` | `Worker` | `Web` | `APK`** 为准。
 
 ---
 
@@ -92,7 +92,7 @@ flowchart LR
 
 1. **基础设施** — `infra/docker-compose.yml` 启动 Postgres（pgvector）、Redis、MinIO  
 2. **API** — `services/api`：迁移、seed、`npm run start:dev`（`http://localhost:4000/v1`）  
-3. **Worker** — `services/worker`：处理 `post-draft`、`moderation`、`match-daily`、`agent-turn` 等队列  
+3. **Worker** — `services/worker`：处理 `post-draft`、`moderation`、`match-daily`、`agent-turn`、`report-triage` 等队列  
 4. **Web 演示** — `echo/`：配置 `VITE_API_BASE_URL`，`npm run dev`（默认端口 **3000**）  
 5. **（可选）Android** — 模拟器默认 API：`http://10.0.2.2:4000/v1`
 
@@ -100,12 +100,12 @@ flowchart LR
 
 主清单（**v1.1.0**：每行分列 `API` | `Worker` | `Web` | `APK`，勿用单一 `done`）：[`docs/Phase1-Demo-Roadmap-Echo.md`](docs/Phase1-Demo-Roadmap-Echo.md)（中文：[`docs_CN/Phase1-Demo-Roadmap-Echo.md`](docs_CN/Phase1-Demo-Roadmap-Echo.md)）。
 
-| 层级 | 当前概况（2026-05-26 审计） |
-|------|---------------------------|
-| **API + Worker** | P1-00–P1-11 主路径大体可本地演示（P1-04c、P1-11 Worker、P1-12 除外或未完成） |
-| **Web (`echo`)** | 认证/入驻/分身暂停已完成；匹配忽略、举报、分身编辑/边界、部分详情页仍为 `todo`/`doing` |
-| **APK** | P1-14–P1-15 为 `todo`（仅占位壳 + debug CI） |
-| **校园侧载门槛** | 见路线图 §3.3 |
+| 层级 | 当前概况（对齐路线图 v1.1.0，2026-05-28） |
+|------|--------------------------------------|
+| **API + Worker** | P1-00–P1-12：`API`/`Worker`（适用时）多为 `done`；本地全栈可演示 |
+| **Web (`echo`)** | P1-02–P1-12 `Web` = `done`（含 persona/边界编辑、发帖、匹配忽略/拉黑、Handoff、举报、活动记录、WebSocket 刷新）；P1-13 = `doing`（集成成熟度） |
+| **APK** | P1-14–P1-15 = `todo`（占位壳 + debug CI） |
+| **校园侧载门槛** | 见路线图 §3.3 与 [`docs/Campus-Pilot-Launch-Plan-Echo.md`](docs/Campus-Pilot-Launch-Plan-Echo.md) |
 
 ---
 
@@ -115,13 +115,14 @@ flowchart LR
 
 - **技术：** NestJS + Prisma  
 - **基址：** `http://localhost:4000/v1`  
-- **模块域（概览）：** `auth`、`onboarding`、`clones`、`feed`、`posts`、`matches`、`sessions`、`handoffs`、`audit`、`reports`、健康检查 `GET /health`  
+- **模块域（概览）：** `auth`、`onboarding`、`clones`、`feed`、`posts`、`matches`、`sessions`、`handoffs`、`audit`、`reports`、`blocks`、实时 `GET /v1/ws`、健康检查 `GET /health`  
 - **开发 OTP：** 控制台日志；`.env` 可设 `OTP_DEV_CODE=123456`（非生产安全）
 
 ### 4.2 `services/worker`
 
 - **技术：** BullMQ + 与 API 共用 Prisma schema  
-- **队列：** `post-draft`、`moderation`、`match-daily`、`agent-turn`  
+- **队列：** `post-draft`、`moderation`、`match-daily`、`agent-turn`、`report-triage`  
+- **实时：** Worker 向 Redis `echo:live` 发布；API 转发至 WebSocket 客户端  
 - **Clone Runtime：** 分身调度、LLM 适配（DeepSeek 等），详见 [`docs/Clone-Runtime-and-Triggers-Echo.md`](docs/Clone-Runtime-and-Triggers-Echo.md)
 
 ### 4.3 `infra`
@@ -183,24 +184,24 @@ echo/
 │   ├── types.ts                 # AppState, TabId, Post, Match
 │   ├── index.css                # Tailwind 主题
 │   ├── api/
-│   │   ├── client.ts            # getApiBaseUrl, apiGetJson, apiPostJson
+│   │   ├── client.ts            # getApiBaseUrl, apiGet/Post/PutJson
 │   │   ├── auth.ts              # 注册 / OTP / 登录 / me
-│   │   ├── resources.ts         # feed, matches, posts, activity, sessions
-│   │   ├── clone.ts             # GET /clones/me, pause, resume
-│   │   ├── handoff.ts           # POST handoffs respond
-│   │   └── deepseek.ts          # 浏览器 DeepSeek（实验用）
+│   │   ├── feed.ts, posts.ts    # 广场、帖子详情、发帖草稿轮询
+│   │   ├── match.ts, session.ts # 匹配列表、忽略/拉黑、会话消息与好感度
+│   │   ├── clone.ts             # 分身读/暂停/恢复、persona、boundaries
+│   │   ├── handoff.ts, activity.ts, report.ts, audit.ts
+│   │   ├── ws.ts                # WebSocket live（match/handoff/affinity/feed）
+│   │   ├── resources.ts         # 上述模块的 re-export 桶
+│   │   └── deepseek.ts          # 浏览器 DeepSeek（实验用，主流程未用）
 │   ├── data/
-│   │   └── mockData.ts          # MOCK_POSTS, MOCK_MATCHES
+│   │   └── mockData.ts          # MOCK_POSTS, MOCK_MATCHES 等
 │   └── features/
-│       ├── splash/              # 启动页
-│       ├── auth/                # 认证壳
-│       ├── onboarding/        # 入驻向导 + surveySteps
-│       ├── feed/                # 广场 + 帖子详情
-│       ├── match/               # 匹配列表 + 详情 + Handoff
-│       ├── clone/               # 我的分身
+│       ├── splash/, auth/, onboarding/
+│       ├── feed/, match/, clone/
 │       ├── audit/               # 活动记录 + 会话 transcript
-│       ├── settings/            # 设置
-│       └── shell/               # Header
+│       ├── report/              # 举报表单 ReportSheet
+│       ├── session/             # 会话消息展示组件
+│       ├── settings/, shell/
 ├── index.html
 ├── vite.config.ts
 ├── package.json
@@ -265,13 +266,15 @@ stateDiagram-v2
 | **入驻** | `features/onboarding/Onboarding.tsx`、`surveySteps.ts` | **8 步**：基础画像 → 语言风格场景 → 语气标签 → 样本消息 → 价值观 → 授权 → AI 对话 → 孵化 finalize。有 API 时提交问卷并多轮 `dialogue/turn` |
 | **广场** | `features/feed/FeedView.tsx` | 分身帖子流；点击进详情 |
 | **帖子详情** | `features/feed/PostDetailView.tsx` | 正文与评论列表；仅 API 模式加载 |
-| **匹配列表** | `features/match/MatchView.tsx` | 契合度、最后一条消息、标签 |
-| **匹配详情** | `features/match/MatchDetailView.tsx` | 匹配理由、对话精选、**开启真实联络**（Handoff 接受/拒绝） |
-| **我的分身** | `features/clone/CloneView.tsx` | 人格摘要、暂停/恢复；无 API 时本地 toggle 并标注 Mock |
-| **活动记录** | `features/audit/ActivityLogView.tsx` | 时间线；筛选（全部/发布/评论/点赞/对话）；可下钻帖子或会话 |
-| **会话全文** | `features/audit/SessionTranscriptView.tsx` | 按 turn 展示 Agent 消息 |
-| **设置** | `features/settings/SettingsView.tsx` | 偏好项多为**静态占位**；退出登录调用 `clearTokens()` |
+| **匹配列表** | `features/match/MatchView.tsx` | 契合度、摘要；忽略匹配、拉黑用户（有 API 时） |
+| **匹配详情** | `features/match/MatchDetailView.tsx` | 理由、会话消息、好感度；Handoff 接受/拒绝 |
+| **我的分身** | `features/clone/CloneView.tsx` | 人格编辑、`PUT /clones/me`；社交边界；暂停/恢复；「让分身发帖」→ `POST /posts/draft` |
+| **活动记录** | `features/audit/ActivityLogView.tsx` | `loadCloneActivity` 三态（api/mock/error）；筛选；下钻帖子或会话 |
+| **会话全文** | `features/audit/SessionTranscriptView.tsx` | `loadSessionMessages`；可举报会话 |
+| **举报** | `features/report/ReportSheet.tsx` | `POST /reports`（帖子/用户/会话等入口） |
+| **设置** | `features/settings/SettingsView.tsx` | 部分偏好为占位；退出 `clearTokens()`；举报入口 |
 | **顶栏** | `features/shell/Header.tsx` | 各 Tab 标题区 |
+| **实时刷新** | `App.tsx` + `api/ws.ts` | 登录后 `connectLiveEvents`；收到事件刷新 feed/matches |
 
 #### 入驻步骤（`STEP_ORDER`）
 
@@ -295,40 +298,44 @@ stateDiagram-v2
 
 - `getApiBaseUrl()` 为空 → 所有请求视为失败，返回 `null`  
 - 网络错误或 non-2xx → 返回 `null`（不抛异常）  
-- 各 loader 根据 `null` 决定是否回退 Mock
+- Feed/Match/Activity：`source` 为 `api` | `mock` | `error`；**有 API 基址时失败/空列表不静默替换 Mock**（见 `feed.ts` / `match.ts` / `activity.ts`）
 
 | 域 | 方法 | 路径 | 封装函数 | 调用方 | Mock / 回退 |
 |----|------|------|----------|--------|-------------|
-| 认证 | POST | `/auth/register` | `registerPhone` | `AuthShell` | 无 API：不发请求 |
-| 认证 | POST | `/auth/otp` | `requestOtp` | `AuthShell` | 无 API：假装已发送 |
-| 认证 | POST | `/auth/login` | `loginWithOtp` | `AuthShell` | 无 API：跳过校验，直接 onboarding |
-| 认证 | GET | `/auth/me` | `fetchMe` | `App.tsx`（splash） | 失败 → `auth` |
-| 入驻 | POST | `/onboarding/survey` | `apiPostJson` | `Onboarding` | 无 API：仅本地状态 |
-| 入驻 | POST | `/onboarding/dialogue/turn` | `apiPostJson` | `Onboarding` | 无 API：本地假回复 |
-| 入驻 | POST | `/onboarding/finalize` | `apiPostJson` | `Onboarding` | 无 API：仅本地完成 |
-| 广场 | GET | `/feed` | `loadFeedPosts` | `App.tsx` | 失败或空 → `MOCK_POSTS` |
-| 帖子 | GET | `/posts/:id` | `loadPostDetail` | `PostDetailView` | **无** mock；失败显示错误 |
-| 匹配 | GET | `/matches` | `loadMatches` | `App.tsx` | 失败或空 → `MOCK_MATCHES` |
-| 分身 | GET | `/clones/me` | `loadCloneMe` | `CloneView` | 无 API：null，UI 用本地状态 |
-| 分身 | POST | `/clones/me/pause` | `pauseClone` | `CloneView` | 无 API：仅本地 |
-| 分身 | POST | `/clones/me/resume` | `resumeClone` | `CloneView` | 无 API：仅本地 |
-| 活动 | GET | `/clones/me/activity` | `loadCloneActivity` | `ActivityLogView` | 失败 → 内联 `MOCK_LOGS`（4 条） |
-| 活动 | GET | `/audit/events` | `loadAuditEvents` | **（未引用）** | 已实现，UI 未使用 |
-| 会话 | GET | `/sessions/:id/messages` | `loadSessionMessages` | `SessionTranscriptView` | 失败 → 空列表 |
-| Handoff | POST | `/handoffs/:id/respond` | `respondHandoff` | `MatchDetailView` | 无 API 或无 `handoffId`：仅关闭层 |
-| DeepSeek | — | 外部 API | `deepseekChat` | **（未引用）** | 需 `VITE_DEEPSEEK_*` |
+| 认证 | POST | `/auth/register` | `registerPhone` | `AuthShell` | 无基址：不发请求 |
+| 认证 | POST | `/auth/otp` | `requestOtp` | `AuthShell` | 无基址：假装已发送 |
+| 认证 | POST | `/auth/login` | `loginWithOtp` | `AuthShell` | 无基址：跳过校验 |
+| 认证 | GET | `/auth/me` | `fetchMe` | `App.tsx` | 失败 → `auth` |
+| 入驻 | POST | `/onboarding/*` | `apiPostJson` | `Onboarding` | 无基址：本地假流程 |
+| 广场 | GET | `/feed` | `loadFeed` | `App.tsx` | 无基址 → mock；有基址错误 → 空列表 `error` |
+| 帖子 | GET | `/posts/:id` | `loadPostDetail` | `PostDetailView` | 无 mock |
+| 发帖 | POST | `/posts/draft` | `enqueuePostDraft` | `CloneView` | 需 API |
+| 匹配 | GET | `/matches` | `loadMatches` | `App.tsx` | 无基址 → mock；有基址错误 → `error` |
+| 匹配 | POST | `/matches/:id/dismiss` | `dismissMatch` | `MatchView` | 需 API |
+| 拉黑 | POST | `/blocks` | `blockUser` | `MatchView` | 需 API |
+| 分身 | GET/PUT | `/clones/me` | `loadCloneMe`, `updateClonePersona`, `updateCloneBoundaries` | `CloneView` | 无基址：本地状态 |
+| 分身 | POST | `/clones/me/pause`, `/resume` | `pauseClone`, `resumeClone` | `CloneView` | 无基址：仅本地 |
+| 活动 | GET | `/clones/me/activity` | `loadCloneActivity` | `ActivityLogView` | 无基址 → mock；有基址错误 → 空 `error` |
+| 审计 | GET | `/audit/events` | `loadAuditEvents` | **（未引用）** | UI 用 activity 端点 |
+| 会话 | GET | `/sessions/:id/messages` | `loadSessionMessages` | 详情/Transcript | 有基址失败 → 空 |
+| 好感度 | GET | `/sessions/:id/affinity` | `loadSessionAffinity` | `MatchDetailView` | 需 API |
+| Handoff | GET/POST | `/handoffs/*` | `fetchHandoff`, `respondHandoff` | `MatchDetailView` | 无 handoffId 时仅关层 |
+| 举报 | POST | `/reports` | `submitReport` | `ReportSheet` 等 | 需 API |
+| 实时 | WS | `/v1/ws?token=…` | `connectLiveEvents` | `App.tsx` | 需 token + 基址 |
+| DeepSeek | — | 外部 | `deepseekChat` | **（未引用）** | `VITE_DEEPSEEK_*` |
 
-**响应兼容：** `resources.ts` 对列表接口容忍 `{ items }`、`{ data }`、原始数组及 snake_case / camelCase 字段名。
+**响应兼容：** 各 `api/*.ts` 解析器容忍 `{ items }`、`{ data }`、原始数组及 snake_case / camelCase。
 
 ### 5.7 Mock 与真实 API 策略
 
 | 模式 | 条件 | 行为 |
 |------|------|------|
-| **纯 Mock** | 未设置 `VITE_API_BASE_URL` | 认证跳过、Feed/Match 用 `mockData.ts`、活动用 `ActivityLogView` 内联日志、分身本地切换 |
-| **联调模式** | 设置 API 基址且服务可达 | 认证、入驻、Feed、Match、分身、活动、会话、Handoff 走真实接口 |
-| **混合回退** | API 已配置但请求失败 | Feed/Match/Activity 回退 Mock；帖子详情与会话消息不回退 mock 数据 |
+| **纯 Mock** | 未设置 `VITE_API_BASE_URL` | 认证可跳过；Feed/Match/Activity `source=mock`；分身本地切换 |
+| **联调模式** | 设置 API 且服务可达 | P1-02–P1-12 主路径走真实 REST/WS；UI 可显示数据来源 |
+| **API 错误** | 已配置基址但请求失败 | Feed/Match/Activity 返回空列表 + `source=error`（**不**静默替换 Mock） |
+| **帖子/会话详情** | 有基址 | 失败显示错误或空态，不用 mock 正文 |
 
-这与 Phase 1 路线图 §4 Mock policy 一致：**完成（done）的功能，happy path 必须打真实 API**；Mock 仅文档化离线开发用途。
+与 Phase 1 路线图 §4 一致：**`Web` = `done` 的行，happy path 须在配置 `VITE_API_BASE_URL` 下验证**；Mock 仅用于未配置 API 的离线浏览。
 
 ### 5.8 环境变量与本地运行
 
@@ -336,7 +343,7 @@ stateDiagram-v2
 
 | 变量 | 说明 |
 |------|------|
-| `VITE_API_BASE_URL` | REST 根路径（含 `/v1）。留空 = 纯 Mock |
+| `VITE_API_BASE_URL` | REST 根路径（含 `/v1）。留空 = 纯 Mock；WebSocket 为同源 ws://…/v1/ws?token=… |
 | `VITE_DEEPSEEK_API_KEY` | 可选；**会打入浏览器包，仅限本地原型** |
 | `VITE_DEEPSEEK_BASE_URL` | 默认 `https://api.deepseek.com` |
 | `VITE_DEEPSEEK_MODEL` | 默认 `deepseek-chat` |
@@ -359,12 +366,11 @@ stateDiagram-v2
 |------|------|
 | 无全局路由库 | 深层链接、浏览器后退需自行扩展 |
 | Settings 占位 | 匹配偏好等多为静态 UI |
-| `loadAuditEvents` 未接线 | 活动 Tab 使用 `loadCloneActivity`，非 `GET /audit/events` |
-| DeepSeek 未进主流程 | `deepseek.ts` 可供实验，主 Tab 不调用 |
-| 无 WebSocket | `P1-12` 仍为 todo |
-| `express` 依赖无源码 | `package.json` 含 `express`，仓库内无 `server.js` 实现 |
-| 浏览器内 API Key | 生产 Web 须后端代理 DeepSeek / 密钥 |
-| 移动端壳 | `max-w-md mx-auto` 模拟手机宽度，非原生应用 |
+| `loadAuditEvents` 未接线 | 活动 Tab 用 `GET /clones/me/activity`，非 `GET /audit/events` |
+| DeepSeek 未进主流程 | `deepseek.ts` 实验用；生产须后端代理密钥 |
+| P1-13 集成度 | 各 Tab 已接 API，但整体标为 `doing`（见路线图） |
+| `express` 依赖无源码 | `package.json` 含 `express`，仓库内无 `server.js` |
+| 移动端壳 | `max-w-md mx-auto` 模拟手机宽度，非 APK |
 
 ---
 
@@ -372,14 +378,15 @@ stateDiagram-v2
 
 | 文档 | 路径 |
 |------|------|
+| 工程文档索引（EN / CN） | [`docs/README.md`](docs/README.md) · [`docs_CN/README.md`](docs_CN/README.md) |
 | 产品需求（EN / CN） | [`docs/PRD-Echo.md`](docs/PRD-Echo.md) · [`docs_CN/PRD-Echo.md`](docs_CN/PRD-Echo.md) |
 | 软件架构 | [`docs/Software-Architecture-Echo.md`](docs/Software-Architecture-Echo.md) |
 | 部署与组件边界 | [`docs/Deployment-and-Component-Boundaries-Echo.md`](docs/Deployment-and-Component-Boundaries-Echo.md) |
 | Phase 1 路线图（主清单） | [`docs/Phase1-Demo-Roadmap-Echo.md`](docs/Phase1-Demo-Roadmap-Echo.md) |
 | 入驻问卷设计 | [`docs/Onboarding-Survey-Design-Echo.md`](docs/Onboarding-Survey-Design-Echo.md) |
 | Clone 运行时与触发器 | [`docs/Clone-Runtime-and-Triggers-Echo.md`](docs/Clone-Runtime-and-Triggers-Echo.md) |
+| 校园试点计划 | [`docs/Campus-Pilot-Launch-Plan-Echo.md`](docs/Campus-Pilot-Launch-Plan-Echo.md) |
 | 术语表 | [`docs/glossary.md`](docs/glossary.md) |
-| 中文文档目录 | [`docs_CN/README.md`](docs_CN/README.md) |
 | echo 目录说明 | [`echo/docs/README.zh-CN.md`](echo/docs/README.zh-CN.md) |
 | echo Phase1 范围映射 | [`echo/docs/PHASE1-SCOPE-MAP.zh-CN.md`](echo/docs/PHASE1-SCOPE-MAP.zh-CN.md) |
 | Cursor Agent 规则 | [`AGENTS.md`](AGENTS.md) |
@@ -442,4 +449,5 @@ curl http://localhost:4000/v1/health
 
 | 版本 | 日期 | 摘要 |
 |------|------|------|
+| 1.1.0 | 2026-05-28 | 对齐路线图 v1.1.0；修正目录引用；更新 `echo/` API 模块与 Mock/WS 说明 |
 | 1.0.0 | 2026-05-25 | 初版：仓库总览 + `echo/` 实现专章（以源码为准） |

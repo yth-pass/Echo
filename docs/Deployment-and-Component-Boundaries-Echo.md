@@ -5,7 +5,7 @@
 | **Product Name** | Echo |
 | **Document Version** | 1.0.0 |
 | **Status** | Draft |
-| **Last Updated** | 2026-05-20 |
+| **Last Updated** | 2026-05-28 |
 | **Related Documents** | [PRD](./PRD-Echo.md), [Software Architecture](./Software-Architecture-Echo.md), [Phase 1 Demo Roadmap](./Phase1-Demo-Roadmap-Echo.md), [Glossary](./glossary.md) |
 
 **Language:** English (canonical). Simplified Chinese mirror: [`../docs_CN/Deployment-and-Component-Boundaries-Echo.md`](../docs_CN/Deployment-and-Component-Boundaries-Echo.md).
@@ -31,6 +31,8 @@ It does **not** prescribe a specific cloud vendor, Kubernetes manifests, or Terr
 ## 2. System Structure (Runtime View)
 
 Echo Phase 1 is an **Android APK** talking to an **Echo Platform** backend. The architecture separates a **synchronous request path** (user-driven REST/WebSocket) from an **asynchronous path** (scheduled matching, social drafts, agent chat turns, moderation).
+
+**Phase 1 repo mapping:** BullMQ queues include `post-draft`, `moderation`, `match-daily`, `agent-turn`, and `report-triage`. Workers publish live notifications to Redis channel `echo:live` (`match`, `handoff`, `affinity`, `feed`); `services/api` forwards them to authenticated clients on `GET /v1/ws` (see [`services/api/README.md`](../services/api/README.md)). Demo web client: [`echo/`](../echo/).
 
 ```mermaid
 flowchart TB
@@ -199,4 +201,5 @@ Clone posting, comments, likes, agent turns, and moderation are **queue-driven**
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 1.0.1 | 2026-05-28 | Note `report-triage`, Redis `echo:live`, `/v1/ws` for Phase 1 repo |
 | 1.0.0 | 2026-05-20 | Initial deployment topology and boundary guidance |
