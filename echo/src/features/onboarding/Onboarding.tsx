@@ -3,17 +3,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { apiPostJson, getApiBaseUrl } from '../../api/client';
+import { saveTokens } from '../../api/auth';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   ArrowRight,
-  BrainCircuit,
   Fingerprint,
   MessageCircle,
   ShieldCheck,
 } from 'lucide-react';
 import {
+  DIALOGUE_MAX_TURNS,
+  DIALOGUE_MIN_TURNS,
   INTEREST_PRESETS,
   STYLE_SCENARIOS,
   TONE_OPTIONS,
@@ -41,6 +43,18 @@ const STEP_ORDER: StepKind[] = [
   'finalize',
 ];
 
+const FINALIZE_MIN_MS = 5000;
+
+type FinalizePhase = 'idle' | 'pending' | 'running' | 'done' | 'error';
+
+type FinalizeResponse = {
+  cloneId?: string;
+  onboardingComplete?: boolean;
+  accessToken?: string;
+  refreshToken?: string;
+  userId?: string;
+};
+
 export function Onboarding({ onComplete }: { onComplete: () => void }) {
   const [stepIndex, setStepIndex] = useState(0);
   const [city, setCity] = useState('');
@@ -59,6 +73,11 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
   );
   const [dialogueTurns, setDialogueTurns] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [finalizePhase, setFinalizePhase] = useState<FinalizePhase>('idle');
+  const [finalizeError, setFinalizeError] = useState<string | null>(null);
+  const [minDelayDone, setMinDelayDone] = useState(false);
+  const finalizeStartedAtRef = useRef<number | null>(null);
+  const finalizeRanRef = useRef(false);
 
   const step = STEP_ORDER[stepIndex];
   const hasApi = Boolean(getApiBaseUrl());
@@ -93,6 +112,8 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
     [city, displayName, goal, interests, sampleMessage, stylePicks, toneTags, valuesPicks],
   );
 
+  const dialogueAtMax = dialogueTurns >= DIALOGUE_MAX_TURNS;
+
   const toggleInterest = (tag: string) => {
     setInterests((prev) =>
       prev.includes(tag) ? prev.filter((t) => t !== tag) : prev.length < 4 ? [...prev, tag] : prev,
@@ -104,6 +125,102 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
       prev.includes(tag) ? prev.filter((t) => t !== tag) : prev.length < 3 ? [...prev, tag] : prev,
     );
   };
+
+  const submitSurvey = async () => {
+    if (!hasApi) return;
+    const res = await apiPostJson<typeof surveyPayload, { sessionId?: string }>(
+      '/onboarding/survey',
+      surveyPayload,
+    );
+    if (res?.sessionId) setSessionId(res.sessionId);
+  };
+
+  const sendDialogue = async () => {
+    if (!dialogueInput.trim() || dialogueAtMax) return;
+    const msg = dialogueInput.trim();
+    setDialogueInput('');
+    setDialogueLog((prev) => [...prev, { role: 'user', text: msg }]);
+    setLoading(true);
+    if (hasApi) {
+      const res = await apiPostJson<
+        { message: string; sessionId?: string },
+        { reply?: string; sessionId?: string; turnCount?: number; maxReached?: boolean }
+      >('/onboarding/dialogue/turn', { message: msg, sessionId });
+      if (res?.sessionId) setSessionId(res.sessionId);
+      if (res?.reply) {
+        setDialogueLog((prev) => [...prev, { role: 'assistant', text: res.reply! }]);
+      }
+      setDialogueTurns(res?.turnCount ?? dialogueTurns + 1);
+    } else {
+      setDialogueLog((prev) => [
+        ...prev,
+        { role: 'assistant', text: '谢谢，这很有帮助！还有想补充的吗？' },
+      ]);
+      setDialogueTurns((t) => Math.min(DIALOGUE_MAX_TURNS, t + 1));
+    }
+    setLoading(false);
+  };
+
+  const handleDialogueKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (!loading && dialogueInput.trim() && !dialogueAtMax) {
+        void sendDialogue();
+      }
+    }
+  };
+
+  const runFinalize = useCallback(async () => {
+    setFinalizePhase('running');
+    setFinalizeError(null);
+    setMinDelayDone(false);
+    finalizeStartedAtRef.current = Date.now();
+
+    const minDelay = new Promise<void>((resolve) => {
+      setTimeout(resolve, FINALIZE_MIN_MS);
+    });
+
+    const work = async (): Promise<boolean> => {
+      if (hasApi) {
+        const res = await apiPostJson<Record<string, never>, FinalizeResponse>(
+          '/onboarding/finalize',
+          {},
+        );
+        if (!res?.onboardingComplete) {
+          setFinalizeError('孵化失败，请检查网络后重试');
+          return false;
+        }
+        if (res.accessToken && res.refreshToken && res.userId) {
+          saveTokens({
+            accessToken: res.accessToken,
+            refreshToken: res.refreshToken,
+            userId: res.userId,
+          });
+        }
+        return true;
+      }
+      await new Promise((r) => setTimeout(r, FINALIZE_MIN_MS));
+      return true;
+    };
+
+    const [ok] = await Promise.all([work(), minDelay]);
+    setMinDelayDone(true);
+    if (ok) {
+      setFinalizePhase('done');
+    } else {
+      setFinalizePhase('error');
+    }
+  }, [hasApi]);
+
+  useEffect(() => {
+    if (step !== 'finalize') {
+      finalizeRanRef.current = false;
+      return;
+    }
+    if (finalizePhase !== 'pending' || finalizeRanRef.current) return;
+    finalizeRanRef.current = true;
+    void runFinalize();
+  }, [step, finalizePhase, runFinalize]);
 
   const canNext = () => {
     switch (step) {
@@ -120,48 +237,27 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
       case 'consent':
         return true;
       case 'dialogue':
-        return dialogueTurns >= 2 || dialogueLog.length >= 4;
+        return dialogueTurns >= DIALOGUE_MIN_TURNS;
+      case 'finalize':
+        return finalizePhase === 'done' && minDelayDone;
       default:
         return true;
     }
   };
 
-  const submitSurvey = async () => {
-    if (!hasApi) return;
-    const res = await apiPostJson<typeof surveyPayload, { sessionId?: string }>(
-      '/onboarding/survey',
-      surveyPayload,
-    );
-    if (res?.sessionId) setSessionId(res.sessionId);
-  };
-
-  const sendDialogue = async () => {
-    if (!dialogueInput.trim()) return;
-    const msg = dialogueInput.trim();
-    setDialogueInput('');
-    setDialogueLog((prev) => [...prev, { role: 'user', text: msg }]);
-    setLoading(true);
-    if (hasApi) {
-      const res = await apiPostJson<
-        { message: string; sessionId?: string },
-        { reply?: string; sessionId?: string; turnCount?: number }
-      >('/onboarding/dialogue/turn', { message: msg, sessionId });
-      if (res?.sessionId) setSessionId(res.sessionId);
-      if (res?.reply) {
-        setDialogueLog((prev) => [...prev, { role: 'assistant', text: res.reply! }]);
-      }
-      setDialogueTurns(res?.turnCount ?? dialogueTurns + 1);
-    } else {
-      setDialogueLog((prev) => [
-        ...prev,
-        { role: 'assistant', text: '谢谢，这很有帮助！还有想补充的吗？' },
-      ]);
-      setDialogueTurns((t) => t + 1);
-    }
-    setLoading(false);
-  };
-
   const next = async () => {
+    if (step === 'finalize') {
+      if (finalizePhase === 'error') {
+        setFinalizePhase('pending');
+        finalizeRanRef.current = false;
+        return;
+      }
+      if (finalizePhase === 'done' && minDelayDone) {
+        onComplete();
+      }
+      return;
+    }
+
     if (step === 'values') {
       await submitSurvey();
     }
@@ -174,19 +270,38 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
         setStyleIdx(styleIdx + 1);
         return;
       }
-      setStepIndex(stepIndex + 1);
+      const nextIndex = stepIndex + 1;
+      if (STEP_ORDER[nextIndex] === 'finalize') {
+        setFinalizePhase('pending');
+        finalizeRanRef.current = false;
+      }
+      setStepIndex(nextIndex);
       if (step === 'style' && styleIdx === STYLE_SCENARIOS.length - 1) {
         setStyleIdx(0);
       }
-      return;
     }
-    setLoading(true);
-    if (hasApi) {
-      await apiPostJson('/onboarding/finalize', {});
-    }
-    setLoading(false);
-    onComplete();
   };
+
+  const primaryLabel = () => {
+    if (step === 'finalize') {
+      if (finalizePhase === 'error') return '重试孵化';
+      if (finalizePhase === 'done' && minDelayDone) return '孵化完成，进入广场';
+      return '分身孵化中…';
+    }
+    return '继续';
+  };
+
+  const primaryDisabled =
+    step === 'finalize'
+      ? finalizePhase === 'running' ||
+        (finalizePhase === 'done' && !minDelayDone) ||
+        (finalizePhase !== 'done' && finalizePhase !== 'error')
+      : !canNext() || loading;
+
+  const primaryClassName =
+    step === 'finalize' && (finalizePhase === 'running' || (finalizePhase === 'done' && !minDelayDone))
+      ? 'mt-8 w-full bg-white/15 text-gray-400 font-bold py-4 rounded-2xl flex items-center justify-center gap-2 cursor-not-allowed'
+      : 'mt-8 w-full bg-echo-blue text-echo-dark font-bold py-4 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-40';
 
   const titleForStep = () => {
     switch (step) {
@@ -334,7 +449,7 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
                 onChange={(e) => setSampleMessage(e.target.value)}
                 placeholder="例如：哈哈哈可以啊，周末见～"
                 rows={3}
-                className="w-full bg-echo-card border border-white/10 rounded-xl px-3 py-2 text-sm"
+                className="w-full bg-echo-card border border-white/10 rounded-xl px-3 py-2 text-sm resize-y"
               />
             </div>
           )}
@@ -378,54 +493,81 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
 
           {step === 'dialogue' && (
             <div className="w-full flex flex-col min-h-[280px]">
-              <div className="flex items-center gap-2 mb-3">
-                <MessageCircle className="w-5 h-5 text-echo-blue" />
+              <div className="flex items-center gap-2 mb-1">
+                <MessageCircle className="w-5 h-5 text-echo-blue shrink-0" />
                 <h2 className="font-bold">再聊几句，捕捉你的语气</h2>
               </div>
+              <p className="text-xs text-gray-500 mb-3">
+                建议聊 4–6 轮，最多 {DIALOGUE_MAX_TURNS} 轮（当前 {dialogueTurns} / {DIALOGUE_MAX_TURNS}）
+              </p>
               <div className="flex-1 overflow-y-auto space-y-2 mb-3 max-h-48">
                 {dialogueLog.length === 0 && (
-                  <p className="text-xs text-gray-500">助手：你好，用你自己的话介绍一下约会时你最看重什么？</p>
+                  <p className="text-xs text-gray-500 whitespace-pre-wrap">
+                    助手：你好，用你自己的话介绍一下约会时你最看重什么？
+                  </p>
                 )}
                 {dialogueLog.map((m, i) => (
                   <p
                     key={i}
-                    className={`text-xs p-2 rounded-lg ${
-                      m.role === 'user' ? 'bg-echo-blue/10 ml-8' : 'bg-white/5 mr-8'
+                    className={`text-xs p-2 rounded-lg whitespace-pre-wrap break-words ${
+                      m.role === 'user' ? 'bg-echo-blue/10 ml-4' : 'bg-white/5 mr-4'
                     }`}
                   >
                     {m.role === 'user' ? '你' : '助手'}：{m.text}
                   </p>
                 ))}
               </div>
-              <input
+              <textarea
                 value={dialogueInput}
                 onChange={(e) => setDialogueInput(e.target.value)}
-                placeholder="输入回复…"
-                className="w-full bg-echo-card border border-white/10 rounded-xl px-3 py-2 text-sm mb-2"
+                onKeyDown={handleDialogueKeyDown}
+                placeholder="输入回复…（Enter 发送，Shift+Enter 换行）"
+                rows={3}
+                disabled={dialogueAtMax || loading}
+                className="w-full bg-echo-card border border-white/10 rounded-xl px-3 py-2.5 text-sm mb-2 resize-y break-words disabled:opacity-50"
               />
               <button
                 type="button"
                 onClick={() => void sendDialogue()}
-                disabled={loading || !dialogueInput.trim()}
-                className="text-xs text-echo-blue font-bold mb-2"
+                disabled={loading || !dialogueInput.trim() || dialogueAtMax}
+                className="w-full py-2.5 px-5 rounded-xl bg-echo-blue/20 border border-echo-blue/40 text-echo-blue text-sm font-bold mb-2 disabled:opacity-40"
               >
-                发送本轮
+                发送
               </button>
-              <p className="text-[10px] text-gray-600">至少 2 轮对话后可继续（当前 {dialogueTurns} 轮）</p>
+              <p className="text-[10px] text-gray-600">
+                {dialogueTurns < DIALOGUE_MIN_TURNS
+                  ? `至少 ${DIALOGUE_MIN_TURNS} 轮后可继续（当前 ${dialogueTurns} 轮）`
+                  : dialogueAtMax
+                    ? '已达对话上限，请点击下方「继续」进入孵化'
+                    : `已满 ${DIALOGUE_MIN_TURNS} 轮，可随时点击「继续」`}
+              </p>
             </div>
           )}
 
           {step === 'finalize' && (
             <div className="text-center">
               <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ repeat: Infinity, duration: 4, ease: 'linear' }}
+                animate={{ rotate: finalizePhase === 'done' ? 0 : 360 }}
+                transition={
+                  finalizePhase === 'done'
+                    ? { duration: 0.3 }
+                    : { repeat: Infinity, duration: 4, ease: 'linear' }
+                }
                 className="inline-block mb-4"
               >
                 <Fingerprint className="w-12 h-12 text-echo-blue" />
               </motion.div>
-              <h2 className="text-xl font-bold">分身正在孵化</h2>
-              <p className="text-sm text-gray-500 mt-2">将写入语言风格并发布首条广场动态</p>
+              <h2 className="text-xl font-bold">
+                {finalizePhase === 'done' ? '孵化完成' : '分身正在孵化'}
+              </h2>
+              <p className="text-sm text-gray-500 mt-2">
+                {finalizePhase === 'done'
+                  ? '已写入语言风格并排队发布首条广场动态'
+                  : '将写入语言风格并排队发布首条广场动态'}
+              </p>
+              {finalizePhase === 'error' && finalizeError && (
+                <p className="text-sm text-red-400 mt-3">{finalizeError}</p>
+              )}
             </div>
           )}
         </motion.div>
@@ -433,12 +575,14 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
 
       <button
         type="button"
-        disabled={!canNext() || loading}
+        disabled={primaryDisabled}
         onClick={() => void next()}
-        className="mt-8 w-full bg-echo-blue text-echo-dark font-bold py-4 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-40"
+        className={primaryClassName}
       >
-        {loading ? '处理中…' : step === 'finalize' ? '进入广场' : '继续'}
-        <ArrowRight className="w-5 h-5" />
+        {loading && step !== 'finalize' ? '处理中…' : primaryLabel()}
+        {!(step === 'finalize' && finalizePhase === 'running') && (
+          <ArrowRight className="w-5 h-5" />
+        )}
       </button>
     </div>
   );

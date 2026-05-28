@@ -27,6 +27,7 @@
 
 ```text
 Echo/
+├── start-echo-demo.cmd    # Windows 一键启动 API + Worker + echo（见 §7.1a）
 ├── AGENTS.md              # Cursor Agent 工作说明（文档镜像、Phase 1 顺序）
 ├── README.md              # 本文件（仓库中文总览）
 ├── docs/                  # 英文工程主文档（PRD、架构、路线图）
@@ -395,7 +396,16 @@ stateDiagram-v2
 
 ## 7. 快速启动清单
 
-### 7.1 全栈本地演示（推荐）
+### 7.1a 一键启动（Windows，已配好后端）
+
+若已完成 **Neon/Upstash**（见 [`infra/README-native-windows.md`](infra/README-native-windows.md)）或 **Docker + `.env`**，且执行过 `npm install` 与（首次）`prisma migrate deploy` + `seed`：
+
+1. 确认 `echo/.env.local` 含 `VITE_API_BASE_URL=http://localhost:4000/v1`
+2. **双击仓库根目录** [`start-echo-demo.cmd`](start-echo-demo.cmd)
+
+脚本会打开三个 CMD 窗口（API、Worker、Web），约 8 秒后打开 `http://localhost:3000`。关闭三个窗口即停止演示。
+
+### 7.1 全栈本地演示（手动 / Docker Compose）
 
 ```bash
 # 1. 基础设施
@@ -449,5 +459,6 @@ curl http://localhost:4000/v1/health
 
 | 版本 | 日期 | 摘要 |
 |------|------|------|
+| 1.1.1 | 2026-05-28 | 新增 `start-echo-demo.cmd` Windows 一键启动 |
 | 1.1.0 | 2026-05-28 | 对齐路线图 v1.1.0；修正目录引用；更新 `echo/` API 模块与 Mock/WS 说明 |
 | 1.0.0 | 2026-05-25 | 初版：仓库总览 + `echo/` 实现专章（以源码为准） |

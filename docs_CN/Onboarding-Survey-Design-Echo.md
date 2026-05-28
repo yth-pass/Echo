@@ -20,8 +20,8 @@
 4. 可选常用句
 5. 价值观 — 2 道二选一
 6. 授权
-7. AI 对话 — 4–6 轮 `POST /onboarding/dialogue/turn`
-8. 完成 — `POST /onboarding/finalize`
+7. AI 对话 — **2–8 轮用户发言** `POST /onboarding/dialogue/turn`（界面提示建议 4–6 轮、最多 8 轮；Enter 发送）
+8. 孵化 — 进入本步自动 `POST /onboarding/finalize`（创建分身、欢迎帖、`match-daily` 队列）；返回新 JWT；至少 5 秒「孵化中」后再可点 **进入广场**
 
 ## 标准 JSON（`surveyJson` / `Profile.bioJson`）
 

@@ -20,8 +20,8 @@
 4. Optional sample message
 5. Values — 2 forced-choice questions
 6. Consent
-7. AI dialogue — 4–6 turns via `POST /onboarding/dialogue/turn`
-8. Finalize — `POST /onboarding/finalize`
+7. AI dialogue — **2–8 user turns** via `POST /onboarding/dialogue/turn` (UI copy: suggest 4–6, max 8; Enter to send)
+8. Finalize — auto `POST /onboarding/finalize` on step entry (clone + welcome post + `match-daily` queue); fresh JWT returned; min 5s incubation UI before **进入广场**
 
 ## Canonical JSON (`surveyJson` / `Profile.bioJson`)
 

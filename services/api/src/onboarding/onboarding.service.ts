@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { CloneStatus, Prisma } from '@prisma/client';
+import { AuthService } from '../auth/auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { LlmService } from '../llm/llm.service';
 import { AuditService } from '../audit/audit.service';
@@ -10,6 +11,11 @@ import {
   type OnboardingSurveyJson,
 } from './survey-schema';
 
+export const DIALOGUE_MAX_TURNS = 8;
+
+const DIALOGUE_WRAP_UP_REPLY =
+  '太好了，你的语气我已经捕捉得差不多了。点击下方「继续」，进入分身孵化吧～';
+
 @Injectable()
 export class OnboardingService {
   constructor(
@@ -18,6 +24,7 @@ export class OnboardingService {
     private readonly audit: AuditService,
     private readonly queue: QueueService,
     private readonly redis: RedisService,
+    private readonly auth: AuthService,
   ) {}
 
   async submitSurvey(userId: string, body: Record<string, unknown>) {
@@ -72,24 +79,50 @@ export class OnboardingService {
     const history = Array.isArray(session.dialogueJson)
       ? (session.dialogueJson as { role: string; content: string }[])
       : [];
+
+    const userTurnsBefore = history.filter((h) => h.role === 'user').length;
+    if (userTurnsBefore >= DIALOGUE_MAX_TURNS) {
+      return {
+        sessionId: session.id,
+        reply: DIALOGUE_WRAP_UP_REPLY,
+        turnCount: userTurnsBefore,
+        maxReached: true,
+      };
+    }
+
     history.push({ role: 'user', content: message });
-    const reply =
-      (await this.llm.chat([
-        {
-          role: 'system',
-          content: `你是 Echo 入驻助手。根据用户问卷与语气样本，用简短中文再追问 1 个问题，以捕捉其语言风格与价值观。问卷摘要：\n${surveyBrief}\n每次只问一个问题，不要重复问卷已问过的事实。`,
-        },
-        ...history.map((h) => ({
-          role: h.role as 'user' | 'assistant',
-          content: h.content,
-        })),
-      ])) ?? '谢谢分享！还有什么想补充的吗？';
+    const turnCount = history.filter((h) => h.role === 'user').length;
+
+    let reply: string;
+    let maxReached = false;
+
+    if (turnCount >= DIALOGUE_MAX_TURNS) {
+      reply = DIALOGUE_WRAP_UP_REPLY;
+      maxReached = true;
+    } else {
+      const wrapUpHint =
+        turnCount >= 6
+          ? '这是第 6 轮或之后：用一句简短总结收尾，并提示用户可点击「继续」进入分身孵化，不要再提新问题。'
+          : '整体对话控制在 8 轮以内；每次只问一个问题，不要重复问卷已问过的事实。';
+      reply =
+        (await this.llm.chat([
+          {
+            role: 'system',
+            content: `你是 Echo 入驻助手。根据用户问卷与语气样本，用简短中文再追问 1 个问题，以捕捉其语言风格与价值观。问卷摘要：\n${surveyBrief}\n${wrapUpHint}`,
+          },
+          ...history.map((h) => ({
+            role: h.role as 'user' | 'assistant',
+            content: h.content,
+          })),
+        ])) ?? '谢谢分享！还有什么想补充的吗？';
+    }
+
     history.push({ role: 'assistant', content: reply });
     await this.prisma.onboardingSession.update({
       where: { id: session.id },
       data: { dialogueJson: history },
     });
-    return { sessionId: session.id, reply, turnCount: history.filter((h) => h.role === 'user').length };
+    return { sessionId: session.id, reply, turnCount, maxReached };
   }
 
   async finalize(userId: string) {
@@ -156,13 +189,25 @@ export class OnboardingService {
       trigger: 'welcome',
     });
 
+    await this.queue.enqueueMatchDaily();
+
     await this.audit.log({
       userId,
       cloneId: clone.id,
       eventType: 'onboarding.finalize',
       summaryZh: '完成入驻并激活数字分身',
     });
-    return { cloneId: clone.id, status: clone.status, onboardingComplete: true };
+
+    const tokens = await this.auth.issueTokensForUser(userId);
+
+    return {
+      cloneId: clone.id,
+      status: clone.status,
+      onboardingComplete: true,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      userId: tokens.userId,
+    };
   }
 
   private fakeEmbedding(seed: string): number[] {

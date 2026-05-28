@@ -127,6 +127,14 @@ npm run prisma:seed
 
 ## 6. 启动服务
 
+### 推荐：一键启动（Windows）
+
+在仓库根目录 **双击** [`start-echo-demo.cmd`](../start-echo-demo.cmd)（或从资源管理器运行）。会依次打开 API、Worker、`echo` 三个 CMD 窗口，并自动打开浏览器 `http://localhost:3000`。
+
+前提：本节 §4 的 `.env` 已配置，且 §5 已执行过 `migrate deploy` + `seed`（首次）。
+
+### 手动：三个终端
+
 **终端 1 — API**
 
 ```powershell

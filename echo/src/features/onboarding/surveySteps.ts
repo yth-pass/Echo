@@ -54,4 +54,10 @@ export const VALUES_QUESTIONS = [
   },
 ] as const;
 
+/** Minimum user dialogue turns before continuing to finalize. */
+export const DIALOGUE_MIN_TURNS = 2;
+
+/** Maximum user dialogue turns (aligned with API `DIALOGUE_MAX_TURNS`). */
+export const DIALOGUE_MAX_TURNS = 8;
+
 export const INTEREST_PRESETS = ['电影', '音乐', '旅行', '美食', '阅读', '运动', '艺术', '科技'];

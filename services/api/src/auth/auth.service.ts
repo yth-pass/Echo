@@ -78,14 +78,14 @@ export class AuthService {
     await this.redis.client.del(this.otpKey(normalized));
     const user = await this.prisma.user.findFirst({ where: { phone: normalized } });
     if (!user) throw new UnauthorizedException('User not found');
-    return this.issueTokens(user.id);
+    return this.issueTokensForUser(user.id);
   }
 
   async refresh(refreshToken: string) {
     try {
       const payload = this.jwt.verify<{ sub: string; typ?: string }>(refreshToken);
       if (payload.typ !== 'refresh') throw new UnauthorizedException();
-      return this.issueTokens(payload.sub);
+      return this.issueTokensForUser(payload.sub);
     } catch {
       throw new UnauthorizedException('Invalid refresh token');
     }
@@ -103,7 +103,7 @@ export class AuthService {
     };
   }
 
-  private async issueTokens(userId: string): Promise<AuthSessionPayload> {
+  async issueTokensForUser(userId: string): Promise<AuthSessionPayload> {
     const { onboardingComplete, isNewUser } = await this.getOnboardingStatus(userId);
     const accessToken = this.jwt.sign({ sub: userId });
     const refreshToken = this.jwt.sign(

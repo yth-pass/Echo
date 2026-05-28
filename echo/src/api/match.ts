@@ -5,6 +5,7 @@
 
 import type { Match } from '../types';
 import { MOCK_MATCHES } from '../data/mockData';
+import { refreshSession } from './auth';
 import { apiGetJson, apiPostJson, getApiBaseUrl } from './client';
 
 export type MatchSource = 'api' | 'mock' | 'error';
@@ -93,7 +94,13 @@ export async function loadMatches(): Promise<MatchLoadResult> {
     return { matches: MOCK_MATCHES, source: 'mock' };
   }
 
-  const raw = await apiGetJson<unknown>('/matches');
+  let raw = await apiGetJson<unknown>('/matches');
+  if (raw == null) {
+    const refreshed = await refreshSession();
+    if (refreshed) {
+      raw = await apiGetJson<unknown>('/matches');
+    }
+  }
   if (raw == null) {
     return { matches: [], source: 'error' };
   }

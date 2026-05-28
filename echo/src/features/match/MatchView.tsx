@@ -94,8 +94,10 @@ export function MatchView({
         )}
         {!loading && showEmpty && (
           <div className="py-16 text-center space-y-2">
-            <p className="text-sm text-gray-400">暂无匹配推荐</p>
-            <p className="text-[10px] text-gray-600">等待每日匹配任务或运行 seed / worker</p>
+            <p className="text-sm text-gray-400">暂无匹配，后台正在为你寻找缘分</p>
+            <p className="text-[10px] text-gray-600">
+              请确认 Worker 已运行；新用户完成入驻后会自动触发匹配任务
+            </p>
             {onRefresh && (
               <button
                 type="button"

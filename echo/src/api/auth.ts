@@ -59,6 +59,24 @@ export async function loginWithOtp(phone: string, code: string): Promise<AuthSes
   return null;
 }
 
+export async function refreshSession(): Promise<AuthSession | null> {
+  let refreshToken: string | null = null;
+  try {
+    refreshToken = localStorage.getItem('echo_refresh_token');
+  } catch {
+    return null;
+  }
+  if (!refreshToken) return null;
+  const res = await apiPostJson<{ refreshToken: string }, AuthSession>('/auth/refresh', {
+    refreshToken,
+  });
+  if (res?.accessToken) {
+    saveTokens(res);
+    return res;
+  }
+  return null;
+}
+
 export async function fetchMe(): Promise<AuthSession | null> {
   const res = await apiGetJson<{
     userId: string;
