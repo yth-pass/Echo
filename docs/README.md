@@ -21,7 +21,9 @@ This directory holds product and engineering blueprints. **Implementation status
 | [Phase1-Demo-Roadmap-Echo.md](./Phase1-Demo-Roadmap-Echo.md) | **Phase 1 canonical checklist** (`P1-xx`, `API` \| `Worker` \| `Web` \| `APK`) |
 | [Onboarding-Survey-Design-Echo.md](./Onboarding-Survey-Design-Echo.md) | Onboarding survey and dialogue design |
 | [Clone-Runtime-and-Triggers-Echo.md](./Clone-Runtime-and-Triggers-Echo.md) | Clone runtime, queues, LLM triggers |
+| [Agent-Behavior-and-Mechanics-Echo.md](./Agent-Behavior-and-Mechanics-Echo.md) | **Agent mechanics** — persona mimicry, matching, chat, posts, affinity (Phase 1 as-built) |
 | [Campus-Pilot-Launch-Plan-Echo.md](./Campus-Pilot-Launch-Plan-Echo.md) | Campus pilot GTM and release gates |
+| [Strategic-Update-Plan-Echo.md](./Strategic-Update-Plan-Echo.md) | **CEO strategic update plan** — Part I (CEO §1–§13) + Part II (CTO §14–§26) + Part III (CMO §27–§41) |
 | [glossary.md](./glossary.md) | Terminology |
 
 **Chinese mirror:** same filenames under [`docs_CN/`](../docs_CN/). See [`docs_CN/README.md`](../docs_CN/README.md).
@@ -35,8 +37,10 @@ This directory holds product and engineering blueprints. **Implementation status
 | Local full-stack demo | [Phase1-Demo-Roadmap-Echo.md](./Phase1-Demo-Roadmap-Echo.md) §2, then [`README.md`](../README.md) §7 |
 | What to build next | Roadmap §3.2 matrix (one row at a time) |
 | Why / what (product) | [PRD-Echo.md](./PRD-Echo.md) |
+| Executive strategy & sequencing | [Strategic-Update-Plan-Echo.md](./Strategic-Update-Plan-Echo.md) |
 | How systems fit together | [Software-Architecture-Echo.md](./Software-Architecture-Echo.md) |
 | Docker vs workers vs API | [Deployment-and-Component-Boundaries-Echo.md](./Deployment-and-Component-Boundaries-Echo.md) |
+| How Agents match, chat, post, score affinity | [Agent-Behavior-and-Mechanics-Echo.md](./Agent-Behavior-and-Mechanics-Echo.md) |
 | Web prototype scope only | [`echo/docs/PHASE1-SCOPE-MAP.md`](../echo/docs/PHASE1-SCOPE-MAP.md) (summary; roadmap is authoritative) |
 
 ---

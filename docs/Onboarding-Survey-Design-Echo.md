@@ -4,7 +4,7 @@
 |-------|-------|
 | **Document Version** | 1.0.0 |
 | **Status** | Active |
-| **Related** | [PRD §7.2](./PRD-Echo.md), [Software Architecture §8.2](./Software-Architecture-Echo.md), [Phase 1 Roadmap](./Phase1-Demo-Roadmap-Echo.md) |
+| **Related** | [PRD §7.2](./PRD-Echo.md), [Software Architecture §8.2](./Software-Architecture-Echo.md), [Phase 1 Roadmap](./Phase1-Demo-Roadmap-Echo.md), [Agent Behavior & Mechanics](./Agent-Behavior-and-Mechanics-Echo.md) |
 
 ## Inspiration
 
@@ -37,6 +37,10 @@
 | `valuesChoices` | `{ questionId, choiceId, label }[]` | Rules + persona |
 
 Implementation: [`services/api/src/onboarding/survey-schema.ts`](../services/api/src/onboarding/survey-schema.ts).
+
+## Persona enters runtime
+
+On `POST /onboarding/finalize`, the API calls the LLM to produce `persona_prompts.prompt_text` from the survey seed, creates an active `digital_clones` row, and enqueues `welcome` post + `match-daily`. The Worker then uses that persona in `agent-turn` (clone chat) and `post-draft` (feed). Full flow, limitations, and code map: [Agent-Behavior-and-Mechanics-Echo.md](./Agent-Behavior-and-Mechanics-Echo.md) §1.
 
 ## Returning users
 

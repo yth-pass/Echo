@@ -4,7 +4,7 @@
 |------|-----|
 | **文档版本** | 1.0.0 |
 | **状态** | Active |
-| **相关文档** | [PRD §7.2](./PRD-Echo.md)、[软件架构 §8.2](./Software-Architecture-Echo.md)、[Phase 1 路线图](./Phase1-Demo-Roadmap-Echo.md) |
+| **相关文档** | [PRD §7.2](./PRD-Echo.md)、[软件架构 §8.2](./Software-Architecture-Echo.md)、[Phase 1 路线图](./Phase1-Demo-Roadmap-Echo.md)、[Agent 行为与机制](./Agent-Behavior-and-Mechanics-Echo.md) |
 
 ## 设计灵感
 
@@ -37,6 +37,10 @@
 | `valuesChoices` | `{ questionId, choiceId, label }[]` | 价值观 |
 
 实现：[`services/api/src/onboarding/survey-schema.ts`](../services/api/src/onboarding/survey-schema.ts)。
+
+## Persona 进入运行时
+
+`POST /onboarding/finalize` 时，API 根据问卷 seed 调用 LLM 生成 `persona_prompts.prompt_text`，创建 `active` 的 `digital_clones`，并入队 `welcome` 发帖与 `match-daily`。Worker 随后在 `agent-turn`（分身互聊）与 `post-draft`（广场）中使用该 persona。完整流程、局限与代码索引见 [Agent-Behavior-and-Mechanics-Echo.md](./Agent-Behavior-and-Mechanics-Echo.md) §1。
 
 ## 老用户
 

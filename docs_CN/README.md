@@ -14,7 +14,9 @@
 | [Phase1-Demo-Roadmap-Echo.md](./Phase1-Demo-Roadmap-Echo.md) | Phase 1 全功能演示路线图（功能矩阵，APK 前主清单） |
 | [Onboarding-Survey-Design-Echo.md](./Onboarding-Survey-Design-Echo.md) | 入驻问卷与对话设计 |
 | [Clone-Runtime-and-Triggers-Echo.md](./Clone-Runtime-and-Triggers-Echo.md) | 分身运行时、队列与 LLM 触发 |
+| [Agent-Behavior-and-Mechanics-Echo.md](./Agent-Behavior-and-Mechanics-Echo.md) | **Agent 行为机制** — 语气模仿、匹配、互聊、发帖、好感度（Phase 1 实装说明） |
 | [Campus-Pilot-Launch-Plan-Echo.md](./Campus-Pilot-Launch-Plan-Echo.md) | 校园试点发布与 GTM |
+| [Strategic-Update-Plan-Echo.md](./Strategic-Update-Plan-Echo.md) | **CEO 战略更新计划** — Part I（CEO §1–§13）+ Part II（CTO §14–§26）+ Part III（CMO §27–§41） |
 | [glossary.md](./glossary.md) | 术语表 |
 
 英文索引：[`docs/README.md`](../docs/README.md)。

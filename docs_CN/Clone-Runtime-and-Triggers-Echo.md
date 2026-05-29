@@ -4,7 +4,7 @@
 |------|-----|
 | **文档版本** | 1.0.0 |
 | **状态** | Active |
-| **相关文档** | [软件架构 §8.3–8.5](./Software-Architecture-Echo.md)、[PRD FR-031、FR-050](./PRD-Echo.md) |
+| **相关文档** | [软件架构 §8.3–8.5](./Software-Architecture-Echo.md)、[PRD FR-031、FR-050](./PRD-Echo.md)、[Agent 行为与机制](./Agent-Behavior-and-Mechanics-Echo.md) |
 
 ## 范围
 

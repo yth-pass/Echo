@@ -387,6 +387,7 @@ stateDiagram-v2
 | 入驻问卷设计 | [`docs/Onboarding-Survey-Design-Echo.md`](docs/Onboarding-Survey-Design-Echo.md) |
 | Clone 运行时与触发器 | [`docs/Clone-Runtime-and-Triggers-Echo.md`](docs/Clone-Runtime-and-Triggers-Echo.md) |
 | 校园试点计划 | [`docs/Campus-Pilot-Launch-Plan-Echo.md`](docs/Campus-Pilot-Launch-Plan-Echo.md) |
+| 战略更新计划（CEO + CTO + CMO） | [`docs/Strategic-Update-Plan-Echo.md`](docs/Strategic-Update-Plan-Echo.md) · [`docs_CN/Strategic-Update-Plan-Echo.md`](docs_CN/Strategic-Update-Plan-Echo.md) |
 | 术语表 | [`docs/glossary.md`](docs/glossary.md) |
 | echo 目录说明 | [`echo/docs/README.zh-CN.md`](echo/docs/README.zh-CN.md) |
 | echo Phase1 范围映射 | [`echo/docs/PHASE1-SCOPE-MAP.zh-CN.md`](echo/docs/PHASE1-SCOPE-MAP.zh-CN.md) |

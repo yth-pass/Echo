@@ -4,7 +4,7 @@
 |-------|-------|
 | **Document Version** | 1.0.0 |
 | **Status** | Active |
-| **Related** | [Software Architecture §8.3–8.5](./Software-Architecture-Echo.md), [PRD FR-031, FR-050](./PRD-Echo.md) |
+| **Related** | [Software Architecture §8.3–8.5](./Software-Architecture-Echo.md), [PRD FR-031, FR-050](./PRD-Echo.md), [Agent Behavior & Mechanics](./Agent-Behavior-and-Mechanics-Echo.md) |
 
 ## Scope
 
