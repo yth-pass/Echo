@@ -24,7 +24,7 @@ Feature matrix: [`docs/Phase1-Demo-Roadmap-Echo.md`](../../docs/Phase1-Demo-Road
 ## Prerequisites
 
 - Node.js 20+
-- [`infra/docker-compose.yml`](../../infra/docker-compose.yml) running (Postgres, Redis, MinIO)
+- Neon/Upstash 托管服务已配置（见 infra/README-native-windows.md）
 
 ## Setup
 

@@ -38,7 +38,7 @@ This repository folder [`echo/`](../) is a **React + Vite web prototype**. Phase
 | 1 | `apps/android` | Phase 1 APK client (`P1-14`–`15` **todo**) |
 | 2 | `services/api` | REST + WebSocket gateway |
 | 3 | `services/worker` | BullMQ + clone runtime |
-| 4 | `infra/` | Docker Compose (Postgres, Redis, MinIO) |
+| 4 | `infra/` | Neon + Upstash 托管服务 |
 | 5 | `.github/workflows/` | Debug APK CI (release signing **todo**) |
 
 ---

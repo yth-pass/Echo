@@ -21,6 +21,16 @@ export class ClonesService {
       include: { personaPrompt: true },
     });
     if (!clone) throw new NotFoundException('Clone not found');
+
+    const [postCount, commentCount, likeCount, sessionCount] = await Promise.all([
+      this.prisma.post.count({ where: { cloneId: clone.id } }),
+      this.prisma.comment.count({ where: { cloneId: clone.id } }),
+      this.prisma.like.count({ where: { cloneId: clone.id } }),
+      this.prisma.agentSession.count({
+        where: { OR: [{ cloneAId: clone.id }, { cloneBId: clone.id }] },
+      }),
+    ]);
+
     return {
       id: clone.id,
       status: clone.status,
@@ -32,6 +42,7 @@ export class ClonesService {
             topicsToAvoid: null,
           })
         : null,
+      interactionCount: postCount + commentCount + likeCount + sessionCount,
     };
   }
 

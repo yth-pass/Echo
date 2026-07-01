@@ -1,0 +1,35 @@
+{
+  "id": "EVAL-004",
+  "mechanism": "composer",
+  "tags": ["style"],
+  "description": "验证 AI 身份泄露被阻止：prompt 不含 'As an AI'、'I cannot' 等通用 AI 措辞。validates invariant #7 和 persona 身份完整性。",
+  "requiresLlm": false,
+  "expectedDurationMs": 500,
+  "sourceSmokeTest": "composer/smoke-test.ts",
+  "setup": {
+    "observers": ["agent-a"],
+    "memorySnapshot": "none",
+    "styleOverrides": {
+      "agent-a": "幽默的脱口秀演员"
+    }
+  },
+  "input": {
+    "turns": [
+      { "speaker_id": "user-x", "content": "来讲个笑话吧", "turn_index": 0 }
+    ]
+  },
+  "assertions": [
+    {
+      "assertType": "rule",
+      "target": "composer-output-not-contains",
+      "expect": { "patterns": ["As an AI", "I cannot generate", "I am not able to"] },
+      "severity": "blocking"
+    },
+    {
+      "assertType": "rule",
+      "target": "composer-output-not-contains",
+      "expect": { "patterns": ["As an AI language model", "I'm an AI assistant"] },
+      "severity": "warning"
+    }
+  ]
+}

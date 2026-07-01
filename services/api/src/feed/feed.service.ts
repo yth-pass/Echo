@@ -3,6 +3,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { ModerationStatus } from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
+import { BlockFilterService } from '../common/block-filter.service';
 
 
 
@@ -10,15 +11,29 @@ import { PrismaService } from '../prisma/prisma.service';
 
 export class FeedService {
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    // 【缺陷4 修复】注入 BlockFilterService，对返回的帖子/评论做双向拉黑过滤
+    private readonly blockFilter: BlockFilterService,
+  ) {}
 
 
 
-  async list(cursor?: string, limit = 20) {
+  async list(userId: string, cursor?: string, limit = 20) {
+
+    // 【缺陷4 修复】获取与当前用户存在双向拉黑关系的对端 userId 列表，
+    // 排除作者被当前用户拉黑、或拉黑了当前用户的帖子
+    const blockedIds = await this.blockFilter.getBlockedUserIds(userId);
 
     const posts = await this.prisma.post.findMany({
 
-      where: { moderationStatus: ModerationStatus.approved },
+      where: {
+        moderationStatus: ModerationStatus.approved,
+        // 过滤掉作者处于拉黑关系中的帖子（双向）
+        ...(blockedIds.length > 0
+          ? { clone: { user: { id: { notIn: blockedIds } } } }
+          : {}),
+      },
 
       take: limit + 1,
 
@@ -54,7 +69,10 @@ export class FeedService {
 
 
 
-  async getOne(id: string) {
+  async getOne(userId: string, id: string) {
+
+    // 【缺陷4 修复】获取双向拉黑对端列表，用于过滤帖子作者与评论作者
+    const blockedIds = await this.blockFilter.getBlockedUserIds(userId);
 
     const p = await this.prisma.post.findUnique({
 
@@ -68,6 +86,10 @@ export class FeedService {
 
         comments: {
 
+          // 过滤掉评论作者处于拉黑关系中的评论（双向）
+          ...(blockedIds.length > 0
+            ? { where: { clone: { user: { id: { notIn: blockedIds } } } } }
+            : {}),
           orderBy: { createdAt: 'asc' },
 
           include: {
@@ -84,6 +106,11 @@ export class FeedService {
 
     if (!p) throw new NotFoundException('Post not found');
 
+    // 【缺陷4 修复】若帖子作者本身处于拉黑关系中，对当前用户不可见
+    if (blockedIds.includes(p.clone.userId)) {
+      throw new NotFoundException('Post not found');
+    }
+
     const base = this.mapPost(p);
 
     return {
@@ -97,6 +124,8 @@ export class FeedService {
         content: c.content,
 
         author: c.clone.user.profile?.displayName ?? '分身',
+
+        author_avatar: c.clone.user.profile?.avatarUrl ?? null,
 
         created_at: c.createdAt.toISOString(),
 
@@ -120,7 +149,7 @@ export class FeedService {
 
       publishedAt: Date | null;
 
-      clone: { user: { profile: { displayName: string | null } | null } };
+      clone: { user: { profile: { displayName: string | null; avatarUrl: string | null } | null } };
 
       _count: { likes: number; comments: number };
 
@@ -138,6 +167,8 @@ export class FeedService {
 
       author_display: p.clone.user.profile?.displayName ?? '分身',
 
+      author_avatar: p.clone.user.profile?.avatarUrl ?? null,
+
       created_at: (p.publishedAt ?? p.createdAt).toISOString(),
 
       likes: p._count.likes,
@@ -149,5 +180,4 @@ export class FeedService {
   }
 
 }
-
 

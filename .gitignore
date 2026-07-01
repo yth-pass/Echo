@@ -7,10 +7,14 @@ build/
 coverage/
 *.log
 
-# Environment & secrets
+# Environment & secrets — 禁止任何真实凭证进入仓库
 .env
+.env.local
+.env.bak
 .env.*
 !.env.example
+# 通用备份文件同样可能含凭证
+*.bak
 
 # OS / IDE
 .DS_Store

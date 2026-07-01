@@ -19,7 +19,7 @@
 This document complements the [Software Architecture](./Software-Architecture-Echo.md) blueprint by answering **deployment and modularization** questions:
 
 1. How the overall system is structured at runtime.
-2. Which parts fit **Docker** (or container orchestration) well.
+2. Which parts are suitable for containerized deployment.
 3. What “**running directly in the background**” means in practice—**managed cloud backends** versus **non-container OS daemons**—and when each applies.
 4. What should be exposed as **HTTP/WebSocket APIs** to clients versus **async job contracts**.
 5. What should be a **separate project or deployable unit** for release velocity and scaling.
@@ -78,25 +78,11 @@ flowchart TB
 
 ---
 
-## 3. Docker: Good Fits
+## 3. 本地开发与生产部署
 
-| Component | Rationale |
-|-----------|-----------|
-| **Stateless API processes** (User & Auth, Onboarding, Digital Clone, Social Feed, Match & Push, Agent Chat coordination, Affinity, Notification, Activity Audit) | Horizontally scalable; configuration via env; no local disk state. Fits container images and rolling deploys. |
-| **Agent Worker pool** | CPU- and latency-sensitive LLM workload; often needs **different replica count and resource limits** than the API tier. Separate image or same image with `worker` command is common. |
-| **Moderation queue consumers** | Same pattern as workers: scale with moderation backlog. |
-| **Local dev stack** | Software Architecture §14: `dev` uses **Docker Compose** for PostgreSQL, Redis, MinIO—repeatable laptops and CI agents. |
-| **Optional scheduler as CronJob** | Jobs such as daily match ranking (`SocialScheduler`, match pipeline §8.4) or batch drift checks (§11) can run as a small **scheduled container** that enqueues work rather than executing LLM turns inline. |
+本地开发统一采用 **Neon (Postgres) + Upstash (Redis)** 等托管免费层，无需 Docker。生产环境推荐使用托管的 PostgreSQL（支持 pgvector）、Redis 和 S3 兼容对象存储。
 
-### 3.1 What not to self-host in Docker for production (typical)
-
-| Item | Recommendation |
-|------|----------------|
-| **Primary PostgreSQL** | Prefer **managed** RDS-class service: backups, HA, patching. |
-| **Primary Redis** | Prefer **managed** cache/queue backing service for HA and ops. |
-| **FCM, LLM vendor** | External APIs; configure secrets and egress, do not “containerize” them. |
-
-You *can* run Postgres/Redis in Compose for **dev/staging**; production usually trades container self-management for managed services.
+API 和 Worker 可部署为容器镜像或直接在 VM 上以 systemd 方式运行（非容器环境亦可）。
 
 ---
 
@@ -110,7 +96,7 @@ The phrase **直接放在后台** is ambiguous. Below are both interpretations a
 |-----------|------|
 | PostgreSQL + pgvector | System of record, embeddings |
 | Redis | Sessions, affinity snapshots, rate limits, queue backing |
-| Object storage (e.g. Aliyun OSS, MinIO in dev) | Avatars, optional media |
+| Object storage (S3-compatible, e.g. Aliyun OSS) | Avatars, optional media |
 | FCM | Match and handoff push |
 
 These run **as vendor-managed services**, not as your own Dockerized primary databases in production.
@@ -191,7 +177,7 @@ Clone posting, comments, likes, agent turns, and moderation are **queue-driven**
 | Schedulers / cron | Yes (lightweight) | CronJob or managed trigger | Internal only | Small deployable or bundled |
 | PostgreSQL | Dev: yes; Prod: avoid self-managed | Managed RDS-class | No | N/A (infra) |
 | Redis | Dev: yes; Prod: managed preferred | Managed cache | No | N/A (infra) |
-| Object storage | Dev: MinIO in Compose | Managed OSS/S3 | Presigned URLs via API | N/A (infra) |
+| Object storage | 本地开发使用托管 S3 兼容服务 | Managed OSS/S3 | Presigned URLs via API | N/A (infra) |
 | LLM / FCM | N/A | SaaS | Outbound from platform | N/A |
 | Web prototype `echo/` | Yes for local Vite | Static or Studio | N/A to MVP | Yes — not Phase 1 client |
 

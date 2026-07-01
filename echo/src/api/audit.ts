@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { apiGetJson } from './client';
+import { apiGetJson, unwrap } from './client';
 
 export type AuditRow = { time: string; type: string; content: string };
 
@@ -11,10 +11,14 @@ function isRecord(x: unknown): x is Record<string, unknown> {
   return typeof x === 'object' && x !== null;
 }
 
-/** `GET /audit/events` — falls back to `mock` when API unreachable or empty (not wired in UI yet). */
-export async function loadAuditEvents(mock: AuditRow[]): Promise<AuditRow[]> {
-  const raw = await apiGetJson<unknown>('/audit/events');
-  if (raw == null) return mock;
+/**
+ * `GET /audit/events` — 不再回退 mock。
+ * 【缺陷8修复】API 失败/空列表均返回空数组（不回退 mock）。
+ */
+export async function loadAuditEvents(_mock: AuditRow[]): Promise<AuditRow[]> {
+  const raw = unwrap(await apiGetJson<unknown>('/audit/events'));
+  // 【缺陷8修复】raw == null → 返回空数组（非 mock）
+  if (raw == null) return [];
 
   let rows: unknown[] = [];
   if (Array.isArray(raw)) rows = raw;
@@ -53,5 +57,6 @@ export async function loadAuditEvents(mock: AuditRow[]): Promise<AuditRow[]> {
     })
     .filter((x): x is AuditRow => x !== null);
 
-  return mapped.length ? mapped : mock;
+  // 【缺陷8修复】直接返回 mapped，空就是空（不再回退 mock）
+  return mapped;
 }

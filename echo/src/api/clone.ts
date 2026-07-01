@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { apiGetJson, apiPostJson, apiPutJson, getApiBaseUrl } from './client';
+import { apiGetJson, apiPostJson, apiPutJson, getApiBaseUrl, unwrap } from './client';
 
 export type CloneBoundaries = {
   forbiddenWords: string[];
@@ -15,6 +15,7 @@ export type CloneMe = {
   status: string;
   persona: string | null;
   boundaries: CloneBoundaries | null;
+  interactionCount: number;
 };
 
 const EMPTY_BOUNDARIES: CloneBoundaries = { forbiddenWords: [], topicsToAvoid: null };
@@ -36,6 +37,7 @@ function mapCloneMe(raw: Record<string, unknown>): CloneMe {
     status: String(raw.status ?? ''),
     persona: typeof raw.persona === 'string' ? raw.persona : null,
     boundaries: raw.boundaries != null ? mapBoundaries(raw.boundaries) : null,
+    interactionCount: typeof raw.interactionCount === 'number' ? raw.interactionCount : 0,
   };
 }
 
@@ -59,39 +61,44 @@ export function forbiddenWordsToText(words: string[]): string {
 
 export async function loadCloneMe(): Promise<CloneMe | null> {
   if (!getApiBaseUrl()) return null;
-  const raw = await apiGetJson<Record<string, unknown>>('/clones/me');
+  const raw = unwrap(await apiGetJson<Record<string, unknown>>('/clones/me'));
   if (!raw) return null;
   return mapCloneMe(raw);
 }
 
 export async function pauseClone(): Promise<CloneMe | null> {
-  const raw = await apiPostJson<object, Record<string, unknown>>('/clones/me/pause', {});
+  // 【缺陷5适配】apiPostJson 返回 ApiResult，用 unwrap 取 data
+  const raw = unwrap(await apiPostJson<object, Record<string, unknown>>('/clones/me/pause', {}));
   return raw ? mapCloneMe(raw) : null;
 }
 
 export async function resumeClone(): Promise<CloneMe | null> {
-  const raw = await apiPostJson<object, Record<string, unknown>>('/clones/me/resume', {});
+  const raw = unwrap(await apiPostJson<object, Record<string, unknown>>('/clones/me/resume', {}));
   return raw ? mapCloneMe(raw) : null;
 }
 
 export async function updateClonePersona(personaText: string): Promise<CloneMe | null> {
   if (!getApiBaseUrl()) return null;
-  const raw = await apiPutJson<{ personaText: string }, Record<string, unknown>>('/clones/me', {
-    personaText,
-  });
+  const raw = unwrap(
+    await apiPutJson<{ personaText: string }, Record<string, unknown>>('/clones/me', {
+      personaText,
+    }),
+  );
   return raw ? mapCloneMe(raw) : null;
 }
 
 export async function updateCloneBoundaries(boundaries: CloneBoundaries): Promise<CloneMe | null> {
   if (!getApiBaseUrl()) return null;
-  const raw = await apiPutJson<
-    { boundaries: { forbiddenWords: string[]; topicsToAvoid?: string | null } },
-    Record<string, unknown>
-  >('/clones/me', {
-    boundaries: {
-      forbiddenWords: boundaries.forbiddenWords,
-      topicsToAvoid: boundaries.topicsToAvoid ?? undefined,
-    },
-  });
+  const raw = unwrap(
+    await apiPutJson<
+      { boundaries: { forbiddenWords: string[]; topicsToAvoid?: string | null } },
+      Record<string, unknown>
+    >('/clones/me', {
+      boundaries: {
+        forbiddenWords: boundaries.forbiddenWords,
+        topicsToAvoid: boundaries.topicsToAvoid ?? undefined,
+      },
+    }),
+  );
   return raw ? mapCloneMe(raw) : null;
 }

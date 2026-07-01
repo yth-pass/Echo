@@ -3,6 +3,7 @@ import { IsString } from 'class-validator';
 import { JwtAuthGuard } from '../common/jwt-auth.guard';
 import { CurrentUser } from '../common/current-user.decorator';
 import { MatchesService } from './matches.service';
+import { QueueService } from '../queue/queue.service';
 
 class BlockDto {
   @IsString()
@@ -12,7 +13,10 @@ class BlockDto {
 @Controller()
 @UseGuards(JwtAuthGuard)
 export class MatchesController {
-  constructor(private readonly matches: MatchesService) {}
+  constructor(
+    private readonly matches: MatchesService,
+    private readonly queueService: QueueService,
+  ) {}
 
   @Get('matches')
   list(@CurrentUser() userId: string) {
@@ -27,5 +31,12 @@ export class MatchesController {
   @Post('blocks')
   block(@CurrentUser() userId: string, @Body() dto: BlockDto) {
     return this.matches.block(userId, dto.blockedUserId);
+  }
+
+  /** 手动触发匹配（跳过 8:00-9:00 时间窗口），用于本地测试 */
+  @Post('matches/trigger')
+  async trigger() {
+    await this.queueService.enqueueMatchDaily({ force: true });
+    return { triggered: true };
   }
 }

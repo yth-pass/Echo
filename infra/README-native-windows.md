@@ -1,10 +1,8 @@
 # Echo — Windows 本地开发（无 Docker / 云端数据面）
 
-在 **Windows** 上无法使用 Docker Desktop 时，可用 **Neon（PostgreSQL）+ Upstash（Redis）** 免费层承载 Phase 1 数据面；本机只运行 Node 进程（`services/api`、`services/worker`、`echo`）。
+在 Windows 上本地开发统一采用 **Neon（PostgreSQL）+ Upstash（Redis）** 托管免费层，无需 Docker。本机只运行 Node 进程（`services/api`、`services/worker`、`echo`）。
 
-若仍可使用 Docker，见 [README.md](./README.md) 中的 Compose 方式。
-
-**Phase 1 实际依赖：** Postgres + Redis。MinIO 当前未在 API/Worker 中使用，可跳过。
+**Phase 1 实际依赖：** Postgres + Redis。对象存储使用托管 S3 兼容服务。
 
 ---
 
@@ -217,12 +215,11 @@ Invoke-RestMethod -Uri "http://localhost:4000/v1/auth/login" -Method Post -Conte
 
 ---
 
-## 10. 其他无 Docker 方式（简述）
+## 10. 其他可选方式（简述）
 
 | 方式 | 说明 |
 |------|------|
 | WSL2 内 `apt install` Postgres + Redis | 连接串用 `localhost`，与 `.env.example` 默认一致 |
 | Windows 本机安装 Postgres + Memurai | 同上 |
-| Podman Desktop | 可替代 Docker Desktop 运行 `infra/docker-compose.yml` |
 
-云端方案（本文）适合本机环境最简、仅需浏览器注册云服务的场景。
+云端 Neon + Upstash 方案适合本机环境最简、仅需浏览器注册云服务的场景。

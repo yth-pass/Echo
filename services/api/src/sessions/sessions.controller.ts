@@ -1,4 +1,4 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, HttpCode, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/jwt-auth.guard';
 import { CurrentUser } from '../common/current-user.decorator';
 import { SessionsService } from './sessions.service';
@@ -18,8 +18,23 @@ export class SessionsController {
     return this.sessions.affinityForUser(userId, id);
   }
 
+  @Get(':id/relationship')
+  relationship(@CurrentUser() userId: string, @Param('id') id: string) {
+    return this.sessions.relationshipForUser(userId, id);
+  }
+
   @Get(':id/messages')
   messages(@CurrentUser() userId: string, @Param('id') id: string) {
     return this.sessions.messages(id, userId);
+  }
+
+  @Post(':id/end-request')
+  @HttpCode(200)
+  endRequest(
+    @CurrentUser() userId: string,
+    @Param('id') id: string,
+    @Body('reason') reason: string,
+  ) {
+    return this.sessions.requestEndChat(userId, id, reason);
   }
 }

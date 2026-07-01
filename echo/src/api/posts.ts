@@ -4,7 +4,7 @@
  */
 
 import type { Post } from '../types';
-import { apiPostJson, getApiBaseUrl } from './client';
+import { apiPostJson, getApiBaseUrl, unwrap } from './client';
 
 export type PostDraftResult =
   | { ok: true; queued: true }
@@ -19,17 +19,25 @@ export async function enqueuePostDraft(content?: string): Promise<PostDraftResul
   }
 
   const body = content?.trim() ? { content: content.trim() } : {};
-  const res = await apiPostJson<typeof body, DraftResponse>('/posts/draft', body);
-  if (!res) {
+  const ac = new AbortController();
+  const timeoutId = setTimeout(() => ac.abort(), 10_000);
+  try {
+    const res = unwrap(
+      await apiPostJson<typeof body, DraftResponse>('/posts/draft', body, ac.signal),
+    );
+    if (!res) {
+      return { ok: false, reason: 'request_failed' };
+    }
+    if (res.queued === true) {
+      return { ok: true, queued: true };
+    }
+    if (res.reason === 'no_clone') {
+      return { ok: false, reason: 'no_clone' };
+    }
     return { ok: false, reason: 'request_failed' };
+  } finally {
+    clearTimeout(timeoutId);
   }
-  if (res.queued === true) {
-    return { ok: true, queued: true };
-  }
-  if (res.reason === 'no_clone') {
-    return { ok: false, reason: 'no_clone' };
-  }
-  return { ok: false, reason: 'request_failed' };
 }
 
 function sleep(ms: number): Promise<void> {

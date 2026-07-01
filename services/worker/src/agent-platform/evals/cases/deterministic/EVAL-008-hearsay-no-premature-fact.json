@@ -1,0 +1,34 @@
+{
+  "id": "EVAL-008",
+  "mechanism": "memory",
+  "tags": ["hearsay"],
+  "description": "验证 invariant #3（②→① 提升管道）：未 promote 前，objective_facts.jsonl 为空（或不存在）。偏好 (②) 仅存在于 preferences.jsonl，在对方显式确认 ≥2 次后才 promote 到 ①。",
+  "requiresLlm": false,
+  "expectedDurationMs": 1500,
+  "sourceSmokeTest": "memory/smoke-test-promote.ts (Scene2)",
+  "setup": {
+    "observers": ["agent-a", "agent-b"],
+    "memorySnapshot": "none"
+  },
+  "input": {
+    "turns": [
+      { "speaker_id": "agent-b", "content": "我可能喜欢喝咖啡", "turn_index": 0 },
+      { "speaker_id": "agent-b", "content": "其实不太确定", "turn_index": 1 }
+    ],
+    "sessionId": "session-008"
+  },
+  "assertions": [
+    {
+      "assertType": "rule",
+      "target": "hearsay-not-in-objective-facts",
+      "expect": { "factContent": "喜欢喝咖啡", "shouldNotExist": true },
+      "severity": "blocking"
+    },
+    {
+      "assertType": "rule",
+      "target": "hearsay-confidence-threshold",
+      "expect": { "maxConfidence": 0.7, "source": "preferences" },
+      "severity": "blocking"
+    }
+  ]
+}

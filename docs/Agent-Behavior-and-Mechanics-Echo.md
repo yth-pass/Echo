@@ -8,6 +8,8 @@
 
 This document describes **how Echo digital clones (Agents) behave in Phase 1** — tone mimicry, matching, agent-to-agent chat, posting, and affinity — based on the **current codebase**. It distinguishes **MVP implementation** from **target design** in the PRD and architecture docs (e.g. full Affinity Engine, four-layer prompts, real embeddings).
 
+**Target design (not as-built):** For the planned Agent platform (shared skill, `style.md`, layered memory, main/sub topics, social memory ①②, affection, Prompt Composer), see **[agent-platform/README.md](./agent-platform/README.md)** and [echo-mapping.md](./agent-platform/echo-mapping.md). Do not duplicate that spec here.
+
 **Related deep dives (do not duplicate here):**
 
 - Onboarding data capture → [Onboarding-Survey-Design-Echo.md](./Onboarding-Survey-Design-Echo.md)

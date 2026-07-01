@@ -1,0 +1,45 @@
+{
+  "id": "EVAL-026",
+  "mechanism": "topic",
+  "tags": ["topic-return"],
+  "description": "LLM 黄金 case：多轮对话（main → new_sub → return_to_main）→ 验证 TopicJudge 状态机正确识别 return_to_main 并更新 metadata。Positive case：话题自然回归。",
+  "requiresLlm": true,
+  "expectedDurationMs": 30000,
+  "setup": {
+    "observers": ["agent-a"],
+    "memorySnapshot": "none"
+  },
+  "input": {
+    "turns": [
+      { "speaker_id": "user-x", "content": "我工作上的项目压力好大", "turn_index": 0 },
+      { "speaker_id": "user-x", "content": "你周末有什么安排？想去看电影吗？", "turn_index": 1 },
+      { "speaker_id": "user-x", "content": "不说电影了，还是聊聊我的工作压力吧，你有什么建议吗？", "turn_index": 2 }
+    ],
+    "topicState": {
+      "phase": "ongoing",
+      "main_topic": "工作压力",
+      "focus": "main"
+    }
+  },
+  "assertions": [
+    {
+      "assertType": "rule",
+      "target": "topic-transition-type",
+      "expect": { "validTransitions": ["continue_main", "new_sub", "return_to_main"] },
+      "severity": "blocking"
+    },
+    {
+      "assertType": "rule",
+      "target": "topic-summary-length",
+      "expect": { "maxLength": 150 },
+      "severity": "blocking"
+    },
+    {
+      "assertType": "llm-judge",
+      "target": "topic-transition-type",
+      "expect": {},
+      "llmPrompt": "topic-return",
+      "severity": "blocking"
+    }
+  ]
+}

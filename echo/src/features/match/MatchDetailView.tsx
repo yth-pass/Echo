@@ -12,18 +12,21 @@ import { fetchHandoff, respondHandoff } from '../../api/handoff';
 import {
   loadSessionAffinity,
   loadSessionMessages,
+  loadSessionRelationship,
   type SessionAffinity,
   type SessionMessage,
+  type SessionRelationship,
 } from '../../api/session';
 import type { SessionMessagesSource } from '../../api/session';
 import { SessionChatMessages } from '../session/SessionChatMessages';
 import { ReportSheet } from '../report/ReportSheet';
+import { COPY } from '../../copy';
 
 const HANDOFF_THRESHOLD_PERCENT = 75;
 
 function formatBio(bio: string): string {
   const t = bio.trim();
-  if (!t || t === '{}') return '暂无简介';
+  if (!t || t === '{}') return COPY.empty.bio;
   if (t.startsWith('{')) {
     try {
       const o = JSON.parse(t) as Record<string, unknown>;
@@ -32,7 +35,7 @@ function formatBio(bio: string): string {
     } catch {
       /* ignore */
     }
-    return '暂无简介';
+    return COPY.empty.bio;
   }
   return t;
 }
@@ -59,6 +62,7 @@ export function MatchDetailView({
   const [handoffStatus, setHandoffStatus] = useState<string | null>(null);
   const [handoffResponding, setHandoffResponding] = useState(false);
   const [sessionAffinity, setSessionAffinity] = useState<SessionAffinity | null>(null);
+  const [sessionRelationship, setSessionRelationship] = useState<SessionRelationship | null>(null);
   const [messages, setMessages] = useState<SessionMessage[]>([]);
   const [msgLoading, setMsgLoading] = useState(false);
   const [msgSource, setMsgSource] = useState<SessionMessagesSource | 'idle'>('idle');
@@ -81,6 +85,20 @@ export function MatchDetailView({
     let cancelled = false;
     void loadSessionAffinity(match.sessionId).then((a) => {
       if (!cancelled) setSessionAffinity(a);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [match.sessionId, hasApi]);
+
+  useEffect(() => {
+    if (!hasApi || !match.sessionId) {
+      setSessionRelationship(null);
+      return;
+    }
+    let cancelled = false;
+    void loadSessionRelationship(match.sessionId).then((r) => {
+      if (!cancelled) setSessionRelationship(r);
     });
     return () => {
       cancelled = true;
@@ -147,7 +165,7 @@ export function MatchDetailView({
     ) {
       reasons.push('好感度较高，接力邀请生成中，请稍后刷新');
     } else if (displayAffinityPercent < HANDOFF_THRESHOLD_PERCENT) {
-      reasons.push(`好感度未达接力阈值（演示约 ${HANDOFF_THRESHOLD_PERCENT}%）`);
+      reasons.push(`好感度未达接力阈值（需 ${HANDOFF_THRESHOLD_PERCENT}%）`);
     }
     return reasons.length ? reasons : match.matchReasons;
   }, [
@@ -183,7 +201,7 @@ export function MatchDetailView({
             className="flex-[2] py-4 bg-echo-blue text-echo-dark rounded-2xl font-bold flex items-center justify-center gap-2"
           >
             <Heart className="w-5 h-5 fill-current" />
-            开启真实联络（Mock）
+            开启真实联络
           </button>
         </div>
       );
@@ -206,7 +224,7 @@ export function MatchDetailView({
             className="flex-[2] py-4 bg-echo-blue text-echo-dark rounded-2xl font-bold flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,242,255,0.4)] disabled:opacity-50"
           >
             <Heart className="w-5 h-5 fill-current" />
-            {handoffResponding ? '处理中…' : '接受真人联络'}
+            {handoffResponding ? COPY.loading.handoff : '接受真人联络'}
           </button>
         </div>
       );
@@ -294,12 +312,18 @@ export function MatchDetailView({
           </div>
         </div>
 
+        {hasApi && sessionRelationship && (
+          <div className="mx-6 -mt-2 mb-4 p-4 rounded-2xl bg-echo-card/60 border border-white/5 text-left text-xs text-gray-400">
+            <div className="font-bold text-gray-300 mb-1">关系提示 · {sessionRelationship.label}</div>
+            <div>信任：{sessionRelationship.hints.trust}</div>
+            <div>张力：{sessionRelationship.hints.tension}</div>
+            <div className="mt-1 text-[10px] opacity-70">熟悉度 {sessionRelationship.dimensions.familiarity} / 温暖 {sessionRelationship.dimensions.warmth}</div>
+          </div>
+        )}
+
         <div className="px-6 py-8 space-y-8">
           <section>
             <h4 className="text-xs font-bold text-gray-500 uppercase mb-3 text-left">分身契合理由</h4>
-            {!hasApi && (
-              <p className="text-[10px] text-amber-400/90 mb-2">演示数据（Mock）</p>
-            )}
             <div className="space-y-3 text-left">
               {affinityReasons.map((reason, i) => (
                 <div
@@ -322,7 +346,6 @@ export function MatchDetailView({
             <h4 className="text-xs font-bold text-gray-500 uppercase mb-3 text-left">分身对话精选</h4>
             {showMockStaticDialogue ? (
               <div className="space-y-2">
-                <p className="text-[10px] text-amber-400/90 mb-2">演示对话（Mock）</p>
                 <div className="p-3 bg-white/5 rounded-xl border-l-2 border-echo-blue text-left">
                   <p className="text-[10px] text-gray-500 mb-1">{match.name}：</p>
                   <p className="text-sm italic text-gray-300">
@@ -343,8 +366,8 @@ export function MatchDetailView({
                 source={msgSource === 'idle' ? undefined : msgSource}
                 emptyHint={
                   match.sessionId
-                    ? '暂无分身对话，请确认 worker 已运行 match-daily / agent-turn'
-                    : '尚未建立分身会话'
+                    ? COPY.empty.sessionUpcoming
+                    : COPY.empty.noSessionStarted
                 }
               />
             )}
@@ -364,7 +387,7 @@ export function MatchDetailView({
                 }}
                 className="flex-1 py-3 bg-white/5 rounded-2xl font-bold text-gray-400 text-xs"
               >
-                忽略
+                {COPY.btn.dismiss}
               </button>
             )}
             {onBlock && (
@@ -382,7 +405,7 @@ export function MatchDetailView({
                 disabled={hasApi && !match.candidateUserId}
                 className="flex-1 py-3 bg-red-500/10 rounded-2xl font-bold text-red-400 text-xs disabled:opacity-40"
               >
-                拉黑
+                {COPY.btn.block}
               </button>
             )}
           </div>

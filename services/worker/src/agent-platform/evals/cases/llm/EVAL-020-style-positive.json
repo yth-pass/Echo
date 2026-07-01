@@ -1,0 +1,41 @@
+{
+  "id": "EVAL-020",
+  "mechanism": "composer",
+  "tags": ["style"],
+  "description": "LLM 黄金 case：固定 persona → 生成回复 → 规则断言（中文/纯文本/无 markdown）+ LLM judge 二次校验风格。Positive case：正确 persona 应生成符合 L8 契约的回复。",
+  "requiresLlm": true,
+  "expectedDurationMs": 15000,
+  "setup": {
+    "observers": ["agent-a"],
+    "memorySnapshot": "none",
+    "styleOverrides": {
+      "agent-a": "温柔体贴的女生，喜欢猫，讨厌油腻的玩笑。说话轻声细语，常用'呢'结尾。"
+    }
+  },
+  "input": {
+    "turns": [
+      { "speaker_id": "user-x", "content": "你好呀，今天过得怎么样？", "turn_index": 0 }
+    ]
+  },
+  "assertions": [
+    {
+      "assertType": "rule",
+      "target": "composer-output-not-contains",
+      "expect": { "patterns": ["```", "###", "**"] },
+      "severity": "blocking"
+    },
+    {
+      "assertType": "rule",
+      "target": "composer-output-not-contains",
+      "expect": { "patterns": ["{", "["] },
+      "severity": "warning"
+    },
+    {
+      "assertType": "llm-judge",
+      "target": "composer-output-contains",
+      "expect": {},
+      "llmPrompt": "style",
+      "severity": "blocking"
+    }
+  ]
+}

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { apiGetJson, apiPostJson, getApiBaseUrl } from './client';
+import { apiGetJson, apiPostJson, getApiBaseUrl, unwrap } from './client';
 
 export type HandoffDetail = {
   id: string;
@@ -14,7 +14,7 @@ export type HandoffDetail = {
 
 export async function fetchHandoff(handoffId: string): Promise<HandoffDetail | null> {
   if (!getApiBaseUrl()) return null;
-  const raw = await apiGetJson<Record<string, unknown>>(`/handoffs/${handoffId}`);
+  const raw = unwrap(await apiGetJson<Record<string, unknown>>(`/handoffs/${handoffId}`));
   if (!raw) return null;
   return {
     id: String(raw.id ?? handoffId),
@@ -39,8 +39,11 @@ export async function respondHandoff(
   accept: boolean,
 ): Promise<{ status?: string } | null> {
   if (!getApiBaseUrl()) return null;
-  return apiPostJson<{ accept: boolean }, { status?: string }>(
-    `/handoffs/${handoffId}/respond`,
-    { accept },
+  // 【缺陷5适配】apiPostJson 返回 ApiResult，用 unwrap 取 data
+  return unwrap(
+    await apiPostJson<{ accept: boolean }, { status?: string }>(
+      `/handoffs/${handoffId}/respond`,
+      { accept },
+    ),
   );
 }

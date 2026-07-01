@@ -126,7 +126,7 @@ flowchart TB
 | AI 编排 | **LangGraph** 或 Agent Worker 内自定义状态机 | 分身轮次，MVP 无工具 |
 | LLM | 国内/API 供应商（可配置适配器） | `LlmAdapter` 接口 |
 | 推送 | **FCM** | Android；Phase 2 预留 APNs |
-| 存储 | **S3 兼容**（如 Aliyun OSS、MinIO） | 媒体 |
+| 存储 | **S3 兼容**（如 Aliyun OSS） | 媒体 |
 | 可观测性 | **OpenTelemetry**、**Prometheus**、**Grafana** | 指标与链路 |
 | CI/CD | **GitHub Actions** | APK 构建、后端部署 |
 
@@ -577,7 +577,7 @@ flowchart TB
 
 | 环境 | 用途 |
 |-------------|---------|
-| `dev` | 本地 Docker Compose（Postgres、Redis、MinIO） |
+| `dev` | 本地使用 Neon + Upstash 托管服务 |
 | `staging` | 全栈；测试 FCM 项目 |
 | `prod` | HA Postgres、Redis 集群、可自动扩展 worker |
 

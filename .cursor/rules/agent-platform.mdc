@@ -1,0 +1,33 @@
+---
+description: Invariants for Echo Agent Platform implementation (style, memory, topics, promote, joint sessions)
+globs:
+  - services/**/agent-platform/**
+  - docs/agent-platform/**
+alwaysApply: false
+---
+
+# Agent Platform Rules
+
+When implementing agent-platform code or docs:
+
+1. **Style vs memory** — Never store objective facts in `style.md` or persona voice fields. Never store tone-only rules in memory jsonl.
+
+2. **Shared base** — Do not copy full skill directories per user. Use `shared-agent/` + per-user `style.md` + per-user `memory/`.
+
+3. **Promote pipeline** — Inferences stay in ② until other Agent explicitly confirms; then promote to ① and mark ② `promoted_to_objective`. Never keep the same fact active in both.
+
+4. **Topic archive** — Only `new_main` replaces the entire topic state file. Use `return_to_main` for subtopic close. Main topic persists through digressions.
+
+5. **Joint sessions** — Exactly one `current_topic.json` per `joint_sessions/{id}`. Social memory and affection remain per observer.
+
+6. **Assistant output** — Do not auto-write assistant reply text into ① or semantic facts.
+
+7. **Safety** — L0 / share_policy / visibility filtering cannot be bypassed by style or affection overlay.
+
+8. **Schemas** — LLM structured outputs and stored JSON must validate against `docs/agent-platform/schemas/`.
+
+9. **Phase 1** — Check `docs/agent-platform/echo-mapping.md` before refactoring worker persona injection or affinity.
+
+10. **Milestones** — Prefer incremental delivery per `docs/agent-platform/implementation-milestones.md` unless user scopes a larger change.
+
+Read skill **agent-platform** for full context before substantial changes.

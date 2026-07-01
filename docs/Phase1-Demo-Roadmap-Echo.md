@@ -4,7 +4,7 @@
 |-------|-------|
 | **Document Version** | 1.1.0 |
 | **Status** | Active |
-| **Last Updated** | 2026-05-28 |
+| **Last Updated** | 2026-06-20 |
 | **Related Documents** | [PRD](./PRD-Echo.md), [Software Architecture](./Software-Architecture-Echo.md), [Deployment & Component Boundaries](./Deployment-and-Component-Boundaries-Echo.md), [Campus Pilot Launch Plan](./Campus-Pilot-Launch-Plan-Echo.md), [Glossary](./glossary.md) |
 
 **Language:** English (canonical). Simplified Chinese mirror: [`../docs_CN/Phase1-Demo-Roadmap-Echo.md`](../docs_CN/Phase1-Demo-Roadmap-Echo.md).
@@ -88,7 +88,7 @@ Implement **one row at a time**. Update only the columns that changed.
 | P1-05 | Feed read | FR-030–034 | `echo` feed | `GET /feed`, `GET /posts/{id}` | — | `services/api`, `echo` | done | n/a | done | n/a | `loadFeed()` — mock only without `VITE_API_BASE_URL`; empty/error do not substitute mock |
 | P1-06 | Scheduled posts + moderation | FR-030–034, FR-033 | feed + detail | — | `post-draft`, `moderation` | `services/worker`, `echo` | n/a | done | done | n/a | `POST /posts/draft` + Clone「让分身发帖」+ feed poll; activity `moderation_status` |
 | P1-07 | Match list + dismiss + block | FR-040–044 | `echo` match tab | `GET /matches`, dismiss, `POST /blocks` | `match-daily` | `services/api`, `services/worker` | done | done | done | n/a | `loadMatches()` + MatchView dismiss/block; list excludes blocks |
-| P1-08 | Agent sessions + messages (read) | FR-050–054 | match / activity | `GET /sessions`, `GET /sessions/{id}/messages` | `agent-turn` | `services/*`, `echo` | done | done | done | n/a | `session_id` on matches; real transcript in detail + activity; `is_self` on messages |
+| P1-08 | Agent sessions + messages (read) | FR-050–054 | match / activity | `GET /sessions`, `GET /sessions/{id}/messages` | `agent-turn` | `services/*`, `echo` | done | done | done | n/a | `session_id` on matches; real transcript in detail + activity; `is_self` on messages; M6 affection overlay + reciprocity + decay cron (v1.1.13) |
 | P1-09 | Affinity + handoff | FR-060–065 | `echo` match detail | `GET/POST /handoffs/*` | affinity per turn | `services/*`, `echo` | done | done | done | n/a | `GET /sessions/:id/affinity`; accept/decline handoff; session affinity in detail |
 | P1-10 | Activity audit log | FR-070–072 | `echo` activity tab | `GET /audit/events`, `GET /clones/me/activity` | audit writes | `services/api`, `echo` | done | done | done | n/a | `loadCloneActivity` tri-state source; no silent mock on API path |
 | P1-11 | Reports | FR-080–082 | settings / report | `POST /reports` | `report-triage` | `services/api`, `echo` | done | done | done | n/a | `submitReport` + UI; `report-triage` re-flags reported posts |
@@ -148,4 +148,6 @@ Hooks and skills **do not** enforce compliance automatically; PR reviewers shoul
 | 1.1.2 | 2026-05-28 | P1-04c: boundaries API/Web/Worker + clone tab editor |
 | 1.1.1 | 2026-05-27 | P1-04b Web done: persona editor in `echo` clone tab |
 | 1.1.0 | 2026-05-26 | Split status into API / Worker / Web / APK; split P1-04 into a/b/c; honest audit vs codebase |
-| 1.0.0 | 2026-05-20 | Initial feature matrix for full-function demo before APK |
+| 1.1.12 | 2026-06-12 | M6 Affection: Worker done (RelationshipExtract LLM + apply wiring); API: GET /sessions/{id}/relationship; Web: relationship hint UI in MatchDetailView |
+| 1.1.13 | 2026-06-20 | M6 收口增强: R1(tension_quality structural/situational 分离 + repair_arc 透明 overlay)、R2(reciprocity 弱耦合 enabled)、R3(AffectionOverlay 注入 composeSystemPrompt)、decay 注册为 worker cron(24h) |
+| 1.1.14 | 2026-06-21 | M7 Evals complete: CI pipeline (.github/workflows/agent-platform-evals.yml), 17 deterministic + LLM cases, eval runner + assertion engine, LLM judge strategy, protocol docs |

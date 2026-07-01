@@ -10,6 +10,12 @@ When you create, edit, rename, or delete any file under `docs/`, apply the proje
 
 A `postToolUse` hook (`.cursor/hooks/sync-docs-cn.py`) injects a reminder after `Write` operations on `docs/**/*.md`.
 
+## Agent platform (target design)
+
+- **Spec:** [`docs/agent-platform/README.md`](docs/agent-platform/README.md) — target design for memory, topics, Composer (M1–M8).
+- **Skill:** **agent-platform** — read before implementing `services/**/agent-platform/` or editing `docs/agent-platform/`.
+- **Rule:** `.cursor/rules/agent-platform.mdc` — invariants (style vs memory, promote, topic archive).
+
 ## Phase 1 full-function demo (before APK)
 
 - **Roadmap (canonical checklist):** [`docs/Phase1-Demo-Roadmap-Echo.md`](docs/Phase1-Demo-Roadmap-Echo.md) — one row per feature (`P1-xx`). Update **per-layer** columns only: `API` | `Worker` | `Web` | `APK` (v1.1.0; do not use a single row-wide `done`).

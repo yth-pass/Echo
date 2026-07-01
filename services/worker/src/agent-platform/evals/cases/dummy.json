@@ -1,0 +1,46 @@
+{
+  "id": "EVAL-DUMMY-001",
+  "mechanism": "composer",
+  "tags": ["smoke"],
+  "description": "骨架验证 case：确认 Eval Runner 可以加载 JSON、执行 PromptComposer、通过断言。不测任何业务逻辑。",
+  "requiresLlm": false,
+  "expectedDurationMs": 2000,
+  "setup": {
+    "observers": ["agent-a"],
+    "memorySnapshot": "none",
+    "styleOverrides": {
+      "agent-a": "温柔体贴的女生，喜欢猫，讨厌油腻玩笑"
+    }
+  },
+  "input": {
+    "turns": [
+      { "speaker_id": "user-x", "content": "你好", "turn_index": 0 }
+    ]
+  },
+  "assertions": [
+    {
+      "assertType": "rule",
+      "target": "composer-output-contains",
+      "expect": {
+        "contains": ["L0", "约会分身"]
+      },
+      "severity": "blocking"
+    },
+    {
+      "assertType": "rule",
+      "target": "composer-output-contains",
+      "expect": {
+        "contains": ["用中文简短回复一句"]
+      },
+      "severity": "blocking"
+    },
+    {
+      "assertType": "rule",
+      "target": "composer-output-not-contains",
+      "expect": {
+        "patterns": ["As an AI language model"]
+      },
+      "severity": "blocking"
+    }
+  ]
+}

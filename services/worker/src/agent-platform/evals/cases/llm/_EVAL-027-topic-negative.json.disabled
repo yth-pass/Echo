@@ -1,0 +1,38 @@
+{
+  "id": "EVAL-027",
+  "mechanism": "topic",
+  "tags": ["topic-return", "regression"],
+  "description": "LLM 负向探针：话题完全切换（应触发 new_main 而非 return_to_main）→ 验证 TopicJudge 状态机正确选择 new_main。默认禁用。",
+  "requiresLlm": true,
+  "expectedDurationMs": 30000,
+  "setup": {
+    "observers": ["agent-a"],
+    "memorySnapshot": "none"
+  },
+  "input": {
+    "turns": [
+      { "speaker_id": "user-x", "content": "我最近在学日语，挺有意思的", "turn_index": 0 },
+      { "speaker_id": "user-x", "content": "你觉得明天的天气会怎么样？完全换个话题", "turn_index": 1 }
+    ],
+    "topicState": {
+      "phase": "ongoing",
+      "main_topic": "学日语",
+      "focus": "main"
+    }
+  },
+  "assertions": [
+    {
+      "assertType": "rule",
+      "target": "topic-transition-type",
+      "expect": { "validTransitions": ["continue_main", "new_sub", "return_to_main", "new_main", "continue_sub"] },
+      "severity": "blocking"
+    },
+    {
+      "assertType": "llm-judge",
+      "target": "topic-transition-type",
+      "expect": {},
+      "llmPrompt": "topic-return",
+      "severity": "blocking"
+    }
+  ]
+}

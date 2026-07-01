@@ -9,6 +9,7 @@ import {
   submitReport,
   type ReportTargetType,
 } from '../../api/report';
+import { COPY } from '../../copy';
 
 const TARGET_OPTIONS: { value: ReportTargetType; label: string }[] = [
   { value: 'post', label: '动态' },
@@ -40,7 +41,7 @@ export function ReportSheet({
   const [errorMsg, setErrorMsg] = useState('');
 
   const reason = useMemo(() => {
-    const parts = [preset];
+    const parts: string[] = [preset];
     if (detail.trim()) parts.push(detail.trim());
     return parts.join('：');
   }, [preset, detail]);
@@ -61,12 +62,16 @@ export function ReportSheet({
       setStatus('success');
       return;
     }
-    if (res.error === 'no_api') {
-      setStatus('no_api');
-      return;
+    if (!res.ok) {
+      // 【窄化修复】in 操作符独立于 ok 判别字段，确保跨文件判别联合可靠窄化
+      const err: 'no_api' | 'request_failed' = 'error' in res ? res.error : 'request_failed';
+      if (err === 'no_api') {
+        setStatus('no_api');
+        return;
+      }
+      setStatus('error');
+      setErrorMsg(COPY.error.submitFailed);
     }
-    setStatus('error');
-    setErrorMsg('提交失败，请稍后重试');
   };
 
   return (
@@ -86,8 +91,8 @@ export function ReportSheet({
       <div className="flex-1 overflow-y-auto p-5 space-y-5">
         {status === 'success' ? (
           <div className="text-center py-12 space-y-4">
-            <p className="text-echo-blue font-bold">已提交举报</p>
-            <p className="text-xs text-gray-500">我们会尽快审核处理</p>
+            <p className="text-echo-blue font-bold">{COPY.celebrate.reportDone}</p>
+            <p className="text-xs text-gray-500">{COPY.celebrate.reportDoneSub}</p>
             <button
               type="button"
               onClick={onClose}
@@ -166,7 +171,7 @@ export function ReportSheet({
 
             {status === 'no_api' && (
               <p className="text-sm text-amber-400/90 text-center">
-                演示模式：未连接 API，举报未提交
+                {COPY.error.noApiReport}
               </p>
             )}
             {status === 'error' && errorMsg && (
@@ -179,7 +184,7 @@ export function ReportSheet({
               onClick={() => void handleSubmit()}
               className="w-full py-4 bg-echo-blue text-echo-dark rounded-2xl font-bold text-sm disabled:opacity-50"
             >
-              {submitting ? '提交中…' : '提交举报'}
+              {submitting ? COPY.submitting.report : '提交举报'}
             </button>
           </>
         )}

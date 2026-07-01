@@ -1,0 +1,43 @@
+{
+  "id": "EVAL-005",
+  "mechanism": "affection",
+  "tags": ["memory-leak"],
+  "description": "验证 AffectionOverlay 包含隐私指令 'do_not_repeat_to_subject'。确保 prompt 层有 share_policy 保护。不调用 LLM，仅验证 overlay 文本结构。",
+  "requiresLlm": false,
+  "expectedDurationMs": 1000,
+  "setup": {
+    "observers": ["agent-a", "agent-b"],
+    "memorySnapshot": "none",
+    "affectionSeed": {
+      "agent-a::agent-b": {
+        "label": "friendly_acquaintance",
+        "dimensions": { "familiarity": 40, "warmth": 50, "trust": 45, "tension": 10 }
+      }
+    }
+  },
+  "input": {
+    "turns": [
+      { "speaker_id": "agent-b", "content": "我最近在找工作", "turn_index": 0 }
+    ]
+  },
+  "assertions": [
+    {
+      "assertType": "rule",
+      "target": "affection-overlay-contains",
+      "expect": { "contains": ["do_not_repeat"] },
+      "severity": "blocking"
+    },
+    {
+      "assertType": "rule",
+      "target": "affection-overlay-contains",
+      "expect": { "contains": ["share_policy"] },
+      "severity": "blocking"
+    },
+    {
+      "assertType": "rule",
+      "target": "affection-overlay-not-contains",
+      "expect": { "patterns": ["agent-b 正在找工作"] },
+      "severity": "warning"
+    }
+  ]
+}

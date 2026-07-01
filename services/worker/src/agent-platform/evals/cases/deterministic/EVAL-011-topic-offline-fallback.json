@@ -1,0 +1,36 @@
+{
+  "id": "EVAL-011",
+  "mechanism": "topic",
+  "tags": ["topic-return"],
+  "description": "验证 TopicJudge 离线回退路径：无 DEEPSEEK_API_KEY 时仍返回合法结构（transition、confidence、main_topic_update.summary）。验证平台不变量而非 LLM 质量。",
+  "requiresLlm": false,
+  "expectedDurationMs": 1000,
+  "setup": {
+    "observers": ["agent-a"],
+    "memorySnapshot": "none"
+  },
+  "input": {
+    "turns": [
+      { "speaker_id": "user-x", "content": "你好，今天天气不错", "turn_index": 0 }
+    ],
+    "topicState": {
+      "phase": "opening",
+      "main_topic": "Greeting",
+      "focus": "main"
+    }
+  },
+  "assertions": [
+    {
+      "assertType": "rule",
+      "target": "topic-transition-type",
+      "expect": { "validTransitions": ["continue_main", "continue_sub", "new_sub", "return_to_main", "new_main"] },
+      "severity": "blocking"
+    },
+    {
+      "assertType": "rule",
+      "target": "topic-summary-length",
+      "expect": { "maxLength": 150, "source": "main_topic_update.summary" },
+      "severity": "blocking"
+    }
+  ]
+}

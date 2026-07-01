@@ -1,6 +1,6 @@
 @echo off
 REM Echo — one-click Phase 1 full demo (API + Worker + echo web)
-REM Prereqs: Neon/Upstash or Docker .env configured; npm install done once.
+REM Prereqs: Neon/Upstash .env configured; npm install done once.
 REM See infra/README-native-windows.md and README.md section 7.1a
 
 setlocal EnableExtensions

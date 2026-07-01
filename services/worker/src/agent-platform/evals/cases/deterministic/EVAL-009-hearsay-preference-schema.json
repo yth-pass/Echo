@@ -1,0 +1,32 @@
+{
+  "id": "EVAL-009",
+  "mechanism": "memory",
+  "tags": ["hearsay"],
+  "description": "验证 preference schema 不变量的确定性检查：status 只能为 candidate/active/promoted_to_objective/contradicted，confidence 范围 0.4–0.7（②）。",
+  "requiresLlm": false,
+  "expectedDurationMs": 1000,
+  "setup": {
+    "observers": ["agent-a", "agent-b"],
+    "memorySnapshot": "none"
+  },
+  "input": {
+    "turns": [
+      { "speaker_id": "agent-b", "content": "我特别喜欢爬山", "turn_index": 0 }
+    ],
+    "sessionId": "session-009"
+  },
+  "assertions": [
+    {
+      "assertType": "rule",
+      "target": "hearsay-confidence-threshold",
+      "expect": { "minConfidence": 0.4, "maxConfidence": 0.7, "source": "preferences" },
+      "severity": "blocking"
+    },
+    {
+      "assertType": "rule",
+      "target": "hearsay-promote-status",
+      "expect": { "validStatuses": ["candidate", "active", "promoted_to_objective", "contradicted"] },
+      "severity": "blocking"
+    }
+  ]
+}

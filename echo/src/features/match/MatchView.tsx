@@ -3,11 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { MessageSquare, RefreshCw, Sparkles } from 'lucide-react';
+import { Clock, MessageSquare, RefreshCw, Sparkles } from 'lucide-react';
+import { LottieLoader } from '../../components/LottieLoader';
 import type { Match } from '../../types';
 import type { MatchSource } from '../../api/match';
 import { getApiBaseUrl } from '../../api/client';
 import { Header } from '../shell/Header';
+import { COPY } from '../../copy';
 
 export function MatchView({
   matches,
@@ -51,9 +53,6 @@ export function MatchView({
     <div className="pb-24">
       <Header title="社交实验室" />
       <div className="px-5 mt-4 space-y-4">
-        {showMockBanner && (
-          <p className="text-[10px] text-amber-400/90 text-center">演示数据（Mock）</p>
-        )}
         {showError && (
           <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-center space-y-3">
             <p className="text-sm text-red-300">无法连接匹配服务，请检查 API 与登录</p>
@@ -64,7 +63,7 @@ export function MatchView({
                 className="inline-flex items-center gap-2 text-xs font-bold text-echo-blue"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
-                重试
+                {COPY.btn.tryAgain}
               </button>
             )}
           </div>
@@ -83,21 +82,21 @@ export function MatchView({
         )}
         {loading && (
           <div className="space-y-4">
+            <div className="flex justify-center py-2">
+              <LottieLoader size={48} />
+            </div>
             {[0, 1].map((i) => (
               <div
                 key={i}
                 className="p-5 rounded-3xl bg-echo-card border border-white/5 animate-pulse h-40"
               />
             ))}
-            <p className="text-center text-xs text-gray-500">加载中…</p>
+            <p className="text-center text-xs text-gray-500">{COPY.loading.match}</p>
           </div>
         )}
         {!loading && showEmpty && (
           <div className="py-16 text-center space-y-2">
-            <p className="text-sm text-gray-400">暂无匹配，后台正在为你寻找缘分</p>
-            <p className="text-[10px] text-gray-600">
-              请确认 Worker 已运行；新用户完成入驻后会自动触发匹配任务
-            </p>
+            <p className="text-sm text-gray-400">{COPY.empty.match}</p>
             {onRefresh && (
               <button
                 type="button"
@@ -154,11 +153,26 @@ export function MatchView({
 
                 <div className="bg-black/20 p-3 rounded-xl border border-white/5">
                   <p className="text-[11px] text-gray-500 mb-1 flex items-center gap-1">
-                    <MessageSquare className="w-3 h-3" /> 分身对话摘要
+                    <MessageSquare className="w-3 h-3" /> {COPY.status.chatSummary}
                   </p>
                   <p className="text-sm text-gray-300 italic">
-                    {match.lastMessage ? `“${match.lastMessage}”` : '分身对话进行中…'}
+                    {match.lastMessage ? `"${match.lastMessage}"` : COPY.status.chatOngoing}
                   </p>
+                </div>
+
+                {/* Session status badges */}
+                <div className="flex gap-2 mt-2 flex-wrap">
+                  {match.sessionStatus === 'wind_down' && (
+                    <span className="inline-flex items-center gap-1 text-[10px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                      <Clock className="w-3 h-3" />
+                      {COPY.status.chatWindingDown}
+                    </span>
+                  )}
+                  {typeof match.dailyTurnCount === 'number' && (
+                    <span className="text-[10px] text-gray-500 bg-white/5 px-2 py-0.5 rounded-full">
+                      今天 {match.dailyTurnCount}/100 轮
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex gap-2 mt-4">
@@ -167,7 +181,7 @@ export function MatchView({
                     onClick={() => onDismiss(match)}
                     className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-bold text-gray-400"
                   >
-                    忽略
+                    {COPY.btn.dismiss}
                   </button>
                   <button
                     type="button"
@@ -175,7 +189,7 @@ export function MatchView({
                     disabled={hasApi && !match.candidateUserId}
                     className="flex-1 py-2.5 bg-red-500/10 hover:bg-red-500/20 rounded-xl text-xs font-bold text-red-400 disabled:opacity-40"
                   >
-                    拉黑
+                    {COPY.btn.block}
                   </button>
                 </div>
 

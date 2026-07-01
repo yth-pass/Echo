@@ -5,8 +5,7 @@
 
 import type { Match } from '../types';
 import { MOCK_MATCHES } from '../data/mockData';
-import { refreshSession } from './auth';
-import { apiGetJson, apiPostJson, getApiBaseUrl } from './client';
+import { apiGetJson, apiPostJson, getApiBaseUrl, unwrap } from './client';
 
 export type MatchSource = 'api' | 'mock' | 'error';
 
@@ -58,6 +57,12 @@ function mapApiMatch(row: Record<string, unknown>, index: number): Match | null 
       : typeof row.sessionId === 'string'
         ? row.sessionId
         : undefined;
+  const sessionStatus =
+    typeof row.session_status === 'string' ? row.session_status : undefined;
+  const windDownReason =
+    typeof row.wind_down_reason === 'string' ? row.wind_down_reason : undefined;
+  const dailyTurnCount =
+    typeof row.daily_turn_count === 'number' ? row.daily_turn_count : undefined;
   return {
     id,
     name,
@@ -65,6 +70,9 @@ function mapApiMatch(row: Record<string, unknown>, index: number): Match | null 
     handoffId,
     candidateUserId,
     sessionId,
+    sessionStatus,
+    windDownReason,
+    dailyTurnCount,
     status: typeof row.status === 'string' ? row.status : '',
     lastMessage:
       typeof row.lastMessage === 'string'
@@ -88,19 +96,17 @@ function parseMatchRows(raw: unknown): unknown[] {
   return [];
 }
 
-/** `GET /matches` — mock only without API base URL; empty API list does not substitute mock. */
-export async function loadMatches(): Promise<MatchLoadResult> {
+/**
+ * `GET /matches` — mock only without API base URL; empty API list does not substitute mock.
+ * 【缺陷3修复】移除独立的 refreshSession 逻辑，由 client.ts 统一 401 拦截处理。
+ */
+export async function loadMatches(signal?: AbortSignal): Promise<MatchLoadResult> {
   if (!getApiBaseUrl()) {
     return { matches: MOCK_MATCHES, source: 'mock' };
   }
 
-  let raw = await apiGetJson<unknown>('/matches');
-  if (raw == null) {
-    const refreshed = await refreshSession();
-    if (refreshed) {
-      raw = await apiGetJson<unknown>('/matches');
-    }
-  }
+  // 【缺陷3修复】401 由 client 内部拦截（refresh + 重试），此处无需手动 refresh
+  const raw = unwrap(await apiGetJson<unknown>('/matches', signal));
   if (raw == null) {
     return { matches: [], source: 'error' };
   }
@@ -115,17 +121,33 @@ export async function loadMatches(): Promise<MatchLoadResult> {
 
 export async function dismissMatch(matchPushId: string): Promise<boolean> {
   if (!getApiBaseUrl()) return false;
-  const res = await apiPostJson<Record<string, never>, { dismissed?: boolean }>(
-    `/matches/${matchPushId}/dismiss`,
-    {},
+  const res = unwrap(
+    await apiPostJson<Record<string, never>, { dismissed?: boolean }>(
+      `/matches/${matchPushId}/dismiss`,
+      {},
+    ),
   );
   return res?.dismissed === true;
 }
 
 export async function blockUser(blockedUserId: string): Promise<boolean> {
   if (!getApiBaseUrl()) return false;
-  const res = await apiPostJson<{ blockedUserId: string }, { blocked?: boolean }>('/blocks', {
-    blockedUserId,
-  });
+  const res = unwrap(
+    await apiPostJson<{ blockedUserId: string }, { blocked?: boolean }>('/blocks', {
+      blockedUserId,
+    }),
+  );
   return res?.blocked === true;
+}
+
+/** POST /matches/trigger — 手动触发匹配（跳过时间窗口），用于本地测试 */
+export async function triggerMatch(): Promise<boolean> {
+  if (!getApiBaseUrl()) return false;
+  const res = unwrap(
+    await apiPostJson<Record<string, never>, { triggered?: boolean }>(
+      '/matches/trigger',
+      {},
+    ),
+  );
+  return res?.triggered === true;
 }

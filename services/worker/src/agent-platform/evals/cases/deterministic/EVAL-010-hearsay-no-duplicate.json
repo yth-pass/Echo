@@ -1,0 +1,26 @@
+{
+  "id": "EVAL-010",
+  "mechanism": "memory",
+  "tags": ["hearsay"],
+  "description": "验证文件级 invariant：同一 fact 不能同时存在于 objective_facts.jsonl (①) 和 preferences.jsonl (②)。Implements invariant #3。",
+  "requiresLlm": false,
+  "expectedDurationMs": 1000,
+  "setup": {
+    "observers": ["agent-a", "agent-b"],
+    "memorySnapshot": "none"
+  },
+  "input": {
+    "turns": [
+      { "speaker_id": "agent-b", "content": "我住在北京", "turn_index": 0 }
+    ],
+    "sessionId": "session-010"
+  },
+  "assertions": [
+    {
+      "assertType": "rule",
+      "target": "hearsay-not-in-objective-facts",
+      "expect": { "factContent": "住在北京", "shouldNotExist": true },
+      "severity": "blocking"
+    }
+  ]
+}

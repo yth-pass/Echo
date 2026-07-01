@@ -9,6 +9,7 @@ import { ArrowRight, Smartphone, UserPlus } from 'lucide-react';
 import { getApiBaseUrl } from '../../api/client';
 import type { AuthSession } from '../../api/auth';
 import { loginWithOtp, registerPhone, requestOtp } from '../../api/auth';
+import { COPY } from '../../copy';
 
 type AuthMode = 'login' | 'register';
 
@@ -20,22 +21,20 @@ const AUTH_COPY = {
     '使用已绑定的手机号登录，继续查看匹配与分身动态。',
   subtitleRegister:
     '用手机号注册，接下来几分钟即可创建你的 AI 分身，帮你在广场破冰、筛选缘分。',
-  subtitlePreview: '当前为界面预览，无需验证码即可继续体验。',
   tabLogin: '登录',
   tabRegister: '注册',
   labelPhone: '手机号码',
   labelOtp: '短信验证码',
   placeholderPhone: '请输入 11 位手机号',
-  placeholderOtp: '请输入 6 位验证码',
+  placeholderOtp: '请输入 4 位验证码',
   otpSentHint: '验证码已发送至你的手机，请注意查收',
   sendOtp: '获取验证码',
   resendOtp: '重新发送验证码',
   submitLogin: '登录',
   submitRegister: '创建账号并继续',
-  loading: '处理中…',
-  errorOtpSend: '验证码发送失败，请检查手机号后重试',
-  errorLogin: '验证码错误或已失效，请重新获取后再试',
-  devLoginHint: '本地开发可试用固定码（见服务端配置）',
+  loading: COPY.loading.auth,
+  errorOtpSend: COPY.error.otpSend,
+  errorLogin: COPY.error.loginOtpError,
 } as const;
 
 const labelClass = 'block text-left text-sm font-medium text-gray-400 mb-2';
@@ -52,55 +51,70 @@ export function AuthShell({
   const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showDevLoginHint, setShowDevLoginHint] = useState(false);
+  const [otpSentInfo, setOtpSentInfo] = useState(false);
   const hasApi = Boolean(getApiBaseUrl());
 
   const canContinue = phone.replace(/\D/g, '').length >= 11;
 
-  const subtitle = !hasApi
-    ? AUTH_COPY.subtitlePreview
-    : mode === 'register'
+  const subtitle = mode === 'register'
       ? AUTH_COPY.subtitleRegister
       : AUTH_COPY.subtitleLogin;
 
   const sendOtp = async () => {
     setError(null);
-    setShowDevLoginHint(false);
+    setOtpSentInfo(false);
     if (!hasApi) {
       setOtpSent(true);
       return;
     }
     setLoading(true);
-    if (mode === 'register') {
-      await registerPhone(phone);
+    try {
+      if (mode === 'register') {
+        try {
+          await registerPhone(phone);
+        } catch {
+          // 注册失败（如手机号已存在）不阻塞 —— 继续发送验证码
+        }
+      }
+      const otpResult = await requestOtp(phone);
+      if (!otpResult.sent) {
+        setError(otpResult.error ?? AUTH_COPY.errorOtpSend);
+        return;
+      }
+      setOtpSent(true);
+      setOtpSentInfo(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : COPY.error.otpSend);
+    } finally {
+      setLoading(false);
     }
-    const ok = await requestOtp(phone);
-    setLoading(false);
-    if (!ok) {
-      setError(AUTH_COPY.errorOtpSend);
-      return;
-    }
-    setOtpSent(true);
   };
 
   const enter = async () => {
     setError(null);
-    setShowDevLoginHint(false);
+    setOtpSentInfo(false);
     if (!hasApi) {
       onComplete(null);
       return;
     }
-    setLoading(true);
-    const session = await loginWithOtp(phone, code || '123456');
-    setLoading(false);
-    if (!session) {
-      setError(AUTH_COPY.errorLogin);
-      if (import.meta.env.DEV) {
-        setShowDevLoginHint(true);
-      }
+    // 【缺陷1修复】移除 || '123456' 默认值，code 为空时不发送请求
+    const trimmedCode = code.trim();
+    if (!trimmedCode) {
       return;
     }
-    onComplete(session);
+    setLoading(true);
+    try {
+      const session = await loginWithOtp(phone, trimmedCode);
+      if (!session) {
+        setError(AUTH_COPY.errorLogin);
+        return;
+      }
+      onComplete(session);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : COPY.error.login);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -122,7 +136,6 @@ export function AuthShell({
           onClick={() => {
             setMode('login');
             setError(null);
-            setShowDevLoginHint(false);
           }}
           className={`flex-1 py-2 rounded-xl text-sm font-bold ${
             mode === 'login' ? 'bg-echo-blue text-echo-dark' : 'bg-white/5 text-gray-400'
@@ -135,7 +148,6 @@ export function AuthShell({
           onClick={() => {
             setMode('register');
             setError(null);
-            setShowDevLoginHint(false);
           }}
           className={`flex-1 py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-1 ${
             mode === 'register' ? 'bg-echo-blue text-echo-dark' : 'bg-white/5 text-gray-400'
@@ -168,16 +180,15 @@ export function AuthShell({
             onChange={(e) => setCode(e.target.value)}
             className="w-full bg-echo-card border border-white/10 rounded-2xl px-4 py-3 text-white placeholder:text-gray-600 mb-2 focus:outline-none focus:ring-2 focus:ring-echo-blue/40"
           />
-          <p className="text-xs text-gray-500 mb-4 text-left">{AUTH_COPY.otpSentHint}</p>
+          {otpSentInfo && !error && (
+            <p className="text-xs text-gray-500 mb-4 text-left">{AUTH_COPY.otpSentHint}</p>
+          )}
         </>
       )}
 
       {error && (
-        <div className="mb-3 text-left space-y-1">
+        <div className="mb-3 text-left">
           <p className="text-sm text-red-400">{error}</p>
-          {showDevLoginHint && (
-            <p className="text-xs text-gray-600">{AUTH_COPY.devLoginHint}</p>
-          )}
         </div>
       )}
 
@@ -192,7 +203,7 @@ export function AuthShell({
 
       <button
         type="button"
-        disabled={!canContinue || loading}
+        disabled={!canContinue || loading || (hasApi && otpSent && !code.trim())}
         onClick={() => void enter()}
         className="w-full bg-echo-blue text-echo-dark font-bold py-4 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-40"
       >

@@ -15,11 +15,15 @@
 | [Onboarding-Survey-Design-Echo.md](./Onboarding-Survey-Design-Echo.md) | 入驻问卷与对话设计 |
 | [Clone-Runtime-and-Triggers-Echo.md](./Clone-Runtime-and-Triggers-Echo.md) | 分身运行时、队列与 LLM 触发 |
 | [Agent-Behavior-and-Mechanics-Echo.md](./Agent-Behavior-and-Mechanics-Echo.md) | **Agent 行为机制** — 语气模仿、匹配、互聊、发帖、好感度（Phase 1 实装说明） |
+| [agent-platform/](./agent-platform/README.md) | **Agent 平台目标设计** — 共享 skill、style.md、分层记忆、主题、好感（M1–M8） |
 | [Campus-Pilot-Launch-Plan-Echo.md](./Campus-Pilot-Launch-Plan-Echo.md) | 校园试点发布与 GTM |
 | [Strategic-Update-Plan-Echo.md](./Strategic-Update-Plan-Echo.md) | **CEO 战略更新计划** — Part I（CEO §1–§13）+ Part II（CTO §14–§26）+ Part III（CMO §27–§41） |
+| [Echo-Delightful-Experience-Design.md](./Echo-Delightful-Experience-Design.md) | **趣味体验设计方案** — 期待感循环、信任仪表盘、Handoff 仪式、分身养成、微文案库 |
 | [glossary.md](./glossary.md) | 术语表 |
 
 英文索引：[`docs/README.md`](../docs/README.md)。
+
+**实装 vs 目标：** [Agent-Behavior-and-Mechanics-Echo.md](./Agent-Behavior-and-Mechanics-Echo.md) 描述**当前代码**；[agent-platform/](./agent-platform/README.md) 描述**目标设计**（M1–M8）。差距见 [agent-platform/echo-mapping.md](./agent-platform/echo-mapping.md)。
 
 ## 维护说明
 

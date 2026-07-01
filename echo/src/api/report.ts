@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { apiPostJson, getApiBaseUrl } from './client';
+import { apiPostJson, getApiBaseUrl, unwrap } from './client';
 
 export type ReportTargetType = 'post' | 'comment' | 'user' | 'session';
 
@@ -23,14 +23,16 @@ export async function submitReport(params: SubmitReportParams): Promise<SubmitRe
     return { ok: false, error: 'no_api' };
   }
 
-  const res = await apiPostJson<
-    { targetType: string; targetId: string; reason?: string },
-    { id?: string; created?: boolean }
-  >('/reports', {
-    targetType: params.targetType,
-    targetId: params.targetId,
-    ...(params.reason ? { reason: params.reason } : {}),
-  });
+  const res = unwrap(
+    await apiPostJson<
+      { targetType: string; targetId: string; reason?: string },
+      { id?: string; created?: boolean }
+    >('/reports', {
+      targetType: params.targetType,
+      targetId: params.targetId,
+      ...(params.reason ? { reason: params.reason } : {}),
+    }),
+  );
 
   if (res?.created && res.id) {
     return { ok: true, id: String(res.id) };

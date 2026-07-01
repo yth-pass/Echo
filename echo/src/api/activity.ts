@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { apiGetJson, getApiBaseUrl } from './client';
+import { apiGetJson, getApiBaseUrl, unwrap } from './client';
 
 export type ActivitySource = 'api' | 'mock' | 'error';
 
@@ -109,7 +109,7 @@ export async function loadCloneActivity(filter?: string): Promise<ActivityLoadRe
     filter && filter !== '全部' && FILTER_TO_API[filter]
       ? `?type=${FILTER_TO_API[filter]}`
       : '';
-  const raw = await apiGetJson<unknown>(`/clones/me/activity${q}`);
+  const raw = unwrap(await apiGetJson<unknown>(`/clones/me/activity${q}`));
   if (raw == null) {
     return { items: [], source: 'error' };
   }

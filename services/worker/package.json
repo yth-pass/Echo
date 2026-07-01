@@ -6,7 +6,15 @@
     "start": "node dist/main.js",
     "start:dev": "ts-node src/main.ts",
     "build": "tsc",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test:affection": "ts-node src/agent-platform/affection/smoke-test-comprehensive.ts",
+    "test:e2e:m6": "ts-node src/agent-platform/affection/e2e-m6-closeout.ts",
+    "test:evals": "ts-node src/agent-platform/evals/runners/run-evals.ts --tier deterministic",
+    "test:evals:llm": "ts-node src/agent-platform/evals/runners/run-evals.ts --tier llm",
+    "test:evals:style": "ts-node src/agent-platform/evals/runners/run-evals.ts --tier deterministic --filter style",
+    "test:evals:memory": "ts-node src/agent-platform/evals/runners/run-evals.ts --tier deterministic --filter memory-leak,hearsay",
+    "test:integration": "jest --config jest.config.ts --passWithNoTests",
+    "test:unit": "vitest run"
   },
   "dependencies": {
     "@prisma/client": "^6.5.0",
@@ -16,9 +24,13 @@
     "openai": "^4.85.1"
   },
   "devDependencies": {
+    "@types/jest": "^29.5.14",
     "@types/node": "^22.14.0",
+    "jest": "^29.7.0",
     "prisma": "^6.5.0",
+    "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
-    "typescript": "~5.8.2"
+    "typescript": "~5.8.2",
+    "vitest": "^3.2.4"
   }
 }

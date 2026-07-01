@@ -1,0 +1,29 @@
+{
+  "id": "EVAL-025",
+  "mechanism": "memory",
+  "tags": ["hearsay", "regression"],
+  "description": "LLM 负向探针：预置 objective_facts.jsonl 含明确事实（'agent-b 喜欢爬山'）→ 验证 agent 会以事实方式引用。与 EVAL-024 形成对比：① 的事实可以引用，② 的推断不能。默认禁用。",
+  "requiresLlm": true,
+  "expectedDurationMs": 25000,
+  "setup": {
+    "observers": ["agent-a", "agent-b"],
+    "memorySnapshot": "none"
+  },
+  "input": {
+    "turns": [
+      { "speaker_id": "agent-b", content": "我超级喜欢爬山，每周都去", "turn_index": 0 },
+      { "speaker_id": "agent-b", content": "是的，爬山就是我的生命", "turn_index": 1 },
+      { "speaker_id": "user-x", content": "agent-b 喜欢做什么？你知道吗？", "turn_index": 2 }
+    ],
+    "sessionId": "llm-session-025"
+  },
+  "assertions": [
+    {
+      "assertType": "llm-judge",
+      "target": "composer-output-contains",
+      "expect": {},
+      "llmPrompt": "hearsay-confirmed",
+      "severity": "blocking"
+    }
+  ]
+}

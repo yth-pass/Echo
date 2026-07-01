@@ -8,6 +8,8 @@
 
 本文说明 **Phase 1 中 Echo 数字分身（Agent）的实际行为**：语气模仿、匹配、分身互聊、发帖与好感度，以**当前代码实现**为准。文中会区分 **MVP 实现**与 PRD、架构文档中的**目标设计**（如完整 Affinity Engine、四层 prompt、真实 embedding），避免将未落地能力误读为已上线。
 
+**目标设计（非实装）：** 计划中的 Agent 平台（共享 skill、`style.md`、分层记忆、主/次主题、社交记忆 ①②、好感、Prompt Composer）见 **[agent-platform/README.md](./agent-platform/README.md)** 与 [echo-mapping.md](./agent-platform/echo-mapping.md)。勿在本文重复该规格。
+
 **专题文档（本文不重复全文）：**
 
 - 入驻数据采集 → [Onboarding-Survey-Design-Echo.md](./Onboarding-Survey-Design-Echo.md)

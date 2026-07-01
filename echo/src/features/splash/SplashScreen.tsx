@@ -3,25 +3,25 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Sparkles } from 'lucide-react';
+import { LottieLoader } from '../../components/LottieLoader';
 
-export function SplashScreen({ onFinish }: { onFinish: () => void }) {
-  useEffect(() => {
-    const timer = setTimeout(onFinish, 2000);
-    return () => clearTimeout(timer);
-  }, [onFinish]);
-
+/**
+ * 【缺陷4修复】SplashScreen 不再自带 2s 定时器。
+ * 由父组件（App.tsx）控制何时离开 splash：
+ * - fetchMe 完成或 5s 超时后由父组件 setState 切换
+ * - SplashScreen 仅负责动画展示
+ */
+export function SplashScreen() {
   return (
     <div className="fixed inset-0 bg-echo-dark flex flex-col items-center justify-center p-6 text-center">
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.8, ease: 'easeOut' }}
-        className="w-24 h-24 rounded-full bg-echo-blue/20 flex items-center justify-center mb-6 echo-glow-blue"
+        className="mb-6"
       >
-        <Sparkles className="w-12 h-12 text-echo-blue" />
+        <LottieLoader size={96} />
       </motion.div>
       <motion.h1
         initial={{ opacity: 0, y: 10 }}

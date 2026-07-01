@@ -1,0 +1,35 @@
+{
+  "id": "EVAL-003",
+  "mechanism": "composer",
+  "tags": ["style", "smoke"],
+  "description": "验证 L8 输出契约（用中文简短回复一句）始终出现在 prompt 末尾。",
+  "requiresLlm": false,
+  "expectedDurationMs": 500,
+  "sourceSmokeTest": "composer/smoke-test.ts",
+  "setup": {
+    "observers": ["agent-a"],
+    "memorySnapshot": "none",
+    "styleOverrides": {
+      "agent-a": "直率的程序员，说话简洁"
+    }
+  },
+  "input": {
+    "turns": [
+      { "speaker_id": "user-x", "content": "今天天气怎么样", "turn_index": 0 }
+    ]
+  },
+  "assertions": [
+    {
+      "assertType": "rule",
+      "target": "composer-output-contains",
+      "expect": { "contains": ["用中文简短回复一句"] },
+      "severity": "blocking"
+    },
+    {
+      "assertType": "rule",
+      "target": "composer-output-contains",
+      "expect": { "contains": ["L8"] },
+      "severity": "blocking"
+    }
+  ]
+}

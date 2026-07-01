@@ -5,6 +5,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
+import { LottieLoader } from '../../components/LottieLoader';
 import { Header } from '../shell/Header';
 import {
   loadCloneActivity,
@@ -12,6 +13,7 @@ import {
   type ActivitySource,
 } from '../../api/activity';
 import { getApiBaseUrl } from '../../api/client';
+import { COPY } from '../../copy';
 
 const FILTERS = ['全部', '发布', '评论', '点赞', '对话'] as const;
 
@@ -75,9 +77,6 @@ export function ActivityLogView({
           ))}
         </div>
 
-        {showMockBanner && (
-          <p className="text-[10px] text-amber-400/90 mb-4 text-center">演示数据（Mock）</p>
-        )}
         {showError && (
           <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-center space-y-3 mb-4">
             <p className="text-sm text-red-300">无法加载活动记录，请检查 API 与登录</p>
@@ -87,24 +86,26 @@ export function ActivityLogView({
               className="inline-flex items-center gap-2 text-xs font-bold text-echo-blue"
             >
               <RefreshCw className="w-3.5 h-3.5" />
-              重试
+              {COPY.btn.tryAgain}
             </button>
           </div>
         )}
         {loading && (
           <div className="space-y-4 mb-4">
+            <div className="flex justify-center py-2">
+              <LottieLoader size={48} />
+            </div>
             {[0, 1, 2].map((i) => (
               <div key={i} className="h-14 rounded-2xl bg-white/5 animate-pulse ml-4" />
             ))}
           </div>
         )}
         {showEmpty && (
-          <p className="text-sm text-gray-500 text-center py-8">暂无活动记录</p>
+          <p className="text-sm text-gray-500 text-center py-8">{COPY.empty.activity}</p>
         )}
         {source === 'api' && hasApi && !loading && rows.length > 0 && (
           <p className="text-[10px] text-gray-600 mb-4 text-left">
-            数据来源 <code className="text-echo-blue/60">GET /clones/me/activity</code>
-            ；点击可查看详情。
+            点击可查看详情。
           </p>
         )}
 

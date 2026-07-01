@@ -1,0 +1,179 @@
+name: Agent Platform Evals
+
+on:
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'services/worker/src/agent-platform/**'
+      - 'shared-agent/**'
+      - '.github/workflows/agent-platform-evals.yml'
+  push:
+    branches: [main, master]
+    paths:
+      - 'services/worker/src/agent-platform/**'
+      - 'shared-agent/**'
+      - '.github/workflows/agent-platform-evals.yml'
+  schedule:
+    - cron: '0 2 * * *'  # 2 AM UTC daily (10 AM CST)
+  workflow_dispatch:
+
+# ── Default env ──────────────────────────────────────────────────
+env:
+  WORKER_DIR: services/worker
+  TMP_MEMORY_DIR: /tmp/echo-memory
+
+# ── Jobs ─────────────────────────────────────────────────────────
+jobs:
+  # =================================================================
+  # Job 1: Deterministic — every PR, no secrets, no external network
+  # =================================================================
+  eval-deterministic:
+    name: 'Evals (Deterministic)'
+    runs-on: ubuntu-latest
+    if: github.event_name != 'schedule'  # skip on cron; deterministic runs on PR/push only
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: ${{ env.WORKER_DIR }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKER_DIR }}
+        run: npm ci
+
+      - name: TypeScript lint (tsc --noEmit)
+        working-directory: ${{ env.WORKER_DIR }}
+        run: npm run lint
+
+      - name: Affection smoke test (no LLM)
+        working-directory: ${{ env.WORKER_DIR }}
+        env:
+          ECHO_MEMORY_BASE_DIR: ${{ env.TMP_MEMORY_DIR }}
+        run: npm run test:affection
+        continue-on-error: true  # smoke tests are advisory for now; evals are canonical
+
+      - name: Run deterministic evals
+        id: evals
+        working-directory: ${{ env.WORKER_DIR }}
+        env:
+          ECHO_MEMORY_BASE_DIR: ${{ env.TMP_MEMORY_DIR }}
+          ECHO_EVAL_BASE_DIR: /tmp/echo-evals
+        run: npm run test:evals
+        # This is the BLOCKING step — exit 1 = merge blocked
+
+      - name: Upload eval report (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-report-deterministic
+          path: ${{ env.WORKER_DIR }}/src/agent-platform/evals/reports/*.json
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Upload eval report (on success)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-report-deterministic-pass
+          path: ${{ env.WORKER_DIR }}/src/agent-platform/evals/reports/*.json
+          if-no-files-found: ignore
+          retention-days: 1
+
+  # =================================================================
+  # Job 2: LLM — main push / nightly / manual, requires DEEPSEEK_API_KEY
+  # =================================================================
+  eval-llm:
+    name: 'Evals (LLM)'
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'push' ||
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: ${{ env.WORKER_DIR }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKER_DIR }}
+        run: npm ci
+
+      - name: Check DEEPSEEK_API_KEY availability
+        id: check-key
+        run: |
+          if [ -z "${{ secrets.DEEPSEEK_API_KEY }}" ]; then
+            echo "status=missing" >> $GITHUB_OUTPUT
+            echo "::warning::DEEPSEEK_API_KEY secret not set — LLM evals will skip (not fail)"
+          else
+            echo "status=available" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run LLM evals
+        id: evals-llm
+        working-directory: ${{ env.WORKER_DIR }}
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          ECHO_MEMORY_BASE_DIR: ${{ env.TMP_MEMORY_DIR }}
+          ECHO_EVAL_BASE_DIR: /tmp/echo-evals
+        run: npm run test:evals:llm
+        continue-on-error: true  # LLM job is advisory; does not block merge
+
+      - name: Determine LLM eval outcome
+        id: outcome
+        if: always()
+        run: |
+          if [ "${{ steps.check-key.outputs.status }}" = "missing" ]; then
+            echo "result=Skipped (no API key)" >> $GITHUB_OUTPUT
+            echo "blocking=false" >> $GITHUB_OUTPUT
+          elif [ "${{ steps.evals-llm.outcome }}" = "success" ]; then
+            echo "result=Pass" >> $GITHUB_OUTPUT
+            echo "blocking=false" >> $GITHUB_OUTPUT
+          else
+            echo "result=Fail (see report)" >> $GITHUB_OUTPUT
+            echo "blocking=false" >> $GITHUB_OUTPUT
+            echo "::warning::LLM evals failed — check artifact for details. Note: LLM job is advisory, not blocking."
+          fi
+
+      - name: Upload LLM eval report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-report-llm
+          path: ${{ env.WORKER_DIR }}/src/agent-platform/evals/reports/*.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Job summary
+        if: always()
+        run: |
+          echo "## M7 LLM Evals" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| API Key | ${{ steps.check-key.outputs.status }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Result | ${{ steps.outcome.outputs.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Blocking | ${{ steps.outcome.outputs.blocking }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> 💡 LLM evals are **advisory** (not blocking). A failure here means a semantic regression MAY exist — review the artifact report. If the failure is due to API quota/speed, re-run the job manually." >> $GITHUB_STEP_SUMMARY
+
+  # =================================================================
+  # Job 3: Rollback / manual skip
+  # =================================================================
+  # To temporarily skip LLM evals without editing the workflow file:
+  #   1. Go to Actions → "Agent Platform Evals" → "Run workflow" (workflow_dispatch)
+  #   2. The LLM job will run; if API key is missing or quota exhausted, it skips gracefully.
+  #
+  # To permanently skip LLM evals (e.g., during infrastructure migration):
+  #   - Edit this file and set `if: false` on the `eval-llm` job
+  #   - OR: remove the DEEPSEEK_API_KEY secret from repo settings

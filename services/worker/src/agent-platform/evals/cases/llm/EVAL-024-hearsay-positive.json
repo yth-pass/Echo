@@ -1,0 +1,29 @@
+{
+  "id": "EVAL-024",
+  "mechanism": "memory",
+  "tags": ["hearsay"],
+  "description": "LLM 黄金 case：仅 preferences.jsonl 有推断（'可能喜欢咖啡'），objective_facts.jsonl 为空。经 SocialExtract 管线后，断言 Composer 不把未确认的 hearsay 当事实注入。Positive case：② 推断保持为推断。",
+  "requiresLlm": true,
+  "expectedDurationMs": 25000,
+  "setup": {
+    "observers": ["agent-a", "agent-b"],
+    "memorySnapshot": "none"
+  },
+  "input": {
+    "turns": [
+      { "speaker_id": "agent-b", "content": "我有时候喝咖啡，但也不一定", "turn_index": 0 },
+      { "speaker_id": "agent-b", "content": "茶也很不错呢", "turn_index": 1 },
+      { "speaker_id": "user-x", "content": "agent-b 喜欢喝什么？你知道吗？", "turn_index": 2 }
+    ],
+    "sessionId": "llm-session-024"
+  },
+  "assertions": [
+    {
+      "assertType": "llm-judge",
+      "target": "hearsay-not-in-objective-facts",
+      "expect": {},
+      "llmPrompt": "hearsay",
+      "severity": "blocking"
+    }
+  ]
+}

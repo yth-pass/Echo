@@ -43,12 +43,16 @@ export class QueueService implements OnModuleDestroy {
     await this.getQueue(QUEUE_NAMES.MODERATION).add('moderate', payload);
   }
 
-  async enqueueMatchDaily() {
-    await this.getQueue(QUEUE_NAMES.MATCH_DAILY).add('run', {});
+  async enqueueMatchDaily(opts?: { force?: boolean }) {
+    await this.getQueue(QUEUE_NAMES.MATCH_DAILY).add('run', { force: opts?.force ?? false });
   }
 
-  async enqueueAgentTurn(payload: { sessionId: string }) {
-    await this.getQueue(QUEUE_NAMES.AGENT_TURN).add('turn', payload);
+  // 【缺陷1修复】enqueueAgentTurn 接收 turnIndex 参数，设 jobId = agent-turn:${sessionId}:${turnIndex}。
+  // BullMQ 对相同 jobId 的任务自动去重，防止重复消费导致消息重复。
+  // 调用方需在入队前查询当前 turnIndex（session 已有消息数）并传入。
+  async enqueueAgentTurn(payload: { sessionId: string; turnIndex: number }) {
+    const jobId = `agent-turn:${payload.sessionId}:${payload.turnIndex}`;
+    await this.getQueue(QUEUE_NAMES.AGENT_TURN).add('turn', payload, { jobId });
   }
 
   async enqueueReportTriage(payload: {

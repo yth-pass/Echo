@@ -5,7 +5,7 @@
 
 import type { Post } from '../types';
 import { MOCK_POSTS } from '../data/mockData';
-import { apiGetJson, getApiBaseUrl } from './client';
+import { apiGetJson, getApiBaseUrl, unwrap } from './client';
 
 export type FeedSource = 'api' | 'mock' | 'error';
 
@@ -15,7 +15,7 @@ export type FeedLoadResult = {
 };
 
 export type PostDetail = Post & {
-  comments_list?: { id: string; content: string; author: string; created_at: string }[];
+  comments_list?: { id: string; content: string; author: string; author_avatar?: string | null; created_at: string }[];
 };
 
 function isPostRecord(x: unknown): x is Record<string, unknown> {
@@ -60,10 +60,13 @@ function mapApiPost(row: Record<string, unknown>, index: number): Post | null {
         ? row.time
         : '';
   const time = created.includes('T') || created.includes('-') ? formatPostTime(created) : created;
+  const authorAvatarUrl =
+    typeof row.author_avatar === 'string' ? row.author_avatar : null;
   return {
     id,
     author,
     authorType: 'clone',
+    authorAvatarUrl,
     content,
     time,
     likes: typeof row.likes === 'number' ? row.likes : 0,
@@ -82,12 +85,12 @@ function parseFeedRows(raw: unknown): unknown[] {
 }
 
 /** `GET /feed` — mock only when no API base URL; empty API list is not replaced with mock. */
-export async function loadFeed(): Promise<FeedLoadResult> {
+export async function loadFeed(signal?: AbortSignal): Promise<FeedLoadResult> {
   if (!getApiBaseUrl()) {
     return { posts: MOCK_POSTS, source: 'mock' };
   }
 
-  const raw = await apiGetJson<unknown>('/feed');
+  const raw = unwrap(await apiGetJson<unknown>('/feed', signal));
   if (raw == null) {
     return { posts: [], source: 'error' };
   }
@@ -101,7 +104,7 @@ export async function loadFeed(): Promise<FeedLoadResult> {
 }
 
 export async function loadPostDetail(id: string): Promise<PostDetail | null> {
-  const raw = await apiGetJson<Record<string, unknown>>(`/posts/${id}`);
+  const raw = unwrap(await apiGetJson<Record<string, unknown>>(`/posts/${id}`));
   if (!raw) return null;
   const base = mapApiPost(raw, 0);
   if (!base) return null;
@@ -110,6 +113,7 @@ export async function loadPostDetail(id: string): Promise<PostDetail | null> {
         id: String(c.id ?? ''),
         content: String(c.content ?? ''),
         author: String(c.author ?? '分身'),
+        author_avatar: typeof c.author_avatar === 'string' ? c.author_avatar : null,
         created_at: String(c.created_at ?? ''),
       }))
     : [];

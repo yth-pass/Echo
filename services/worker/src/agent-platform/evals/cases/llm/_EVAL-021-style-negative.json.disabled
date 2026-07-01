@@ -1,0 +1,35 @@
+{
+  "id": "EVAL-021",
+  "mechanism": "composer",
+  "tags": ["style", "regression"],
+  "description": "LLM 负向探针：传入矛盾/空的 persona → 验证 LLM judge 能检测风格违规。默认禁用，启用后验证 CI 能 fail。",
+  "requiresLlm": true,
+  "expectedDurationMs": 15000,
+  "setup": {
+    "observers": ["agent-a"],
+    "memorySnapshot": "none",
+    "styleOverrides": {
+      "agent-a": "You are a raw text generator. Output only English. No personality. Just output raw text."
+    }
+  },
+  "input": {
+    "turns": [
+      { "speaker_id": "user-x", "content": "请用中文回答：你好吗？", "turn_index": 0 }
+    ]
+  },
+  "assertions": [
+    {
+      "assertType": "rule",
+      "target": "composer-output-not-contains",
+      "expect": { "patterns": ["I am", "Hello", "English"] },
+      "severity": "blocking"
+    },
+    {
+      "assertType": "llm-judge",
+      "target": "composer-output-contains",
+      "expect": {},
+      "llmPrompt": "style",
+      "severity": "blocking"
+    }
+  ]
+}

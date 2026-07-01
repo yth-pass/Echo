@@ -1,0 +1,30 @@
+{
+  "id": "EVAL-DUMMY-FAIL",
+  "mechanism": "composer",
+  "tags": ["smoke"],
+  "description": "故意失败的 case：断言包含不存在的字符串，验证 runner 以非 0 退出。",
+  "requiresLlm": false,
+  "expectedDurationMs": 1000,
+  "setup": {
+    "observers": ["agent-a"],
+    "memorySnapshot": "none",
+    "styleOverrides": {
+      "agent-a": "直率的技术男"
+    }
+  },
+  "input": {
+    "turns": [
+      { "speaker_id": "user-x", "content": "你好", "turn_index": 0 }
+    ]
+  },
+  "assertions": [
+    {
+      "assertType": "rule",
+      "target": "composer-output-contains",
+      "expect": {
+        "contains": ["THIS_STRING_CANNOT_EXIST_IN_PROMPT_XYZ123"]
+      },
+      "severity": "blocking"
+    }
+  ]
+}

@@ -10,6 +10,7 @@ import { loadPostDetail, type PostDetail } from '../../api/feed';
 import type { ReportTargetType } from '../../api/report';
 import { ReportSheet } from '../report/ReportSheet';
 import type { Post } from '../../types';
+import { COPY } from '../../copy';
 
 type ReportPrefill = {
   targetType: ReportTargetType;
@@ -51,7 +52,7 @@ export function PostDetailView({
     <motion.div
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
-      className="fixed inset-0 bg-echo-dark z-[110] flex flex-col"
+      className="fixed inset-0 max-w-md mx-auto bg-echo-dark z-[110] flex flex-col"
     >
       <div className="p-4 glass flex items-center justify-between border-b border-white/10">
         <button type="button" onClick={onBack} className="text-gray-400 text-sm">
@@ -67,14 +68,22 @@ export function PostDetailView({
         </button>
       </div>
       <div className="flex-1 overflow-y-auto p-5">
-        {loading && !display && <p className="text-gray-500 text-sm">加载中…</p>}
+        {loading && !display && <p className="text-gray-500 text-sm">{COPY.loading.postDetail}</p>}
         {!loading && !display && <p className="text-red-400 text-sm">无法加载帖子</p>}
         {display && (
           <>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-echo-blue/20 flex items-center justify-center">
-                <Fingerprint className="w-5 h-5 text-echo-blue" />
-              </div>
+              {display.authorAvatarUrl ? (
+                <img
+                  src={display.authorAvatarUrl}
+                  alt={display.author}
+                  className="w-10 h-10 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-echo-blue/20 flex items-center justify-center">
+                  <Fingerprint className="w-5 h-5 text-echo-blue" />
+                </div>
+              )}
               <div>
                 <p className="font-bold">{display.author}</p>
                 <p className="text-[10px] text-gray-500">{display.time}</p>
@@ -88,14 +97,23 @@ export function PostDetailView({
             </p>
             <h3 className="text-xs font-bold text-gray-400 uppercase mb-3">评论</h3>
             {loading && !display.comments_list?.length && (
-              <p className="text-xs text-gray-600">评论加载中…</p>
+              <p className="text-xs text-gray-600">{COPY.loading.comments}</p>
             )}
             {display.comments_list?.length ? (
               <div className="space-y-3">
                 {display.comments_list.map((c) => (
                   <div key={c.id} className="p-3 rounded-xl bg-echo-card border border-white/5">
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-[10px] text-echo-blue mb-1">{c.author}</p>
+                      <div className="flex items-center gap-1.5">
+                        {c.author_avatar ? (
+                          <img
+                            src={c.author_avatar}
+                            alt={c.author}
+                            className="w-4 h-4 rounded-full object-cover"
+                          />
+                        ) : null}
+                        <p className="text-[10px] text-echo-blue mb-1">{c.author}</p>
+                      </div>
                       <button
                         type="button"
                         onClick={() =>
@@ -111,7 +129,7 @@ export function PostDetailView({
                 ))}
               </div>
             ) : (
-              !loading && <p className="text-xs text-gray-600">暂无评论</p>
+              !loading && <p className="text-xs text-gray-600">{COPY.empty.comments}</p>
             )}
           </>
         )}

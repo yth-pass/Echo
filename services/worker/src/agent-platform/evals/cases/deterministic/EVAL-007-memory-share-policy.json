@@ -1,0 +1,24 @@
+{
+  "id": "EVAL-007",
+  "mechanism": "memory",
+  "tags": ["memory-leak"],
+  "description": "验证 share_policy 字段的合法值。objective_facts.jsonl 中的每条记录必须包含合法的 share_policy（never/do_not_repeat_to_subject/ok_if_relevant/public_to_connections）。",
+  "requiresLlm": false,
+  "expectedDurationMs": 1000,
+  "setup": {
+    "observers": ["agent-a", "agent-b"],
+    "memorySnapshot": "none"
+  },
+  "input": {
+    "turns": [],
+    "sessionId": "session-007"
+  },
+  "assertions": [
+    {
+      "assertType": "rule",
+      "target": "memory-share-policy",
+      "expect": { "validPolicies": ["never", "do_not_repeat_to_subject", "ok_if_relevant", "public_to_connections"] },
+      "severity": "blocking"
+    }
+  ]
+}

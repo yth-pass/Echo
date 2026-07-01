@@ -1,0 +1,24 @@
+{
+  "id": "EVAL-006",
+  "mechanism": "memory",
+  "tags": ["memory-leak"],
+  "description": "验证 observer-relative 隔离：A 对 B 的看法 ≠ B 对 A 的看法。即使在同一 joint session，双方各自存储独立。Implements invariant #16。",
+  "requiresLlm": false,
+  "expectedDurationMs": 1000,
+  "setup": {
+    "observers": ["agent-a", "agent-b"],
+    "memorySnapshot": "none"
+  },
+  "input": {
+    "turns": [],
+    "sessionId": "joint-session-006"
+  },
+  "assertions": [
+    {
+      "assertType": "rule",
+      "target": "memory-observer-isolation",
+      "expect": { "isolated": true, "observerA": "agent-a", "observerB": "agent-b" },
+      "severity": "blocking"
+    }
+  ]
+}

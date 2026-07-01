@@ -1,0 +1,32 @@
+{
+  "id": "EVAL-002",
+  "mechanism": "composer",
+  "tags": ["style", "smoke"],
+  "description": "验证 L1 共享技能层（约会分身身份）始终出现在 prompt 中。验证 invariant #2: shared-agent/ SKILL.md 不得按用户复制。",
+  "requiresLlm": false,
+  "expectedDurationMs": 500,
+  "sourceSmokeTest": "composer/smoke-test.ts",
+  "setup": {
+    "observers": ["agent-a"],
+    "memorySnapshot": "none"
+  },
+  "input": {
+    "turns": [
+      { "speaker_id": "user-x", "content": "嗨", "turn_index": 0 }
+    ]
+  },
+  "assertions": [
+    {
+      "assertType": "rule",
+      "target": "composer-output-contains",
+      "expect": { "contains": ["约会分身"] },
+      "severity": "blocking"
+    },
+    {
+      "assertType": "rule",
+      "target": "composer-output-contains",
+      "expect": { "contains": ["L1"] },
+      "severity": "blocking"
+    }
+  ]
+}

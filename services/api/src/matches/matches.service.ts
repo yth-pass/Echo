@@ -1,18 +1,76 @@
 import { Injectable } from '@nestjs/common';
 import { MatchPushStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
+import { BlockFilterService } from '../common/block-filter.service';
 
 @Injectable()
 export class MatchesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+    // 【缺陷4 修复】注入 BlockFilterService，对匹配/会话查询做双向拉黑过滤
+    private readonly blockFilter: BlockFilterService,
+  ) {}
+
+  // 【缺陷10修复】根据双方 persona/profile 与 affinity 动态生成匹配原因
+  private buildMatchReasons(opts: {
+    myProfile?: { city?: string | null } | null;
+    candidateProfile?: { city?: string | null } | null;
+    myInterests: string[];
+    candidateInterests: string[];
+    affinityScore: number | null;
+  }): string[] {
+    const reasons: string[] = [];
+    const { myProfile, candidateProfile, myInterests, candidateInterests, affinityScore } = opts;
+
+    // 原因1：同城
+    const myCity = myProfile?.city?.trim();
+    const candCity = candidateProfile?.city?.trim();
+    if (myCity && candCity && myCity === candCity) {
+      reasons.push(`同在 ${myCity}`);
+    }
+
+    // 原因2：共同兴趣（从 persona/问卷 interests 取交集）
+    const common = myInterests.filter((t) => candidateInterests.includes(t));
+    if (common.length > 0) {
+      reasons.push(`共同兴趣：${common.slice(0, 3).join('、')}`);
+    }
+
+    // 原因3：向量相似度（基于 affinity 分数档位描述）
+    if (affinityScore != null) {
+      const pct = Math.round(affinityScore * 100);
+      if (pct >= 80) reasons.push('语义画像高度相似');
+      else if (pct >= 60) reasons.push('语义画像较相似');
+      else reasons.push('语义画像互补');
+    }
+
+    // 兜底：至少返回 1 条
+    if (reasons.length === 0) reasons.push('系统综合匹配推荐');
+    return reasons.slice(0, 3);
+  }
+
+  /** 【缺陷10修复】从 profile.bioJson 提取 interests 数组（问卷写入）。 */
+  private extractInterests(bioJson: unknown): string[] {
+    if (!bioJson || typeof bioJson !== 'object') return [];
+    try {
+      const obj = bioJson as Record<string, unknown>;
+      const arr = obj.interests;
+      if (!Array.isArray(arr)) return [];
+      return arr.filter((t): t is string => typeof t === 'string');
+    } catch {
+      return [];
+    }
+  }
 
   async list(userId: string) {
-    const blocks = await this.prisma.block.findMany({
-      where: { blockerUserId: userId },
-      select: { blockedUserId: true },
-    });
-    const blockedIds = blocks.map((b) => b.blockedUserId);
+    // 【缺陷4 修复】使用 BlockFilterService 获取双向拉黑对端列表
+    // （A 拉 B 后双向都不再匹配），替换原先仅排除「我拉黑的人」的单向过滤
+    const blockedIds = await this.blockFilter.getBlockedUserIds(userId);
     const myClone = await this.prisma.digitalClone.findUnique({ where: { userId } });
+    // 【缺陷10修复】提前查询当前用户 profile，用于动态匹配原因
+    const myProfile = await this.prisma.profile.findUnique({ where: { userId } });
+    const myInterests = this.extractInterests(myProfile?.bioJson);
     const pushes = await this.prisma.matchPush.findMany({
       where: {
         userId,
@@ -43,6 +101,8 @@ export class MatchesService {
         let sessionId: string | null = null;
         let lastMessage = '';
         if (myClone && candidateClone) {
+          // 【缺陷4 修复】candidateUserId 已在上方 MatchPush 查询中经双向 block 过滤，
+          // 此处 session 查询仅针对非拉黑对端，保证不会返回与拉黑用户的会话
           const session = await this.prisma.agentSession.findFirst({
             where: {
               OR: [
@@ -79,7 +139,14 @@ export class MatchesService {
           last_message: lastMessage,
           tags: profile?.city ? [profile.city] : [],
           bio: typeof profile?.bioJson === 'object' ? JSON.stringify(profile.bioJson) : '',
-          match_reasons: ['向量相似度 MVP'],
+          // 【缺陷10修复】动态生成匹配原因（同城/共同兴趣/向量相似度），替代硬编码
+          match_reasons: this.buildMatchReasons({
+            myProfile,
+            candidateProfile: profile,
+            myInterests,
+            candidateInterests: this.extractInterests(profile?.bioJson),
+            affinityScore: p.affinity,
+          }),
         };
       }),
     );
@@ -90,6 +157,13 @@ export class MatchesService {
     await this.prisma.matchPush.updateMany({
       where: { id: matchId, userId },
       data: { status: MatchPushStatus.dismissed },
+    });
+    // 【缺陷8 修复】审计：忽略匹配
+    await this.audit.log({
+      userId,
+      eventType: 'match_dismissed',
+      summaryZh: `忽略匹配推荐 ${matchId}`,
+      referenceId: matchId,
     });
     return { dismissed: true };
   }
@@ -102,51 +176,13 @@ export class MatchesService {
       create: { blockerUserId, blockedUserId },
       update: {},
     });
+    // 【缺陷8 修复】审计：拉黑用户
+    await this.audit.log({
+      userId: blockerUserId,
+      eventType: 'user_blocked',
+      summaryZh: `拉黑用户 ${blockedUserId}`,
+      referenceId: blockedUserId,
+    });
     return { blocked: true };
   }
-
-  /** MVP: cosine on Json embeddings for all other users with embeddings */
-  async runDailyMatchJob() {
-    const embeddings = await this.prisma.profileEmbedding.findMany();
-    for (const e of embeddings) {
-      const others = embeddings.filter((o) => o.userId !== e.userId);
-      const myVec = e.embedding as number[];
-      const scored = others
-        .map((o) => ({
-          candidateUserId: o.userId,
-          score: cosine(myVec, o.embedding as number[]),
-        }))
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 3);
-      for (const s of scored) {
-        const existing = await this.prisma.matchPush.findFirst({
-          where: { userId: e.userId, candidateUserId: s.candidateUserId },
-        });
-        if (!existing) {
-          await this.prisma.matchPush.create({
-            data: {
-              userId: e.userId,
-              candidateUserId: s.candidateUserId,
-              affinity: s.score,
-            },
-          });
-        }
-      }
-    }
-    return { processed: embeddings.length };
-  }
-}
-
-function cosine(a: number[], b: number[]): number {
-  let dot = 0;
-  let na = 0;
-  let nb = 0;
-  const len = Math.min(a.length, b.length);
-  for (let i = 0; i < len; i++) {
-    dot += a[i] * b[i];
-    na += a[i] * a[i];
-    nb += b[i] * b[i];
-  }
-  if (!na || !nb) return 0;
-  return dot / (Math.sqrt(na) * Math.sqrt(nb));
 }

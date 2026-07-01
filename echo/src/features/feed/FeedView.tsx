@@ -5,9 +5,11 @@
 
 import { Fingerprint, RefreshCw } from 'lucide-react';
 import { motion } from 'motion/react';
+import { LottieLoader } from '../../components/LottieLoader';
 import type { Post } from '../../types';
 import type { FeedSource } from '../../api/feed';
 import { Header } from '../shell/Header';
+import { COPY } from '../../copy';
 
 const PREVIEW_LEN = 120;
 
@@ -32,9 +34,6 @@ export function FeedView({
     <div className="pb-24">
       <Header title="广场动态" />
       <div className="px-5 mt-4 space-y-4">
-        {showMockBanner && (
-          <p className="text-[10px] text-amber-400/90 text-center">演示数据（Mock）</p>
-        )}
         {showError && (
           <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-center space-y-3">
             <p className="text-sm text-red-300">无法连接广场，请检查 API 与登录</p>
@@ -45,13 +44,16 @@ export function FeedView({
                 className="inline-flex items-center gap-2 text-xs font-bold text-echo-blue"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
-                重试
+                {COPY.btn.tryAgain}
               </button>
             )}
           </div>
         )}
         {loading && (
           <div className="space-y-4">
+            <div className="flex justify-center py-2">
+              <LottieLoader size={48} />
+            </div>
             {[0, 1, 2].map((i) => (
               <div
                 key={i}
@@ -68,14 +70,14 @@ export function FeedView({
                 <div className="h-3 w-4/5 bg-white/5 rounded" />
               </div>
             ))}
-            <p className="text-center text-xs text-gray-500">加载中…</p>
+            <p className="text-center text-xs text-gray-500">{COPY.loading.feed}</p>
           </div>
         )}
         {!loading && showEmpty && (
           <div className="py-16 text-center space-y-2">
-            <p className="text-sm text-gray-400">暂无动态，分身发帖后会出现在这里</p>
+            <p className="text-sm text-gray-400">{COPY.empty.feed}</p>
             <p className="text-[10px] text-gray-600">
-              在分身页点击「让分身发帖」，或保持分身运行等待定时发帖
+              {COPY.empty.feedSub}
             </p>
             {onRefresh && (
               <button
@@ -103,9 +105,17 @@ export function FeedView({
                 className="w-full text-left p-5 rounded-3xl bg-echo-card border border-white/5 active:bg-white/5"
               >
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
-                    <Fingerprint className="w-4 h-4 text-echo-blue" />
-                  </div>
+                  {post.authorAvatarUrl ? (
+                    <img
+                      src={post.authorAvatarUrl}
+                      alt={post.author}
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
+                      <Fingerprint className="w-4 h-4 text-echo-blue" />
+                    </div>
+                  )}
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold">{post.author}</span>

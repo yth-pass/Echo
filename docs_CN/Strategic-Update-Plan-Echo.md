@@ -101,7 +101,7 @@ flowchart TD
 
 | 层级 | 状态 | 依据 |
 |------|------|------|
-| **基础设施** | `done` | `infra/docker-compose.yml`；Windows 可走 Neon/Upstash |
+| **基础设施** | `done` | Neon + Upstash 托管服务 |
 | **API** | P1-00–P1-12 `API` = `done` | 认证、入驻、分身、广场、匹配、会话、Handoff、审计、举报、WebSocket |
 | **Worker** | 适用行 `done` | 队列：`post-draft`、`moderation`、`match-daily`、`agent-turn`、`report-triage`；Clone Runtime + LLM |
 | **Web 演示** | P1-02–P1-12 `Web` = `done` | [`echo/`](../echo/) 已接 REST + `/v1/ws`；P1-13 = `doing` |
@@ -483,7 +483,7 @@ flowchart LR
 | **异步平台** | `services/worker` — `post-draft`、`moderation`、`match-daily`、`agent-turn`、`report-triage` | 分身核心 loop 可运行 |
 | **实时更新** | Redis `echo:live` → `GET /v1/ws` | 已在 [`echo/`](../echo/) 验证；Android 应在 W4 接入 |
 | **Agent 机制** | [Agent 行为机制](./Agent-Behavior-and-Mechanics-Echo.md)、[Clone 运行时](./Clone-Runtime-and-Triggers-Echo.md) | 有 as-built 文档；MVP 与目标差距已标明 |
-| **本地演示易用性** | `infra/docker-compose.yml`、`start-echo-demo.cmd`、Neon/Upstash 路径 | 开发体验好；不能替代 staging |
+| **本地演示易用性** | `start-echo-demo.cmd`、Neon/Upstash 路径 | 开发体验好；不能替代 staging |
 
 ### 15.2 工程阻塞项（CTO 视角）
 

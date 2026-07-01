@@ -4,7 +4,7 @@
 |------|-----|
 | **文档版本** | 1.1.0 |
 | **状态** | 生效中 |
-| **最后更新** | 2026-05-28 |
+| **最后更新** | 2026-06-20 |
 | **相关文档** | [PRD](./PRD-Echo.md)、[软件架构](./Software-Architecture-Echo.md)、[部署与组件边界](./Deployment-and-Component-Boundaries-Echo.md)、[校园试点发布计划](./Campus-Pilot-Launch-Plan-Echo.md)、[术语表](./glossary.md) |
 
 **语言：** 简体中文（镜像）。英文 canonical：[`../docs/Phase1-Demo-Roadmap-Echo.md`](../docs/Phase1-Demo-Roadmap-Echo.md)。
@@ -51,7 +51,7 @@ flowchart LR
   Api --> FCM
 ```
 
-**本地：** `infra/docker-compose.yml` — `docker compose up -d` 启动 Postgres、Redis、MinIO；在宿主机或容器内运行 `services/api`、`services/worker`。
+**本地：** 使用 Neon (Postgres) + Upstash (Redis) 托管免费层，无 Docker；在宿主机运行 `services/api`、`services/worker`。
 
 **线上（预发）：** HTTPS API、Firebase（FCM）、LLM 密钥仅通过环境变量配置；勿提交密钥。
 
@@ -78,7 +78,7 @@ flowchart LR
 
 | ID | 能力 | FR | 客户端（演示） | 同步 API | 异步 / Worker | 实现位置 | API | Worker | Web | APK | 备注 |
 |----|------|-----|----------------|----------|---------------|----------|-----|--------|-----|-----|------|
-| P1-00 | 开发基础设施 | — | — | — | — | `infra/` | done | n/a | n/a | n/a | `docker-compose.yml`：Postgres、Redis、MinIO |
+| P1-00 | 开发基础设施 | — | — | — | — | `infra/` | done | n/a | n/a | n/a | Neon + Upstash 托管服务 |
 | P1-01 | API 壳 + 库表 | FR-001+ | — | `GET /health` | — | `services/api` | done | n/a | n/a | n/a | Prisma 迁移 |
 | P1-02 | 注册 / OTP / 登录 | FR-001–004 | `echo` 认证壳 | `POST /auth/*`、`GET /auth/me` | — | `services/api`、`echo` | done | n/a | done | n/a | Web 需配置 `VITE_API_BASE_URL` |
 | P1-03 | 入驻问卷 + 对话 + 定稿 | FR-010–014 | `echo` 向导 | `POST /onboarding/*` | API 内 LLM | `services/api`、`echo` | done | n/a | done | n/a | 见 [入驻问卷设计](./Onboarding-Survey-Design-Echo.md) |
@@ -88,7 +88,7 @@ flowchart LR
 | P1-05 | 动态阅读 | FR-030–034 | `echo` 广场 | `GET /feed`、`GET /posts/{id}` | — | `services/api`、`echo` | done | n/a | done | n/a | `loadFeed()` — 仅无 `VITE_API_BASE_URL` 时用 Mock；空列表/错误不回填 Mock |
 | P1-06 | 定时发帖 + 审核 | FR-030–034、FR-033 | 动态 + 详情 | — | `post-draft`、`moderation` | `services/worker`、`echo` | n/a | done | done | n/a | `POST /posts/draft` + 分身「让分身发帖」+ 广场轮询；活动记录 `moderation_status` |
 | P1-07 | 匹配列表 + 忽略 + 拉黑 | FR-040–044 | `echo` 匹配 Tab | `GET /matches`、dismiss、`POST /blocks` | `match-daily` | `services/api`、`services/worker` | done | done | done | n/a | `loadMatches()` + 匹配 Tab 忽略/拉黑；列表排除已拉黑用户 |
-| P1-08 | 智能体会话 + 消息（只读） | FR-050–054 | 匹配 / 记录 | `GET /sessions`、`GET /sessions/{id}/messages` | `agent-turn` | `services/*`、`echo` | done | done | done | n/a | 匹配含 `session_id`；详情/记录展示真实对话；消息含 `is_self` |
+| P1-08 | 智能体会话 + 消息（只读） | FR-050–054 | 匹配 / 记录 | `GET /sessions`、`GET /sessions/{id}/messages` | `agent-turn` | `services/*`、`echo` | done | done | done | n/a | 匹配含 `session_id`；详情/记录展示真实对话；消息含 `is_self`；M6 affection overlay + reciprocity + decay cron（v1.1.13） |
 | P1-09 | 好感度 + Handoff | FR-060–065 | `echo` 缘分详情 | `GET/POST /handoffs/*` | 每轮好感度 | `services/*`、`echo` | done | done | done | n/a | `GET /sessions/:id/affinity`；接受/拒绝 handoff；详情展示会话好感度 |
 | P1-10 | 活动审计日志 | FR-070–072 | `echo` 记录 Tab | `GET /audit/events`、`GET /clones/me/activity` | 写 AuditEvent | `services/api`、`echo` | done | done | done | n/a | `loadCloneActivity` 三态 source；API 路径无静默 Mock |
 | P1-11 | 举报 | FR-080–082 | 设置 / 举报 | `POST /reports` | `report-triage` | `services/api`、`echo` | done | done | done | n/a | `submitReport` + UI；`report-triage` 举报帖子重新审核 |
@@ -148,4 +148,6 @@ Hook 与 Skill **不能**自动强制合规；PR 须核对 §3.2–3.3。
 | 1.1.2 | 2026-05-28 | P1-04c：社交边界 API/Web/Worker + 分身 Tab 编辑器 |
 | 1.1.1 | 2026-05-27 | P1-04b Web 完成：`echo` 分身 Tab persona 编辑器 |
 | 1.1.0 | 2026-05-26 | 状态拆为 API / Worker / Web / APK；P1-04 拆为 a/b/c；与代码库对齐的诚实审计 |
+| 1.1.12 | 2026-06-12 | M6 Affection：Worker 完成（RelationshipExtract LLM + apply 接线）；API：GET /sessions/{id}/relationship；Web：在 MatchDetailView 显示关系提示 |
+| 1.1.13 | 2026-06-20 | M6 收口增强：R1（tension_quality structural/situational 分离 + repair_arc 透明 overlay）、R2（reciprocity 弱耦合 enabled）、R3（AffectionOverlay 注入 composeSystemPrompt）、decay 注册为 worker cron（24h） |
 | 1.0.0 | 2026-05-20 | 初版：APK 前全功能演示功能矩阵 |

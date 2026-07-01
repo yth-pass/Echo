@@ -1,0 +1,37 @@
+{
+  "id": "EVAL-012",
+  "mechanism": "topic",
+  "tags": ["topic-return"],
+  "description": "验证 invariant #4：只有 new_main 才能替换整个 topic state。continue_sub/return_to_main 不能改变 main_topic。验证 TopicJudge 输出结构带必填字段。",
+  "requiresLlm": false,
+  "expectedDurationMs": 1000,
+  "setup": {
+    "observers": ["agent-a"],
+    "memorySnapshot": "none"
+  },
+  "input": {
+    "turns": [
+      { "speaker_id": "user-x", "content": "我们聊聊工作吧", "turn_index": 0 },
+      { "speaker_id": "user-x", "content": "其实还是回到刚才的话题吧", "turn_index": 1 }
+    ],
+    "topicState": {
+      "phase": "ongoing",
+      "main_topic": "工作讨论",
+      "focus": "main"
+    }
+  },
+  "assertions": [
+    {
+      "assertType": "rule",
+      "target": "topic-main-persists",
+      "expect": { "unchanged": true, "mustHaveFields": ["transition", "confidence"] },
+      "severity": "blocking"
+    },
+    {
+      "assertType": "rule",
+      "target": "topic-subtopic-stack",
+      "expect": { "nonNegative": true },
+      "severity": "blocking"
+    }
+  ]
+}

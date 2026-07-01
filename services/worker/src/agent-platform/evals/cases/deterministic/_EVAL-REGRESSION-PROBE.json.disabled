@@ -1,0 +1,25 @@
+{
+  "id": "EVAL-REGRESSION-PROBE",
+  "mechanism": "composer",
+  "tags": ["style", "regression"],
+  "description": "回归探针：故意写入一条永远无法通过的断言。默认禁用 (_xxx.json.disabled)，启用后验证 CI runner exit code ≠ 0。M7 退出标准：故意回归时 CI 必须 fail。",
+  "requiresLlm": false,
+  "expectedDurationMs": 500,
+  "setup": {
+    "observers": ["agent-a"],
+    "memorySnapshot": "none"
+  },
+  "input": {
+    "turns": [
+      { "speaker_id": "user-x", "content": "你好", "turn_index": 0 }
+    ]
+  },
+  "assertions": [
+    {
+      "assertType": "rule",
+      "target": "composer-output-contains",
+      "expect": { "contains": ["__THIS_STRING_DOES_NOT_EXIST_IN_ANY_PROMPT__"] },
+      "severity": "blocking"
+    }
+  ]
+}

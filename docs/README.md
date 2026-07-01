@@ -22,8 +22,10 @@ This directory holds product and engineering blueprints. **Implementation status
 | [Onboarding-Survey-Design-Echo.md](./Onboarding-Survey-Design-Echo.md) | Onboarding survey and dialogue design |
 | [Clone-Runtime-and-Triggers-Echo.md](./Clone-Runtime-and-Triggers-Echo.md) | Clone runtime, queues, LLM triggers |
 | [Agent-Behavior-and-Mechanics-Echo.md](./Agent-Behavior-and-Mechanics-Echo.md) | **Agent mechanics** — persona mimicry, matching, chat, posts, affinity (Phase 1 as-built) |
+| [agent-platform/](./agent-platform/README.md) | **Agent platform target design** — shared skill, style.md, layered memory, topics, affection (M1–M8) |
 | [Campus-Pilot-Launch-Plan-Echo.md](./Campus-Pilot-Launch-Plan-Echo.md) | Campus pilot GTM and release gates |
 | [Strategic-Update-Plan-Echo.md](./Strategic-Update-Plan-Echo.md) | **CEO strategic update plan** — Part I (CEO §1–§13) + Part II (CTO §14–§26) + Part III (CMO §27–§41) |
+| [Echo-Delightful-Experience-Design.md](./Echo-Delightful-Experience-Design.md) | **Delightful experience design** — Anticipation Loop, Trust Dashboard, Handoff ceremony, Clone nurture, microcopy |
 | [glossary.md](./glossary.md) | Terminology |
 
 **Chinese mirror:** same filenames under [`docs_CN/`](../docs_CN/). See [`docs_CN/README.md`](../docs_CN/README.md).
@@ -39,9 +41,12 @@ This directory holds product and engineering blueprints. **Implementation status
 | Why / what (product) | [PRD-Echo.md](./PRD-Echo.md) |
 | Executive strategy & sequencing | [Strategic-Update-Plan-Echo.md](./Strategic-Update-Plan-Echo.md) |
 | How systems fit together | [Software-Architecture-Echo.md](./Software-Architecture-Echo.md) |
-| Docker vs workers vs API | [Deployment-and-Component-Boundaries-Echo.md](./Deployment-and-Component-Boundaries-Echo.md) |
-| How Agents match, chat, post, score affinity | [Agent-Behavior-and-Mechanics-Echo.md](./Agent-Behavior-and-Mechanics-Echo.md) |
+| 部署边界与组件 | [Deployment-and-Component-Boundaries-Echo.md](./Deployment-and-Component-Boundaries-Echo.md) |
+| How Agents match, chat, post, score affinity (Phase 1 code today) | [Agent-Behavior-and-Mechanics-Echo.md](./Agent-Behavior-and-Mechanics-Echo.md) |
+| Agent platform target (memory, topics, Composer) | [agent-platform/README.md](./agent-platform/README.md) |
 | Web prototype scope only | [`echo/docs/PHASE1-SCOPE-MAP.md`](../echo/docs/PHASE1-SCOPE-MAP.md) (summary; roadmap is authoritative) |
+
+**As-built vs target:** [Agent-Behavior-and-Mechanics-Echo.md](./Agent-Behavior-and-Mechanics-Echo.md) describes the **current codebase**. [agent-platform/](./agent-platform/README.md) describes the **target design** to implement in milestones M1–M8. Gap analysis: [agent-platform/echo-mapping.md](./agent-platform/echo-mapping.md).
 
 ---
 
