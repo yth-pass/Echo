@@ -2,7 +2,7 @@
 # ============================================================================
 # Echo Production Start — runs API + Worker in one container
 # API: node dist/api/src/main (compiled NestJS)
-# Worker: tsx src/main.ts (runs from TS source, avoids cross-dir build issues)
+# Worker: ./node_modules/.bin/tsx src/main.ts (local tsx, avoids global install issues)
 # ============================================================================
 set -e
 
@@ -13,7 +13,7 @@ echo "[start] Starting worker..."
 cd /app/services/worker
 mkdir -p /tmp/echo-memory
 export ECHO_MEMORY_BASE_DIR=/tmp/echo-memory
-tsx src/main.ts &
+./node_modules/.bin/tsx src/main.ts &
 WORKER_PID=$!
 echo "[start] Worker PID: $WORKER_PID"
 
@@ -25,7 +25,12 @@ API_PID=$!
 echo "[start] API PID: $API_PID"
 
 # --- Trap SIGTERM to gracefully stop both ---
-trap "echo '[start] Shutting down...'; kill $WORKER_PID $API_PID 2>/dev/null; wait" SIGTERM SIGINT
+cleanup() {
+  echo "[start] Shutting down..."
+  kill $WORKER_PID $API_PID 2>/dev/null
+  wait
+}
+trap cleanup SIGTERM SIGINT
 
 # --- Wait for either process ---
 wait
