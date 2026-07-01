@@ -14,11 +14,11 @@ WORKDIR /app
 
 # --- API dependencies ---
 COPY services/api/package.json services/api/package-lock.json ./services/api/
-RUN cd services/api && npm ci --ignore-scripts
+RUN cd services/api && npm install --legacy-peer-deps --ignore-scripts
 
 # --- Worker dependencies ---
 COPY services/worker/package.json services/worker/package-lock.json ./services/worker/
-RUN cd services/worker && npm ci --ignore-scripts
+RUN cd services/worker && npm install --legacy-peer-deps --ignore-scripts
 
 # --- Shared source (needed for prisma generate + worker imports) ---
 COPY services/shared/ ./services/shared/
