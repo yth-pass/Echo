@@ -5,14 +5,22 @@
 
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CosService } from '../cos/cos.service';
 
 const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 @Injectable()
 export class AvatarService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cos: CosService,
+  ) {}
 
-  /** 将上传图片转 Base64 Data URI 存入 Profile.avatarUrl。 */
+  /**
+   * Upload avatar image.
+   * - If COS is configured: upload to COS, store public URL in DB.
+   * - If COS is not configured (local dev): fall back to Base64 Data URI.
+   */
   async uploadAvatar(
     userId: string,
     file: Express.Multer.File,
@@ -24,26 +32,43 @@ export class AvatarService {
       throw new Error('Only JPEG, PNG and WebP images are allowed');
     }
 
-    // 读取文件 buffer（memoryStorage 模式下 file.buffer 已就绪）
     const buffer = file.buffer;
     if (!buffer) {
       throw new Error('File buffer is empty');
     }
 
-    // 转 Base64 Data URI: data:image/jpeg;base64,<base64>
-    const base64 = buffer.toString('base64');
-    const dataUri = `data:${file.mimetype};base64,${base64}`;
-
-    // 直接写入 Profile.avatarUrl（覆盖旧值，无需删文件）
-    await this.prisma.profile.update({
+    // Get old avatar URL for cleanup
+    const oldProfile = await this.prisma.profile.findUnique({
       where: { userId },
-      data: { avatarUrl: dataUri },
+      select: { avatarUrl: true },
     });
 
-    return { avatarUrl: dataUri };
+    let avatarUrl: string;
+
+    if (this.cos.isConfigured()) {
+      // Upload to COS — returns permanent public URL
+      avatarUrl = await this.cos.uploadAvatar(userId, buffer, file.mimetype);
+    } else {
+      // Fallback: Base64 Data URI (local dev without COS)
+      const base64 = buffer.toString('base64');
+      avatarUrl = `data:${file.mimetype};base64,${base64}`;
+    }
+
+    // Overwrite old avatar URL
+    await this.prisma.profile.update({
+      where: { userId },
+      data: { avatarUrl },
+    });
+
+    // Best-effort: delete old COS object (skip if it was Base64)
+    if (oldProfile?.avatarUrl?.startsWith('https://')) {
+      await this.cos.deleteByUrl(oldProfile.avatarUrl).catch(() => {});
+    }
+
+    return { avatarUrl };
   }
 
-  /** 获取当前头像 Data URI。 */
+  /** Get current avatar URL. */
   async getAvatar(userId: string): Promise<{ avatarUrl: string | null }> {
     const profile = await this.prisma.profile.findUnique({
       where: { userId },
@@ -52,8 +77,17 @@ export class AvatarService {
     return { avatarUrl: profile?.avatarUrl ?? null };
   }
 
-  /** 删除头像（置空 avatarUrl）。 */
+  /** Delete avatar (set avatarUrl to null, best-effort delete COS object). */
   async removeAvatar(userId: string): Promise<{ removed: true }> {
+    const profile = await this.prisma.profile.findUnique({
+      where: { userId },
+      select: { avatarUrl: true },
+    });
+
+    if (profile?.avatarUrl?.startsWith('https://')) {
+      await this.cos.deleteByUrl(profile.avatarUrl).catch(() => {});
+    }
+
     await this.prisma.profile.update({
       where: { userId },
       data: { avatarUrl: null },

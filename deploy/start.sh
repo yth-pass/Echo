@@ -5,8 +5,9 @@ echo "[start] Echo container starting..."
 # --- Start Worker in background ---
 echo "[start] Starting worker..."
 cd /app/services/worker
-mkdir -p /tmp/echo-memory
-export ECHO_MEMORY_BASE_DIR=/tmp/echo-memory
+export ECHO_MEMORY_BASE_DIR="${ECHO_MEMORY_BASE_DIR:-/tmp/echo-memory}"
+mkdir -p "$ECHO_MEMORY_BASE_DIR"
+echo "[start] Memory dir: $ECHO_MEMORY_BASE_DIR"
 ./node_modules/.bin/tsx src/main.ts &
 WORKER_PID=$!
 echo "[start] Worker PID: $WORKER_PID"

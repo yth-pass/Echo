@@ -21,7 +21,7 @@ import { CurrentUser } from '../common/current-user.decorator';
 import { AvatarService } from './avatar.service';
 
 const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp']);
-// 原始文件限 2MB；Base64 编码后约 2.7MB，存入 Neon 数据库可接受
+// Max 2MB — COS upload or Base64 fallback both handle this size
 const MAX_SIZE = Number(process.env.AVATAR_MAX_SIZE_BYTES ?? 2_097_152);
 
 @Controller('avatar')

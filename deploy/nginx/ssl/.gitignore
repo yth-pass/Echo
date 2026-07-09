@@ -1,0 +1,6 @@
+# No SSL certificates in Git!
+*.crt
+*.key
+*.pem
+*.p12
+*.pfx

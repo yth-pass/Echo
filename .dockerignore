@@ -1,25 +1,55 @@
-node_modules/
-dist/
-build/
-.git/
-.github/
-.cursor/
-.workbuddy/
-docs/
-docs_CN/
-apps/android/
-mcp-wan-image/
-wenjuan/
-tmp/
-outputs/
-overview*.md
-*.tsbuildinfo
-*.apk
-*.aab
-coverage/
+# Environment files (secrets)
+.env
+.env.*
+!.env.example
+
+# Dependencies
+**/node_modules/
+
+# Build outputs
+**/dist/
+**/build/
+
+# Logs
+*.log
+
+# OS / IDE
 .DS_Store
 Thumbs.db
 .idea/
 .vscode/
-echo/
-*.log
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation (not needed in container)
+docs/
+docs_CN/
+*.md
+!README.md
+
+# Test files
+**/test/
+**/*.test.ts
+**/*.spec.ts
+coverage/
+
+# Android
+apps/
+
+# Temporary / output
+outputs/
+tmp/
+phase1/
+phase2/
+wenjuan/
+
+# Docker (keep deploy/ — needed for nginx Dockerfile)
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# Misc
+mcp-wan-image/
