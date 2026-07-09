@@ -64,6 +64,48 @@ export class ProfileService {
     };
   }
 
+  /** 获取其他用户的公开资料（头像、昵称、城市、帖子数等）。 */
+  async getPublicProfile(targetUserId: string) {
+    const profile = await this.prisma.profile.findUnique({
+      where: { userId: targetUserId },
+      select: {
+        displayName: true,
+        avatarUrl: true,
+        city: true,
+        gender: true,
+        bioJson: true,
+      },
+    });
+    if (!profile) throw new NotFoundException('User not found');
+
+    // 查询该用户的帖子数量（已通过审核的）
+    const clone = await this.prisma.digitalClone.findUnique({
+      where: { userId: targetUserId },
+    });
+    let postCount = 0;
+    if (clone) {
+      postCount = await this.prisma.post.count({
+        where: { cloneId: clone.id, moderationStatus: 'approved' },
+      });
+    }
+
+    // 提取 bio 摘要（interests 和 goalOnEcho）
+    const bioJson = profile.bioJson as Record<string, unknown> | null;
+    const interests = Array.isArray(bioJson?.interests) ? bioJson!.interests : [];
+    const goalOnEcho = typeof bioJson?.goalOnEcho === 'string' ? bioJson.goalOnEcho : null;
+
+    return {
+      userId: targetUserId,
+      displayName: profile.displayName ?? '分身',
+      avatarUrl: profile.avatarUrl ?? null,
+      city: profile.city ?? null,
+      gender: profile.gender ?? null,
+      interests,
+      goalOnEcho,
+      postCount,
+    };
+  }
+
   /** 更新匹配偏好、隐私设置和/或基础身份信息。 */
   async updateProfile(userId: string, dto: UpdateProfileDto) {
     const profile = await this.prisma.profile.findUnique({

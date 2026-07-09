@@ -11,7 +11,7 @@
 import { OnboardingShell } from './v2/OnboardingShell';
 import { Onboarding as OnboardingLegacy } from './OnboardingLegacy';
 
-export function Onboarding({ userId, onComplete }: { userId: string; onComplete: () => void }) {
+export function Onboarding({ userId, onComplete, onClose }: { userId: string; onComplete: () => void; onClose?: () => void }) {
   const useV2 = (() => {
     try {
       return localStorage.getItem('onboarding_version') !== 'v1';
@@ -21,7 +21,7 @@ export function Onboarding({ userId, onComplete }: { userId: string; onComplete:
   })();
 
   if (useV2) {
-    return <OnboardingShell userId={userId} onComplete={onComplete} />;
+    return <OnboardingShell userId={userId} onComplete={onComplete} onClose={onClose} />;
   }
   return <OnboardingLegacy onComplete={onComplete} />;
 }

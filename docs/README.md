@@ -26,6 +26,7 @@ This directory holds product and engineering blueprints. **Implementation status
 | [Campus-Pilot-Launch-Plan-Echo.md](./Campus-Pilot-Launch-Plan-Echo.md) | Campus pilot GTM and release gates |
 | [Strategic-Update-Plan-Echo.md](./Strategic-Update-Plan-Echo.md) | **CEO strategic update plan** — Part I (CEO §1–§13) + Part II (CTO §14–§26) + Part III (CMO §27–§41) |
 | [Echo-Delightful-Experience-Design.md](./Echo-Delightful-Experience-Design.md) | **Delightful experience design** — Anticipation Loop, Trust Dashboard, Handoff ceremony, Clone nurture, microcopy |
+| [Echo-Background-Music-Strategy.md](./Echo-Background-Music-Strategy.md) | **Background music strategy** — Per-stage music recommendations, Echo Motif brand sonic identity, AI music generation prompts, clone music fingerprint |
 | [glossary.md](./glossary.md) | Terminology |
 
 **Chinese mirror:** same filenames under [`docs_CN/`](../docs_CN/). See [`docs_CN/README.md`](../docs_CN/README.md).

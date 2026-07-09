@@ -22,6 +22,7 @@ import { LiveModule } from './live/live.module';
 import { PushModule } from './push/push.module';
 import { AvatarModule } from './avatar/avatar.module';
 import { ProfileModule } from './profile/profile.module';
+import { NotificationModule } from './notifications/notification.module';
 import { CorrelationMiddleware } from './common/correlation.middleware';
 import { CommonModule } from './common/common.module';
 
@@ -67,6 +68,7 @@ if (!jwtSecret || jwtSecret.length < 32) {
     PostsModule,
     LiveModule,
     PushModule,
+    NotificationModule,
   ],
   // 【缺陷2/9 修复】全局启用 ThrottlerGuard，所有路由默认限流
   providers: [

@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://echo.local/schemas/objective_fact.schema.json",
+  "title": "ObjectiveFact",
+  "type": "object",
+  "required": ["id", "subject_agent_id", "fact", "fact_type", "confidence", "status", "source"],
+  "properties": {
+    "id": { "type": "string" },
+    "subject_agent_id": { "type": "string" },
+    "fact": { "type": "string" },
+    "fact_scope": {
+      "type": "string",
+      "enum": ["about_self", "about_third_party"]
+    },
+    "third_party": {
+      "type": "object",
+      "properties": {
+        "relation_to_subject": { "type": "string" },
+        "person_ref": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "fact_type": {
+      "type": "string",
+      "enum": ["explicit_statement"]
+    },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "status": {
+      "type": "string",
+      "enum": ["active", "deprecated"]
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "session_id": { "type": "string" },
+        "speaker_id": { "type": "string" },
+        "turn_ids": { "type": "array", "items": { "type": "integer" } },
+        "quoted_span": { "type": "string" },
+        "promoted_from": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "visibility": { "type": "string" },
+    "share_policy": {
+      "type": "string",
+      "enum": ["never", "do_not_repeat_to_subject", "ok_if_relevant", "public_to_connections"]
+    },
+    "extracted_at": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

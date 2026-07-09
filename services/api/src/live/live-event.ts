@@ -1,6 +1,6 @@
 export const LIVE_EVENTS_CHANNEL = 'echo:live';
 
-export type LiveEventType = 'match' | 'handoff' | 'affinity' | 'feed';
+export type LiveEventType = 'match' | 'handoff' | 'affinity' | 'feed' | 'notification';
 
 export type LiveEvent = {
   type: LiveEventType;
@@ -17,7 +17,8 @@ export function parseLiveEvent(raw: string): LiveEvent | null {
       type !== 'match' &&
       type !== 'handoff' &&
       type !== 'affinity' &&
-      type !== 'feed'
+      type !== 'feed' &&
+      type !== 'notification'
     ) {
       return null;
     }

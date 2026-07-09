@@ -19,9 +19,9 @@ export function SplashScreen() {
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.8, ease: 'easeOut' }}
-        className="mb-6"
+        className="mb-2"
       >
-        <LottieLoader size={96} />
+        <LottieLoader size={576} />
       </motion.div>
       <motion.h1
         initial={{ opacity: 0, y: 10 }}
@@ -35,7 +35,7 @@ export function SplashScreen() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 0.6 }}
         transition={{ delay: 0.5 }}
-        className="text-sm font-medium tracking-widest uppercase"
+        className="text-base font-bold tracking-widest uppercase"
       >
         AI分身社交实验室
       </motion.p>

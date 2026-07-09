@@ -1,5 +1,8 @@
 /**
- * 15 张情境卡片定义（v2.2 Phase 1）
+ * 18 张情境卡片定义（v2.2 Phase 1）
+ *
+ * Card 1-15：测量"你是谁"（人格 / 价值观 / 依恋）
+ * Card 16-18：测量"你需要什么样的伴侣"（理想伴侣探测）
  *
  * 每张卡锚定至少一个已验证心理学量表，同一维度多卡互证。
  * 见 docs_CN/Onboarding-Survey-Redesign-Proposal.md §五
@@ -15,6 +18,7 @@
  *   归因          — attributionInternal / attributionExternal
  *   谦逊度        — modesty
  *   社交面具      — socialMask
+ *   理想伴侣      — needEmotionalSafety / needSpaceRespect / needDirectCommunication / needConflictResolution
  */
 
 export interface ScenarioCardOption {
@@ -210,7 +214,7 @@ export const CARD_UNSENT_LETTER: ScenarioCardDefinition = {
 export const CARD_SATURDAY_ENERGY: ScenarioCardDefinition = {
   cardId: 'saturday_energy',
   scenarioText:
-    '周六晚上，终于从忙到飞起的一周里喘口气。理想的状态是——',
+    '周六晚上，终于从忙到喘不过气的一周里停下来。理想的状态是——',
   options: [
     {
       key: 'A',
@@ -237,7 +241,7 @@ export const CARD_SATURDAY_ENERGY: ScenarioCardDefinition = {
     },
     {
       key: 'D',
-      text: '看心情，最后一秒才决定',
+      text: '看心情，到时候再说',
       dimensionContributions: {
         extraversion: 0.0,
         openness: 0.2,
@@ -270,7 +274,7 @@ export const CARD_TROLLEY: ScenarioCardDefinition = {
     },
     {
       key: 'B',
-      text: '不拉，不能主动杀人',
+      text: '不拉，不能主动伤害一个人',
       dimensionContributions: {
         authority: 0.5,
         care: 0.3,
@@ -329,7 +333,7 @@ export const CARD_SPOTLIGHT: ScenarioCardDefinition = {
     },
     {
       key: 'C',
-      text: '找个角落玩手机，等结束',
+      text: '找个安静的角落待着，等结束',
       dimensionContributions: {
         extraversion: -0.8,
         neuroticism: 0.2,
@@ -337,7 +341,7 @@ export const CARD_SPOTLIGHT: ScenarioCardDefinition = {
     },
     {
       key: 'D',
-      text: '待一会儿找借口溜走',
+      text: '待一会儿就先走',
       dimensionContributions: {
         extraversion: -0.6,
         attachAvoidance: 0.2,
@@ -404,7 +408,7 @@ export const CARD_DEADLINE_EVE: ScenarioCardDefinition = {
 export const CARD_CRITICISM: ScenarioCardDefinition = {
   cardId: 'criticism',
   scenarioText:
-    '老板 / 导师当着 5 个同事的面，批评了你最近的一份工作。你的第一反应是——',
+    '老板 / 导师当着 5 个同事的面，批评了你最近的一项工作。你的第一反应是——',
   options: [
     {
       key: 'A',
@@ -525,7 +529,7 @@ export const CARD_FOUND_WALLET: ScenarioCardDefinition = {
     },
     {
       key: 'C',
-      text: '留着，反正没身份证找不回来',
+      text: '先收着，看后续有没有人来认领',
       dimensionContributions: {
         care: -0.5,
         fairness: -0.6,
@@ -575,7 +579,7 @@ export const CARD_CAFE_WINDOW: ScenarioCardDefinition = {
     },
     {
       key: 'C',
-      text: '假装没看到，继续喝咖啡',
+      text: '就当没看到，继续喝咖啡',
       dimensionContributions: {
         extraversion: -0.5,
         attachAvoidance: 0.5,
@@ -634,7 +638,7 @@ export const CARD_PROMOTION: ScenarioCardDefinition = {
     },
     {
       key: 'D',
-      text: '觉得"其实我运气好"，没什么了不起',
+      text: '觉得"其实运气成分很大"，不全是自己的功劳',
       dimensionContributions: {
         attributionExternal: 0.7,
         modesty: 0.7,
@@ -692,7 +696,7 @@ export const CARD_MIDNIGHT_CALL: ScenarioCardDefinition = {
     },
     {
       key: 'D',
-      text: '转发给共同朋友"你去看看 TA"',
+      text: '联系共同朋友，让 ta 去关心一下',
       dimensionContributions: {
         attachAvoidance: 0.4,
         care: 0.2,
@@ -725,7 +729,7 @@ export const CARD_MISUNDERSTOOD: ScenarioCardDefinition = {
     },
     {
       key: 'B',
-      text: '很好说话 / 随便',
+      text: '很好说话 / 随和',
       dimensionContributions: {
         socialMask: -0.3,
         agreeableness: 0.3,
@@ -741,7 +745,7 @@ export const CARD_MISUNDERSTOOD: ScenarioCardDefinition = {
     },
     {
       key: 'D',
-      text: '很正经 / 学霸',
+      text: '很正经 / 书卷气',
       dimensionContributions: {
         socialMask: 0.3,
         conscientiousness: 0.2,
@@ -754,6 +758,158 @@ export const CARD_MISUNDERSTOOD: ScenarioCardDefinition = {
   freeTextMaxLength: 20,
   sources: ['TAT self-narrative', 'Johari Window'],
   measuredDimensions: ['socialMask', 'extraversion'],
+};
+
+// ─── Card 16: 惊喜早餐（理想伴侣探测）────────────────────────────────────────────
+
+export const CARD_UNEXPECTED_BREAKFAST: ScenarioCardDefinition = {
+  cardId: 'unexpected_breakfast',
+  scenarioText:
+    '你的另一半没有任何预告，早起做了你最爱的早餐，摆盘精致。你的第一反应是——',
+  options: [
+    {
+      key: 'A',
+      text: '好感动！下次我也要这样对 ta。',
+      dimensionContributions: {
+        needEmotionalSafety: -0.3,
+        needSpaceRespect: -0.3,
+      },
+    },
+    {
+      key: 'B',
+      text: '有点不好意思……ta 是有什么期待吗？',
+      dimensionContributions: {
+        needEmotionalSafety: 0.7,
+        needSpaceRespect: -0.4,
+      },
+    },
+    {
+      key: 'C',
+      text: '挺甜的，但我更习惯各管各的早餐。',
+      dimensionContributions: {
+        needEmotionalSafety: -0.3,
+        needSpaceRespect: 0.7,
+      },
+    },
+    {
+      key: 'D',
+      text: '拍照发朋友圈，炫耀一下这种待遇。',
+      dimensionContributions: {
+        needEmotionalSafety: 0.4,
+        needSpaceRespect: -0.2,
+      },
+    },
+  ],
+  allowCustomText: true,
+  customTextMaxLength: 20,
+  requiredFreeText: false,
+  freeTextMaxLength: 20,
+  sources: ['ECR-R (Fraley et al., 2011)', 'Bowlby Attachment Theory'],
+  measuredDimensions: ['needEmotionalSafety', 'needSpaceRespect'],
+};
+
+// ─── Card 17: 沉默的夜晚（理想伴侣探测）──────────────────────────────────────────
+
+export const CARD_SILENT_NIGHT: ScenarioCardDefinition = {
+  cardId: 'silent_night',
+  scenarioText:
+    '你和另一半坐在沙发上，已经 20 分钟没人说话了。你的感觉是——',
+  options: [
+    {
+      key: 'A',
+      text: '很舒服。不需要说话也知道 ta 在。',
+      dimensionContributions: {
+        needEmotionalSafety: -0.5,
+        needSpaceRespect: -0.2,
+        needDirectCommunication: -0.3,
+      },
+    },
+    {
+      key: 'B',
+      text: 'ta 是不是在生我的气？',
+      dimensionContributions: {
+        needEmotionalSafety: 0.8,
+        needDirectCommunication: 0.5,
+        needSpaceRespect: 0.0,
+      },
+    },
+    {
+      key: 'C',
+      text: '终于安静了，刷刷手机挺好。',
+      dimensionContributions: {
+        needEmotionalSafety: -0.3,
+        needDirectCommunication: -0.5,
+        needSpaceRespect: 0.8,
+      },
+    },
+    {
+      key: 'D',
+      text: '找个话题打破沉默吧。',
+      dimensionContributions: {
+        needEmotionalSafety: 0.3,
+        needDirectCommunication: 0.4,
+        needSpaceRespect: -0.3,
+      },
+    },
+  ],
+  allowCustomText: true,
+  customTextMaxLength: 20,
+  requiredFreeText: false,
+  freeTextMaxLength: 20,
+  sources: ['ECR-R (Fraley et al., 2011)', 'Gottman Repair Attempts Theory'],
+  measuredDimensions: [
+    'needEmotionalSafety',
+    'needDirectCommunication',
+    'needSpaceRespect',
+  ],
+};
+
+// ─── Card 18: 选歌大战（理想伴侣探测）────────────────────────────────────────────
+
+export const CARD_SONG_CHOICE: ScenarioCardDefinition = {
+  cardId: 'song_choice',
+  scenarioText:
+    '你们一起自驾 3 小时，轮流选歌。ta 第四次放的歌你完全受不了。你会——',
+  options: [
+    {
+      key: 'A',
+      text: '切歌，直接说"这首我真的不行"。',
+      dimensionContributions: {
+        needDirectCommunication: 0.7,
+        needConflictResolution: 0.8,
+      },
+    },
+    {
+      key: 'B',
+      text: '忍着听完，但一路上都在生闷气。',
+      dimensionContributions: {
+        needDirectCommunication: -0.5,
+        needConflictResolution: -0.8,
+      },
+    },
+    {
+      key: 'C',
+      text: '笑着说"这首歌我要举报"，半开玩笑地换掉。',
+      dimensionContributions: {
+        needDirectCommunication: 0.4,
+        needConflictResolution: -0.2,
+      },
+    },
+    {
+      key: 'D',
+      text: '默默戴上耳机。',
+      dimensionContributions: {
+        needDirectCommunication: -0.7,
+        needConflictResolution: -0.6,
+      },
+    },
+  ],
+  allowCustomText: true,
+  customTextMaxLength: 20,
+  requiredFreeText: false,
+  freeTextMaxLength: 20,
+  sources: ['Gottman Four Horsemen', 'Thomas-Kilmann Conflict Mode Instrument'],
+  measuredDimensions: ['needDirectCommunication', 'needConflictResolution'],
 };
 
 // ─── 全量导出 ───────────────────────────────────────────────────────────────────
@@ -774,6 +930,9 @@ export const ALL_SCENARIO_CARDS: readonly ScenarioCardDefinition[] = [
   CARD_PROMOTION,
   CARD_MIDNIGHT_CALL,
   CARD_MISUNDERSTOOD,
+  CARD_UNEXPECTED_BREAKFAST,
+  CARD_SILENT_NIGHT,
+  CARD_SONG_CHOICE,
 ] as const;
 
 /** 快速查找卡片定义 */
@@ -806,6 +965,11 @@ export const DIMENSION_COVERAGE: Record<string, string[]> = {
   attributionExternal: ['promotion'],
   modesty: ['promotion'],
   socialMask: ['unsent_letter', 'misunderstood'],
+  // 理想伴侣维度（Card 16-18）
+  needEmotionalSafety: ['unexpected_breakfast', 'silent_night'],
+  needSpaceRespect: ['unexpected_breakfast', 'silent_night'],
+  needDirectCommunication: ['silent_night', 'song_choice'],
+  needConflictResolution: ['song_choice'],
 };
 
 /** P0 最小可行集：前 8 张卡（覆盖 Big Five 全部 5 个维度） */

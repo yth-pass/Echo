@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://echo.local/schemas/profile.core.schema.json",
+  "title": "ProfileCore",
+  "type": "object",
+  "required": ["display_name"],
+  "properties": {
+    "display_name": { "type": "string", "minLength": 1 },
+    "gender": { "type": "string" },
+    "core_relationships": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["relation", "name", "person_id"],
+        "properties": {
+          "relation": { "type": "string" },
+          "name": { "type": "string" },
+          "person_id": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "hard_preferences": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "additionalProperties": false
+}

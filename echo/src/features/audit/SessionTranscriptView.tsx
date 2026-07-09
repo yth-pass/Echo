@@ -98,19 +98,24 @@ export function SessionTranscriptView({
     <motion.div
       initial={{ opacity: 0, x: 40 }}
       animate={{ opacity: 1, x: 0 }}
-      className="fixed inset-0 bg-echo-dark z-[110] flex flex-col"
+      className="fixed inset-0 z-[110] flex flex-col"
+      style={{ backgroundColor: '#f8f9ff' }}
     >
       {/* Header */}
-      <div className="p-4 glass flex items-center justify-between">
-        <button type="button" onClick={onBack} className="text-gray-400 text-sm">
+      <div
+        className="p-4 flex items-center justify-between"
+        style={{ backgroundColor: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(12px)', border: '1px solid #d9e3f4' }}
+      >
+        <button type="button" onClick={onBack} className="text-sm" style={{ color: '#7b7487' }}>
           返回
         </button>
-        <h2 className="font-bold text-sm">分身对话记录</h2>
+        <h2 className="font-bold text-sm" style={{ color: '#121c28' }}>分身对话记录</h2>
         <div className="relative" ref={menuRef}>
           <button
             type="button"
             onClick={() => setShowMenu((v) => !v)}
-            className="p-1.5 text-gray-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
+            className="p-1.5 rounded-lg transition-colors"
+            style={{ color: '#7b7487' }}
           >
             <MoreVertical className="w-5 h-5" />
           </button>
@@ -118,7 +123,8 @@ export function SessionTranscriptView({
             <motion.div
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
-              className="absolute right-0 top-full mt-1 w-36 rounded-xl bg-echo-card border border-white/10 shadow-lg overflow-hidden z-50"
+              className="absolute right-0 top-full mt-1 w-36 rounded-xl shadow-lg overflow-hidden z-50 border"
+              style={{ backgroundColor: '#ffffff', borderColor: '#d9e3f4' }}
             >
               <button
                 type="button"
@@ -126,7 +132,8 @@ export function SessionTranscriptView({
                   setShowMenu(false);
                   setShowReport(true);
                 }}
-                className="w-full px-4 py-2.5 text-left text-xs text-gray-300 hover:bg-white/5 transition-colors"
+                className="w-full px-4 py-2.5 text-left text-xs transition-colors"
+                style={{ color: '#121c28' }}
               >
                 举报
               </button>
@@ -137,7 +144,8 @@ export function SessionTranscriptView({
                     setShowMenu(false);
                     setShowEndDialog(true);
                   }}
-                  className="w-full px-4 py-2.5 text-left text-xs text-red-400 hover:bg-red-500/10 transition-colors"
+                  className="w-full px-4 py-2.5 text-left text-xs transition-colors"
+                  style={{ color: '#ba1a1a' }}
                 >
                   {COPY.endChat.title}
                 </button>
@@ -149,12 +157,12 @@ export function SessionTranscriptView({
 
       {/* Wind-down banner */}
       {isWindDown && (
-        <div className="px-5 py-2.5 bg-amber-500/10 border-b border-amber-500/20 flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
-          <p className="text-xs text-amber-400/90">
+        <div className="px-5 py-2.5 flex items-center gap-2 border-b" style={{ backgroundColor: 'rgba(180,130,0,0.08)', borderColor: 'rgba(180,130,0,0.15)' }}>
+          <AlertTriangle className="w-4 h-4 shrink-0" style={{ color: 'rgba(180,130,0,0.9)' }} />
+          <p className="text-xs" style={{ color: 'rgba(180,130,0,0.9)' }}>
             {COPY.endChat.bannerText}
             {windDownReason && (
-              <span className="text-amber-400/60"> — {windDownReason}</span>
+              <span style={{ color: 'rgba(180,130,0,0.6)' }}> — {windDownReason}</span>
             )}
           </p>
         </div>
@@ -177,37 +185,40 @@ export function SessionTranscriptView({
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-[calc(100%-3rem)] max-w-sm mx-auto bg-echo-card border border-white/10 rounded-2xl p-6 space-y-4"
+            className="w-[calc(100%-3rem)] max-w-[375px] mx-auto rounded-2xl p-6 space-y-4 border"
+            style={{ backgroundColor: '#ffffff', borderColor: '#d9e3f4' }}
           >
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-sm">{COPY.endChat.title}</h3>
+              <h3 className="font-bold text-sm" style={{ color: '#121c28' }}>{COPY.endChat.title}</h3>
               <button
                 type="button"
                 onClick={() => !endSubmitting && setShowEndDialog(false)}
-                className="text-gray-400 hover:text-white"
+                style={{ color: '#7b7487' }}
                 disabled={endSubmitting}
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <label className="block text-xs text-gray-400">{COPY.endChat.reasonLabel}</label>
+            <label className="block text-xs" style={{ color: '#7b7487' }}>{COPY.endChat.reasonLabel}</label>
             <textarea
               value={endReason}
               onChange={(e) => setEndReason(e.target.value)}
               placeholder={COPY.endChat.reasonPlaceholder}
               rows={3}
-              className="w-full bg-black/20 border border-white/10 rounded-xl p-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-echo-blue/50 resize-none"
+              className="w-full rounded-xl p-3 text-sm focus:outline-none resize-none"
+              style={{ backgroundColor: 'rgba(0,0,0,0.04)', borderColor: '#d9e3f4', borderWidth: 1, color: '#121c28' }}
               disabled={endSubmitting || endSuccess}
             />
-            {endError && <p className="text-xs text-red-400">{endError}</p>}
+            {endError && <p className="text-xs" style={{ color: '#ba1a1a' }}>{endError}</p>}
             {endSuccess && (
-              <p className="text-xs text-green-400">{COPY.endChat.success}</p>
+              <p className="text-xs" style={{ color: '#2e7d32' }}>{COPY.endChat.success}</p>
             )}
             <button
               type="button"
               onClick={() => void handleEndChat()}
               disabled={endSubmitting || endSuccess || !endReason.trim()}
-              className="w-full py-3 bg-red-500/20 hover:bg-red-500/30 rounded-xl text-sm font-bold text-red-400 disabled:opacity-40 flex items-center justify-center gap-2 transition-colors"
+              className="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors disabled:opacity-40"
+              style={{ backgroundColor: 'rgba(186,26,26,0.12)', color: '#ba1a1a' }}
             >
               {endSubmitting ? (
                 <>

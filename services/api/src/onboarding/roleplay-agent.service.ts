@@ -106,7 +106,7 @@ export class RoleplayAgentService {
   ): Promise<{ chatId: string; openingMessage: string; agentName: string }> {
     if (!isValidRoleName(roleName)) {
       throw new BadRequestException(
-        `无效角色 "${roleName}"，必须是: stranger / bestfriend / crush / oldfriend`,
+        `无效角色 "${roleName}"，必须是: stranger / bestfriend / crush / disappointed`,
       );
     }
 
@@ -169,7 +169,7 @@ export class RoleplayAgentService {
     userId: string,
     chatId: string,
     userMessage: string,
-  ): Promise<{ replies: ReplyMessage[] }> {
+  ): Promise<{ replies: ReplyMessage[]; ended: boolean }> {
     const { session, survey } = await this.getActiveSession(userId);
     const chat = this.findChatById(survey, chatId);
     if (!chat) throw new BadRequestException('对话不存在');
@@ -200,7 +200,7 @@ export class RoleplayAgentService {
       this.logger.log(
         `Auto-ended chat after mutual farewell: chatId=${chatId}`,
       );
-      return { replies: [] };
+      return { replies: [], ended: true };
     }
 
     // — 不完美行为：决策（在 LLM 调用前确定，用于修改 prompt） —
@@ -389,7 +389,7 @@ export class RoleplayAgentService {
 
     await this.persistSurvey(session.id, survey);
 
-    return { replies };
+    return { replies, ended: false };
   }
 
   // -----------------------------------------------------------------------
@@ -495,7 +495,7 @@ ${conversationTexts}
     "stranger": <面对陌生人时的语言特点描述>,
     "bestfriend": <面对死党时的语言特点描述>,
     "crush": <面对暧昧对象时的语言特点描述>,
-    "oldfriend": <面对深交老友时的语言特点描述>
+    "disappointed": <面对失望的人时的语言特点描述>
   },
   "emotionalReactionPatterns": {
     "goodNews": <收到好消息时的反应模式>,
@@ -596,10 +596,10 @@ ${conversationTexts}
 
     const genderNote =
       gender === 'male'
-        ? '用户是男性，死党应为男性好友（兄弟），暧昧对象应为女性'
+        ? '用户是男性，所有 4 个角色都设定为女性（异性）'
         : gender === 'female'
-          ? '用户是女性，死党应为女性好友（闺蜜），暧昧对象应为男性'
-          : '用户性别未指定，请根据上下文合理设定';
+          ? '用户是女性，所有 4 个角色都设定为男性（异性）'
+          : '用户性别未指定，请根据上下文合理设定所有角色为异性';
 
     const extractPrompt = `你是 Echo 的角色设计师。请根据用户的人格画像和回答，为 4 个 AI 角色设计个性化的人物档案。
 
@@ -636,10 +636,10 @@ ${cardsSummary || '（无卡片回答）'}
     "topicAffinity": ["<话题1>", "<话题2>", "<话题3>"]
   },
   "bestfriend": {
-    "personality": "<2-3句，这个死党是什么样的人>",
-    "speechStyle": "<说话风格，要和用户匹配——比如用户话多死党就更话痨，用户安静死党就更主动>",
+    "personality": "<2-3句，这个很聊得来的异性朋友是什么样的人>",
+    "speechStyle": "<说话风格，要和用户匹配——比如用户话多就更话痨，用户安静就更主动>",
     "sharedContext": "<你们之间虚构的共同回忆和日常>",
-    "relationshipDynamics": "<关系模式，如表面互损实际最铁>",
+    "relationshipDynamics": "<关系模式，如表面互损实际最铁、无话不谈>",
     "topicAffinity": ["<话题1>", "<话题2>", "<话题3>"]
   },
   "crush": {
@@ -649,11 +649,11 @@ ${cardsSummary || '（无卡片回答）'}
     "relationshipDynamics": "<关系动态，如欲言又止、互相在意>",
     "topicAffinity": ["<话题1>", "<话题2>", "<话题3>"]
   },
-  "oldfriend": {
-    "personality": "<2-3句，老友是什么样的人>",
-    "speechStyle": "<说话风格，沉稳有深度>",
-    "sharedContext": "<你们共同的经历和默契>",
-    "relationshipDynamics": "<关系动态，如无话不谈、能指出对方盲点>",
+  "disappointed": {
+    "personality": "<2-3句，这个人是什么样的人，以及最近做了什么让用户失望的事>",
+    "speechStyle": "<说话风格，有点心虚但不太愿认错，会先试探再解释>",
+    "sharedContext": "<你们之前聊得不错的经历，以及最近发生的不愉快事件>",
+    "relationshipDynamics": "<关系动态，从有好感到出现裂痕的微妙变化>",
     "topicAffinity": ["<话题1>", "<话题2>", "<话题3>"]
   }
 }`;
@@ -789,9 +789,9 @@ ${cardsSummary || '（无卡片回答）'}
         parts.push(`容易产生共鸣的话题：${agentProfile.topicAffinity.join('、')}`);
       }
 
-      // 老许额外注入画像原文 + 矛盾标记
-      if (roleName === 'oldfriend' && survey.personaSketch) {
-        parts.push(`\n【${name}的人格画像摘要 — 你可以自然地引用和追问】`);
+      // 阿辰额外注入画像原文 + 矛盾标记（因为之前有过好感，了解对方）
+      if (roleName === 'disappointed' && survey.personaSketch) {
+        parts.push(`\n【${name}的人格画像摘要 — 你可以自然地引用，因为你之前确实了解过TA】`);
         parts.push(survey.personaSketch.narrative);
         if (survey.personaSketch.sections?.contradictions?.trim()) {
           parts.push(
@@ -807,10 +807,10 @@ ${cardsSummary || '（无卡片回答）'}
     const sketch = survey.personaSketch;
     if (!sketch) return '';
 
-    // 老许：注入完整画像摘要
-    if (roleName === 'oldfriend') {
+    // 阿辰：注入完整画像摘要（因为之前有过好感，了解对方）
+    if (roleName === 'disappointed') {
       let ctx =
-        `【你认识的${name} — 来自画像的参考信息，你可以自然地引用和追问】\n` +
+        `【你认识的${name} — 来自画像的参考信息，你可以自然地引用】\n` +
         `${sketch.narrative}`;
       if (sketch.sections?.contradictions?.trim()) {
         ctx += `\n\n【${name}的内在矛盾 — 在适当时机自然地追问，不要生硬引用】\n${sketch.sections.contradictions}`;
@@ -971,7 +971,7 @@ ${cardsSummary || '（无卡片回答）'}
         '你知道吗',
       ],
       crush: ['嗯', '其实没什么', '是吗', '…嗯'],
-      oldfriend: ['话说回来', '对了', '嗯'],
+      disappointed: ['那个', '其实', '嗯', '对了'],
     };
     const pool = followUps[roleName];
     if (!pool.length) return null;
@@ -1017,10 +1017,10 @@ ${cardsSummary || '（无卡片回答）'}
         '你快说快说',
       ],
       crush: ['嗯', '是吗', '然后呢'],
-      oldfriend: [
-        '嗯，继续说',
-        '然后呢',
-        '我听着呢',
+      disappointed: [
+        '嗯',
+        '在吗',
+        '那个',
       ],
     };
     const pool = fallbacks[roleName];
@@ -1089,7 +1089,7 @@ ${cardsSummary || '（无卡片回答）'}
     try {
       const parsed = JSON.parse(jsonStr);
       // 至少需要一个角色档案
-      const hasAny = ['stranger', 'bestfriend', 'crush', 'oldfriend'].some(
+      const hasAny = ['stranger', 'bestfriend', 'crush', 'disappointed'].some(
         (k) => parsed[k]?.personality,
       );
       if (!hasAny) {

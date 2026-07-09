@@ -78,25 +78,27 @@ export function ReportSheet({
     <motion.div
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
-      className="fixed inset-0 bg-echo-dark z-[120] flex flex-col"
+      className="fixed inset-0 max-w-[375px] mx-auto z-[120] flex flex-col"
+      style={{ backgroundColor: '#f8f9ff' }}
     >
-      <div className="p-4 glass flex items-center justify-between border-b border-white/10">
-        <button type="button" onClick={onClose} className="text-gray-400 text-sm">
+      <div className="p-4 flex items-center justify-between" style={{ backgroundColor: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #d9e3f4' }}>
+        <button type="button" onClick={onClose} className="text-sm" style={{ color: '#7b7487' }}>
           取消
         </button>
-        <h2 className="font-bold text-sm">举报</h2>
+        <h2 className="font-bold text-sm" style={{ color: '#121c28' }}>举报</h2>
         <div className="w-8" />
       </div>
 
       <div className="flex-1 overflow-y-auto p-5 space-y-5">
         {status === 'success' ? (
           <div className="text-center py-12 space-y-4">
-            <p className="text-echo-blue font-bold">{COPY.celebrate.reportDone}</p>
-            <p className="text-xs text-gray-500">{COPY.celebrate.reportDoneSub}</p>
+            <p className="font-bold" style={{ color: '#2B8AEF' }}>{COPY.celebrate.reportDone}</p>
+            <p className="text-xs" style={{ color: '#7b7487' }}>{COPY.celebrate.reportDoneSub}</p>
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-3 bg-echo-blue text-echo-dark rounded-2xl font-bold text-sm"
+              className="px-6 py-3 rounded-2xl font-bold text-sm"
+              style={{ backgroundColor: '#2B8AEF', color: '#ffffff' }}
             >
               完成
             </button>
@@ -104,14 +106,15 @@ export function ReportSheet({
         ) : (
           <>
             <div>
-              <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">
+              <label className="text-xs font-bold uppercase mb-2 block" style={{ color: '#7b7487' }}>
                 举报类型
               </label>
               <select
                 value={targetType}
                 disabled={locked}
                 onChange={(e) => setTargetType(e.target.value as ReportTargetType)}
-                className="w-full p-3 rounded-xl bg-echo-card border border-white/10 text-sm disabled:opacity-60"
+                className="w-full p-3 rounded-xl text-sm disabled:opacity-60"
+                style={{ backgroundColor: '#ffffff', border: '1px solid #d9e3f4', color: '#121c28' }}
               >
                 {TARGET_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>
@@ -122,7 +125,7 @@ export function ReportSheet({
             </div>
 
             <div>
-              <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">
+              <label className="text-xs font-bold uppercase mb-2 block" style={{ color: '#7b7487' }}>
                 对象 ID
               </label>
               <input
@@ -131,17 +134,18 @@ export function ReportSheet({
                 readOnly={locked}
                 onChange={(e) => setTargetId(e.target.value)}
                 placeholder="帖子 / 评论 / 用户 UUID"
-                className="w-full p-3 rounded-xl bg-echo-card border border-white/10 text-sm disabled:opacity-60"
+                className="w-full p-3 rounded-xl text-sm disabled:opacity-60"
+                style={{ backgroundColor: '#ffffff', border: '1px solid #d9e3f4', color: '#121c28' }}
               />
               {!locked && (
-                <p className="text-[10px] text-gray-600 mt-1">
+                <p className="text-[10px] mt-1" style={{ color: '#7b7487' }}>
                   也可在动态详情、缘分详情中一键举报（自动填入 ID）
                 </p>
               )}
             </div>
 
             <div>
-              <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">
+              <label className="text-xs font-bold uppercase mb-2 block" style={{ color: '#7b7487' }}>
                 举报原因
               </label>
               <div className="flex flex-wrap gap-2 mb-3">
@@ -150,11 +154,11 @@ export function ReportSheet({
                     key={r}
                     type="button"
                     onClick={() => setPreset(r)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-bold ${
-                      preset === r
-                        ? 'bg-echo-blue text-echo-dark'
-                        : 'bg-white/5 text-gray-400'
-                    }`}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold`}
+                    style={preset === r
+                      ? { backgroundColor: '#2B8AEF', color: '#ffffff' }
+                      : { backgroundColor: '#E8F4FF', color: '#7b7487' }
+                    }
                   >
                     {r}
                   </button>
@@ -165,24 +169,26 @@ export function ReportSheet({
                 onChange={(e) => setDetail(e.target.value)}
                 placeholder="补充说明（可选）"
                 rows={3}
-                className="w-full p-3 rounded-xl bg-echo-card border border-white/10 text-sm resize-none"
+                className="w-full p-3 rounded-xl text-sm resize-none"
+                style={{ backgroundColor: '#ffffff', border: '1px solid #d9e3f4', color: '#121c28' }}
               />
             </div>
 
             {status === 'no_api' && (
-              <p className="text-sm text-amber-400/90 text-center">
+              <p className="text-sm text-center" style={{ color: '#2B8AEF' }}>
                 {COPY.error.noApiReport}
               </p>
             )}
             {status === 'error' && errorMsg && (
-              <p className="text-sm text-red-400 text-center">{errorMsg}</p>
+              <p className="text-sm text-center" style={{ color: '#ba1a1a' }}>{errorMsg}</p>
             )}
 
             <button
               type="button"
               disabled={submitting}
               onClick={() => void handleSubmit()}
-              className="w-full py-4 bg-echo-blue text-echo-dark rounded-2xl font-bold text-sm disabled:opacity-50"
+              className="w-full py-4 rounded-2xl font-bold text-sm disabled:opacity-50"
+              style={{ backgroundColor: '#2B8AEF', color: '#ffffff' }}
             >
               {submitting ? COPY.submitting.report : '提交举报'}
             </button>

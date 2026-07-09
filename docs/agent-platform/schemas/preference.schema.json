@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://echo.local/schemas/preference.schema.json",
+  "title": "Preference",
+  "type": "object",
+  "required": ["id", "subject_agent_id", "content", "pref_type", "confidence", "status"],
+  "properties": {
+    "id": { "type": "string" },
+    "subject_agent_id": { "type": "string" },
+    "content": { "type": "string" },
+    "pref_type": {
+      "type": "string",
+      "enum": ["explicit_opinion", "implicit_inferred", "stylistic"]
+    },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "status": {
+      "type": "string",
+      "enum": ["candidate", "active", "promoted_to_objective", "contradicted"]
+    },
+    "promoted_to": { "type": "string" },
+    "source": {
+      "type": "object",
+      "properties": {
+        "session_id": { "type": "string" },
+        "turn_ids": { "type": "array", "items": { "type": "integer" } },
+        "subtopic_id": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "extracted_at": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

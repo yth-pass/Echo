@@ -8,7 +8,7 @@ FROM node:22-slim AS frontend-builder
 WORKDIR /app
 
 # Install frontend dependencies
-COPY Echo/package.json Echo/package-lock.json* ./
+COPY echo/package.json echo/package-lock.json* ./
 RUN npm install --legacy-peer-deps
 
 # Set API URL for production (Nginx reverse proxy on same origin)
@@ -17,7 +17,7 @@ ARG VITE_API_BASE_URL=/v1
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 
 # Build the Vite app
-COPY Echo/ ./
+COPY echo/ ./
 RUN npm run build
 
 # ---------- Stage 2: Nginx + frontend ----------

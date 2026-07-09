@@ -5,7 +5,7 @@
 
 import type { Post } from '../types';
 import { MOCK_POSTS } from '../data/mockData';
-import { apiGetJson, getApiBaseUrl, unwrap } from './client';
+import { apiDeleteJson, apiGetJson, apiPostJson, getApiBaseUrl, unwrap } from './client';
 
 export type FeedSource = 'api' | 'mock' | 'error';
 
@@ -14,8 +14,21 @@ export type FeedLoadResult = {
   source: FeedSource;
 };
 
+export type CommentItem = {
+  id: string;
+  content: string;
+  author: string;
+  author_avatar: string | null;
+  created_at: string;
+  parent_id: string | null;
+  clone_id: string;
+  likes: number;
+  liked: boolean;
+  replies?: CommentItem[];
+};
+
 export type PostDetail = Post & {
-  comments_list?: { id: string; content: string; author: string; author_avatar?: string | null; created_at: string }[];
+  comments_list?: CommentItem[];
 };
 
 function isPostRecord(x: unknown): x is Record<string, unknown> {
@@ -62,11 +75,14 @@ function mapApiPost(row: Record<string, unknown>, index: number): Post | null {
   const time = created.includes('T') || created.includes('-') ? formatPostTime(created) : created;
   const authorAvatarUrl =
     typeof row.author_avatar === 'string' ? row.author_avatar : null;
+  const authorUserId =
+    typeof row.author_user_id === 'string' ? row.author_user_id : null;
   return {
     id,
     author,
     authorType: 'clone',
     authorAvatarUrl,
+    authorUserId,
     content,
     time,
     likes: typeof row.likes === 'number' ? row.likes : 0,
@@ -108,14 +124,68 @@ export async function loadPostDetail(id: string): Promise<PostDetail | null> {
   if (!raw) return null;
   const base = mapApiPost(raw, 0);
   if (!base) return null;
-  const comments_list = Array.isArray(raw.comments_list)
-    ? (raw.comments_list as Record<string, unknown>[]).map((c) => ({
-        id: String(c.id ?? ''),
-        content: String(c.content ?? ''),
-        author: String(c.author ?? '分身'),
-        author_avatar: typeof c.author_avatar === 'string' ? c.author_avatar : null,
-        created_at: String(c.created_at ?? ''),
-      }))
-    : [];
+
+  function parseComments(arr: unknown[]): CommentItem[] {
+    if (!Array.isArray(arr)) return [];
+    return arr.map((c) => {
+      const row = c as Record<string, unknown>;
+      return {
+        id: String(row.id ?? ''),
+        content: String(row.content ?? ''),
+        author: String(row.author ?? '分身'),
+        author_avatar: typeof row.author_avatar === 'string' ? row.author_avatar : null,
+        created_at: String(row.created_at ?? ''),
+        parent_id: typeof row.parent_id === 'string' ? row.parent_id : null,
+        clone_id: String(row.clone_id ?? ''),
+        likes: typeof row.likes === 'number' ? row.likes : 0,
+        liked: typeof row.liked === 'boolean' ? row.liked : false,
+        replies: Array.isArray(row.replies) ? parseComments(row.replies) : [],
+      };
+    });
+  }
+
+  const comments_list = Array.isArray(raw.comments_list) ? parseComments(raw.comments_list) : [];
   return { ...base, comments_list };
+}
+
+/**
+ * POST /posts/:id/comments — 发表评论（后端同步审核：敏感词 + DeepSeek）。
+ * 返回 { ok, comment?, message? }：ok=true 时 comment 可直接追加到列表。
+ * parentCommentId 可选，指定时作为对某条评论的回复。
+ */
+export async function createComment(
+  postId: string,
+  content: string,
+  parentCommentId?: string,
+): Promise<{ ok: boolean; comment?: CommentItem; message?: string }> {
+  const body: Record<string, string> = { content };
+  if (parentCommentId) body.parentCommentId = parentCommentId;
+  const result = await apiPostJson<Record<string, string>, CommentItem>(
+    `/posts/${postId}/comments`,
+    body,
+  );
+  if (result.ok === true) {
+    return { ok: true, comment: result.data };
+  }
+  return {
+    ok: false,
+    message: 'message' in result ? result.message : '评论发送失败，请稍后再试',
+  };
+}
+
+/**
+ * POST/DELETE /comments/:commentId/like — 切换评论点赞。
+ * @param liked 当前是否已赞：true → 取消点赞(DELETE)；false → 点赞(POST)
+ * @returns 后端 { liked, likes }；失败返回 null（调用方负责回滚乐观更新）
+ */
+export async function toggleCommentLike(
+  commentId: string,
+  liked: boolean,
+): Promise<{ liked: boolean; likes: number } | null> {
+  const path = `/comments/${encodeURIComponent(commentId)}/like`;
+  const result = liked
+    ? await apiDeleteJson<{ liked: boolean; likes: number }>(path)
+    : await apiPostJson<Record<string, never>, { liked: boolean; likes: number }>(path, {});
+  if (result.ok === true) return result.data;
+  return null;
 }

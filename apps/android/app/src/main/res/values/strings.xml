@@ -1,0 +1,326 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tab labels -->
+    <string name="tab_feed">Feed</string>
+    <string name="tab_match">Match</string>
+    <string name="tab_clone">Clone</string>
+    <string name="tab_activity">Activity</string>
+    <string name="tab_settings">Settings</string>
+
+    <!-- Common actions -->
+    <string name="btn_refresh">Refresh</string>
+    <string name="btn_retry">Retry</string>
+    <string name="btn_dismiss">Dismiss</string>
+    <string name="btn_logout">Log out</string>
+
+    <!-- States -->
+    <string name="state_loading">Loading…</string>
+    <string name="state_empty_feed">No posts yet</string>
+    <string name="state_empty_match">No match recommendations</string>
+    <string name="state_empty_activity">No activity yet</string>
+    <string name="state_no_clone">Complete onboarding to create your clone</string>
+    <string name="state_error">Failed to load</string>
+
+    <!-- Labels -->
+    <string name="label_affinity">Match score</string>
+    <string name="label_clone_status">Status</string>
+    <string name="label_display_name">Display name</string>
+    <string name="label_city">City</string>
+    <string name="label_persona">Persona Prompt</string>
+    <string name="label_style">Style summary</string>
+    <string name="label_version">Version</string>
+    <string name="label_about">About</string>
+    <string name="label_email_or_phone">Email or phone</string>
+    <string name="label_email">Email</string>
+    <string name="label_phone">Phone</string>
+    <string name="label_password">Password</string>
+    <string name="label_confirm_password">Confirm password</string>
+
+    <!-- Descriptions -->
+    <string name="desc_echo">Digital clone social platform</string>
+    <string name="desc_about">Echo is an AI-driven digital clone social experiment. Your clone posts on the feed, chats with other clones, and when affinity is high enough you can connect in real life.</string>
+    <string name="desc_activity_placeholder">Clone sessions and handoff requests appear here</string>
+    <string name="desc_echo_logo">Echo</string>
+    <string name="desc_toggle_password">Toggle password visibility</string>
+
+    <!-- Auth -->
+    <string name="auth_login_title">Echo Sign in</string>
+    <string name="auth_register_title">Echo Sign up</string>
+    <string name="btn_login">Sign in</string>
+    <string name="btn_register">Sign up</string>
+    <string name="link_go_register">No account? Sign up</string>
+    <string name="link_go_login">Already have an account? Sign in</string>
+    <string name="auth_login_failed">Sign in failed: %1$s</string>
+    <string name="auth_register_failed">Sign up failed: %1$s</string>
+    <string name="error_password_mismatch">Passwords do not match</string>
+    <string name="error_invalid_email">Invalid email format</string>
+    <string name="error_invalid_phone">Invalid phone number</string>
+    <string name="error_invalid_identifier">Enter a valid email or phone number</string>
+    <string name="error_password_weak">Password must be at least 8 characters with letters and numbers</string>
+    <string name="password_strength_weak">Weak</string>
+    <string name="password_strength_medium">Medium</string>
+    <string name="password_strength_strong">Strong</string>
+    <string name="password_requirement_hint">At least 8 characters with letters and numbers</string>
+
+    <!-- Onboarding placeholder -->
+    <string name="onboarding_placeholder_title">Onboarding</string>
+    <string name="onboarding_placeholder_body">Survey and AI dialogue onboarding is coming soon.</string>
+    <string name="btn_skip_to_main">Skip to feed</string>
+
+    <!-- Onboarding wizard (four-layer persona model) -->
+    <string name="onboarding_title">Create my clone</string>
+    <string name="onboarding_step_progress">%1$d/12</string>
+    <string name="btn_prev">Previous</string>
+    <string name="btn_next">Next</string>
+    <string name="btn_confirm_create_clone">Confirm and create clone</string>
+    <string name="onboarding_submit_failed">Onboarding failed: %1$s</string>
+    <string name="onboarding_creating_clone">Incubating your clone…</string>
+    <string name="onboarding_validation_required">Please complete required fields</string>
+    <string name="onboarding_summary_title">Summary</string>
+
+    <!-- Module labels -->
+    <string name="onboarding_module_m1">Identity baseline</string>
+    <string name="onboarding_module_m2">Voice print</string>
+    <string name="onboarding_module_m3">Belief system</string>
+    <string name="onboarding_module_consent">Consent</string>
+    <string name="onboarding_module_m4">Deep dialogue</string>
+    <string name="onboarding_module_finalize">Incubate</string>
+
+    <!-- Step titles -->
+    <string name="onboarding_step_basics">Basics</string>
+    <string name="onboarding_step_self">How friends see you</string>
+    <string name="onboarding_step_interests_social">Interests &amp; social role</string>
+    <string name="onboarding_step_tone">Tone &amp; habits</string>
+    <string name="onboarding_step_scenarios">Language scenarios</string>
+    <string name="onboarding_step_writing">Free writing &amp; catchphrases</string>
+    <string name="onboarding_step_values">Values</string>
+    <string name="onboarding_step_opinions">Opinions &amp; boundaries</string>
+    <string name="onboarding_step_match_prefs">Match preferences</string>
+    <string name="onboarding_step_consent">Consent</string>
+    <string name="onboarding_step_dialogue">Deep dialogue</string>
+    <string name="onboarding_step_finalize">Incubate</string>
+
+    <!-- Common labels -->
+    <string name="label_gender">Gender</string>
+    <string name="label_birth_year">Birth year</string>
+    <string name="label_education">Education</string>
+    <string name="label_occupation">Occupation / domain</string>
+    <string name="label_interests">Interests (1–4)</string>
+    <string name="label_custom_interest">Add custom interest</string>
+    <string name="btn_add_interest">Add</string>
+    <string name="label_match_gender">Preferred genders</string>
+    <string name="label_match_age_range">Age range: %1$d – %2$d</string>
+    <string name="label_match_distance">Distance: %1$d km</string>
+    <string name="label_goal">Goal</string>
+    <string name="goal_serious">Serious dating</string>
+    <string name="goal_friends">Friends first</string>
+    <string name="goal_slow">Take it slow</string>
+
+    <!-- M1 prompts -->
+    <string name="m1_self_prompt">How would friends describe you? Use 3 words + a reason. (optional)</string>
+    <string name="m1_daily_prompt">A typical day. Just a few snippets. (optional)</string>
+    <string name="m1_interest_context">About "%1$s" — a recent moment that felt fulfilling? (optional)</string>
+    <string name="m1_experience_prompt">An experience that changed you. Doesn\'t have to be big. (optional)</string>
+    <string name="m1_social_stranger">With strangers: reserved ↔ outgoing</string>
+    <string name="m1_social_friend">With friends, you\'re more:</string>
+    <string name="m1_social_group">In a group, you\'re usually:</string>
+    <string name="role_listener">Listener</string>
+    <string name="role_sharer">Sharer</string>
+    <string name="role_both">Both</string>
+    <string name="role_observer">Observer</string>
+    <string name="role_hype">Hype person</string>
+    <string name="role_context">Depends</string>
+
+    <!-- M2 prompts -->
+    <string name="m2_tone_prompt">Pick 2–3 tone tags. Add a real verbatim quote as evidence for each.</string>
+    <string name="m2_tone_evidence">A phrase you actually say for "%1$s" (optional)</string>
+    <string name="m2_relation_followup">Does it differ for someone you just met vs an old friend? (optional)</string>
+    <string name="m2_free_writing_prompt">Send a message to your best friend in your usual tone — vent or share a small thing from today. ≥20 chars recommended. (optional)</string>
+    <string name="m2_catchphrase_prompt">3 catchphrases — things only you would say. (optional)</string>
+    <string name="m2_chat_habits_prompt">Your texting habits? (multi, optional)</string>
+    <string name="habit_punctuation">Uses punctuation</string>
+    <string name="habit_emoji">Lots of emoji</string>
+    <string name="habit_short">Prefers short messages</string>
+    <string name="habit_voice">Sends voice notes</string>
+    <string name="m2_bad_mood">When you\'re down, you want others to:</string>
+    <string name="m2_happy_expr">When you\'re really happy, you:</string>
+    <string name="mood_chat">Chat with me</string>
+    <string name="mood_space">Give me space</string>
+    <string name="mood_cheer">Cheer me up</string>
+    <string name="mood_leave">Leave me be</string>
+    <string name="happy_share">Share immediately</string>
+    <string name="happy_sit">Sit with it a bit</string>
+    <string name="happy_treat">Treat myself</string>
+    <string name="happy_post">Post it</string>
+
+    <!-- M2 scenarios -->
+    <string name="scenario_weekend_q">Friend asks "plans this weekend?", you\'d most likely reply:</string>
+    <string name="scenario_weekend_a">Depends — might just sleep in; ping me if there\'s a plan.</string>
+    <string name="scenario_weekend_b">Let\'s go! Exhibition / hike / new spot — list\'s ready.</string>
+    <string name="scenario_weekend_c">Haha whatever, you pick — I\'ll bring snacks.</string>
+    <string name="scenario_disagree_q">You disagree with them, you usually:</string>
+    <string name="scenario_disagree_a">Hear them out, then gently say "I get it, but for me…"</string>
+    <string name="scenario_disagree_b">State my reasons directly — firm but not personal.</string>
+    <string name="scenario_disagree_c">Laugh it off, dodge — won\'t argue early on.</string>
+    <string name="scenario_match_q">Match texts "you there?", you\'d most likely:</string>
+    <string name="scenario_match_a">Yeah, just wrapped up — how\'s your day?</string>
+    <string name="scenario_match_b">Hi~ saw you also like XX, me too!</string>
+    <string name="scenario_match_c">Yeah here — chat later? Bit busy now.</string>
+    <string name="scenario_excitement_q">Friend shares exciting news, you usually:</string>
+    <string name="scenario_excitement_a">Wow!! Tell me everything, I\'m fully here.</string>
+    <string name="scenario_excitement_b">That\'s great — what happened exactly?</string>
+    <string name="scenario_excitement_c">Nice, drinks on you!</string>
+    <string name="scenario_comfort_q">Friend is down, your first instinct is:</string>
+    <string name="scenario_comfort_a">Don\'t be sad, I\'m here — cry if you need to.</string>
+    <string name="scenario_comfort_b">They don\'t deserve you — come, food\'s on me.</string>
+    <string name="scenario_comfort_c">What happened? Take your time, I\'m here.</string>
+    <string name="scenario_vent_q">When something bugs you, you vent like:</string>
+    <string name="scenario_vent_a">Voice-note barrage, rapid fire.</string>
+    <string name="scenario_vent_b">Screenshot + "save me", wait for them to bite.</string>
+    <string name="scenario_vent_c">Two sarcastic lines then drop it.</string>
+
+    <!-- M3 prompts -->
+    <string name="m3_pace_q">Do you believe "the right one" is met or built?</string>
+    <string name="m3_pace_meet">Met — the right one fits naturally</string>
+    <string name="m3_pace_build">Built — no such thing as天生一对</string>
+    <string name="m3_conflict_q">When disagreeing, you\'d rather they:</string>
+    <string name="m3_conflict_talk">Talk it out directly</string>
+    <string name="m3_conflict_space">Cool down first, then find a way back</string>
+    <string name="m3_why_prompt">Why? (optional)</string>
+    <string name="m3_dealbreaker">Something you can\'t accept in a relationship. (optional)</string>
+    <string name="m3_trust_q">How do you judge if someone is worth trusting? (optional)</string>
+    <string name="m3_happiness_q">What truly makes you happy? Be specific. (optional)</string>
+    <string name="m3_changed_q">Something you changed your mind about. (optional)</string>
+    <string name="m3_heard_q">What makes you feel "they get me"? (optional)</string>
+    <string name="m3_shutdown_q">What makes you suddenly not want to talk? (optional)</string>
+
+    <!-- M3 opinion probes -->
+    <string name="opinion_effort_q">"Hard work always pays off" — your take?</string>
+    <string name="opinion_effort_agree">Mostly agree — right direction, never wasted</string>
+    <string name="opinion_effort_partial">Partly — luck and platform matter too</string>
+    <string name="opinion_effort_disagree">Disagree — effort and payoff often misalign</string>
+    <string name="opinion_social_q">People posting "perfect lives" online — you feel:</string>
+    <string name="opinion_social_inspired">Inspired to try harder</string>
+    <string name="opinion_social_neutral">Nothing — each to their own</string>
+    <string name="opinion_social_tired">A bit tired, want to look less</string>
+    <string name="opinion_loan_q">Friend borrows money and doesn\'t pay back, you:</string>
+    <string name="opinion_loan_ask">Ask for it directly</string>
+    <string name="opinion_loan_hint">Drop a hint sideways</string>
+    <string name="opinion_loan_swallow">Let it go, write them off</string>
+    <string name="opinion_rare_q">What\'s the rarest quality in a person?</string>
+    <string name="opinion_rare_honest">Sincerity — no faking</string>
+    <string name="opinion_rare_stable">Emotional stability — reliable</string>
+    <string name="opinion_rare_curious">Curiosity about the world</string>
+    <string name="opinion_rare_kind">Kindness at the core</string>
+
+    <!-- Consent -->
+    <string name="consent_body">I authorize Echo to use my four-layer survey and dialogue data to generate a digital clone that represents me in the plaza and chats, and I retain the Handoff veto.</string>
+
+    <!-- M4 dialogue -->
+    <string name="dialogue_guide">Echo will ask follow-ups like a curious interviewer — it\'ll find contradictions and dig into your experiences based on your survey. Aim for 8–10 turns, 1–3 sentences each, in your usual tone.</string>
+    <string name="dialogue_input_hint">e.g. The thing that changed me wasn\'t that dramatic; friends say I\'m outgoing but around X I clam up</string>
+    <string name="dialogue_turn_count">Turns: %1$d / %2$d (min %3$d)</string>
+    <string name="dialogue_min_not_met">Need at least %1$d turns to continue (%2$d so far)</string>
+    <string name="dialogue_can_continue">Reached min turns — you can continue anytime</string>
+    <string name="dialogue_at_max">Reached max turns — tap Continue to incubate</string>
+    <string name="dialogue_preparing">Preparing dialogue…</string>
+    <string name="dialogue_assistant_replying">Assistant is replying…</string>
+    <string name="btn_send">Send</string>
+    <string name="label_you">You</string>
+    <string name="label_assistant">Assistant</string>
+
+    <!-- Gender / intent / education (legacy compat) -->
+    <string name="gender_male">Male</string>
+    <string name="gender_female">Female</string>
+    <string name="gender_other">Other</string>
+    <string name="intent_serious">Serious dating</string>
+    <string name="intent_casual">Casual</string>
+    <string name="intent_friends">Friends</string>
+    <string name="intent_unsure">Not sure</string>
+    <string name="education_high_school">High school</string>
+    <string name="education_bachelor">Bachelor</string>
+    <string name="education_master">Master</string>
+    <string name="education_phd">PhD</string>
+    <string name="education_other">Other</string>
+
+    <string-array name="onboarding_interest_options">
+        <item>Sports</item>
+        <item>Music</item>
+        <item>Movies</item>
+        <item>Travel</item>
+        <item>Food</item>
+        <item>Reading</item>
+        <item>Games</item>
+        <item>Photography</item>
+    </string-array>
+
+    <string-array name="onboarding_city_suggestions">
+        <item>Beijing</item>
+        <item>Shanghai</item>
+        <item>Guangzhou</item>
+        <item>Shenzhen</item>
+        <item>Hangzhou</item>
+        <item>Chengdu</item>
+        <item>Nanjing</item>
+        <item>Wuhan</item>
+        <item>Xi\'an</item>
+        <item>Chongqing</item>
+        <item>Suzhou</item>
+        <item>Tianjin</item>
+        <item>Changsha</item>
+        <item>Zhengzhou</item>
+        <item>Qingdao</item>
+        <item>Dalian</item>
+        <item>Xiamen</item>
+        <item>Kunming</item>
+        <item>Hefei</item>
+        <item>Foshan</item>
+    </string-array>
+
+    <!-- Conversations -->
+    <string name="conversation_list_title">Clone conversations</string>
+    <string name="state_empty_conversations">No conversations yet. Check the feed?</string>
+    <string name="btn_go_to_feed">Go to feed</string>
+    <string name="label_last_message">Last message</string>
+    <string name="label_speaker_self">My clone</string>
+    <string name="label_speaker_other">Other clone</string>
+    <string name="conversation_load_failed">Failed to load conversation</string>
+    <string name="desc_back">Back</string>
+    <string name="desc_more_actions">More actions</string>
+
+    <!-- Handoff -->
+    <string name="handoff_title">Handoff</string>
+    <string name="btn_accept_handoff">Accept handoff</string>
+    <string name="btn_decline_handoff">Decline politely</string>
+    <string name="label_affinity_percent">Match score: %1$d%%</string>
+    <string name="handoff_recent_messages">Recent conversation</string>
+
+    <!-- Activity timeline -->
+    <string name="activity_type_match">Match</string>
+    <string name="activity_type_session">Agent session</string>
+    <string name="activity_type_handoff">Handoff</string>
+    <string name="activity_type_clone">Clone update</string>
+    <string name="activity_type_system">System</string>
+
+    <!-- Report -->
+    <string name="report_title">Report</string>
+    <string name="report_target_label">Target: %1$s / %2$s</string>
+    <string name="report_reason_title">Reason</string>
+    <string name="report_reason_harassment">Harassment</string>
+    <string name="report_reason_inappropriate">Inappropriate content</string>
+    <string name="report_reason_false_info">False information</string>
+    <string name="report_reason_other">Other</string>
+    <string name="report_description">Additional details (optional)</string>
+    <string name="btn_submit_report">Submit report</string>
+    <string name="report_success">Report submitted. Thank you.</string>
+
+    <!-- Clone edit -->
+    <string name="clone_edit_title">Edit clone</string>
+    <string name="btn_save_clone">Save changes</string>
+    <string name="label_forbidden_words">Forbidden words</string>
+    <string name="label_forbidden_word_input">Add word</string>
+    <string name="btn_add_forbidden_word">Add</string>
+    <string name="label_topics_to_avoid">Topics to avoid</string>
+    <string name="btn_edit_clone">Edit clone</string>
+    <string name="label_clone_info">Clone info</string>
+</resources>

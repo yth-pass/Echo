@@ -5,7 +5,7 @@
 
 import { getApiBaseUrl, getAccessToken, refreshAccessToken } from './client';
 
-export type LiveEventType = 'match' | 'handoff' | 'affinity' | 'feed' | 'session_error';
+export type LiveEventType = 'match' | 'handoff' | 'affinity' | 'feed' | 'session_error' | 'notification';
 
 export type LiveWsMessage = {
   type: LiveEventType | 'connected';
@@ -246,6 +246,7 @@ export function connectLiveEvents(handlers: {
           type === 'affinity' ||
           type === 'feed' ||
           type === 'session_error' ||
+          type === 'notification' ||
           type === 'connected'
         ) {
           const payload =

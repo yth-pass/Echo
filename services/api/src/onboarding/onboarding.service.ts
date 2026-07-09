@@ -15,6 +15,7 @@ import {
 import {
   buildPersonaSeedFromSurvey,
   buildTextForEmbedding,
+  buildTextForIdealEmbedding,
   type OnboardingSurveyJson,
 } from './survey-schema';
 import { Phase0IdentityDto, Phase1Dto } from './onboarding.dto';
@@ -23,6 +24,8 @@ import { createLogger } from '../../../shared/observability';
 import {
   calculateDimensionScores,
   toSurveyDimensionScores,
+  calculateIdealPartnerDimensions,
+  toSurveyIdealPartnerDimensions,
 } from './dimension-scorer';
 import { ALL_SCENARIO_CARDS } from './scenario-cards';
 import type { ScenarioResponse } from './survey-schema';
@@ -173,7 +176,12 @@ export class OnboardingService {
     // 3. 推算出生年份（取年龄区间中间值）
     const birthYear = this.estimateBirthYear(dto.ageBand);
 
-    // 4. 同步到 Profile 顶层列（兼容旧读取逻辑）
+    // 4. 构造 matchPrefsJson（来源：dto.matchPreference + dto.goalOnEcho 作为 relationshipIntent）
+    //    若 dto 中没有任何匹配偏好信息则返回 null，跳过该列写入以保留旧数据。
+    const matchPrefsJson = this.buildMatchPrefsJson(dto);
+
+    // 5. 同步到 Profile 顶层列（兼容旧读取逻辑）
+    //    修复点：除了 bioJson，同时写入 matchPrefsJson，避免匹配偏好丢失。
     await this.prisma.profile.upsert({
       where: { userId },
       create: {
@@ -183,6 +191,7 @@ export class OnboardingService {
         gender: dto.genderIdentity,
         birthYear,
         bioJson: jsonPayload,
+        ...(matchPrefsJson ? { matchPrefsJson } : {}),
       },
       update: {
         displayName: dto.displayName,
@@ -190,11 +199,43 @@ export class OnboardingService {
         gender: dto.genderIdentity,
         birthYear,
         bioJson: jsonPayload,
+        ...(matchPrefsJson ? { matchPrefsJson } : {}),
       },
     });
 
     const fieldsReceived = Object.keys(dto);
     return { success: true as const, phase: 'phase0' as const, fieldsReceived };
+  }
+
+  /**
+   * 从 Phase0IdentityDto 构造 matchPrefsJson。
+   * 数据源：
+   *   - dto.matchPreference → preferredGender / preferredAgeBand / preferredCity / preferredOccupation
+   *   - dto.goalOnEcho      → relationshipIntent（用户在 Echo 上的目标，等价于关系意图）
+   * 返回 null 表示 dto 中没有任何匹配偏好信息（保留 Profile.matchPrefsJson 旧值不覆盖）。
+   */
+  private buildMatchPrefsJson(dto: Phase0IdentityDto): Prisma.InputJsonValue | null {
+    const prefs: Record<string, unknown> = {};
+    const mp = dto.matchPreference;
+    if (mp) {
+      if (mp.preferredGender) prefs.preferredGender = mp.preferredGender;
+      if (Array.isArray(mp.preferredAgeBand) && mp.preferredAgeBand.length > 0) {
+        prefs.preferredAgeBand = mp.preferredAgeBand;
+      }
+      if (mp.preferredCity) prefs.preferredCity = mp.preferredCity;
+      if (
+        Array.isArray(mp.preferredOccupation) &&
+        mp.preferredOccupation.length > 0
+      ) {
+        prefs.preferredOccupation = mp.preferredOccupation;
+      }
+    }
+    if (dto.goalOnEcho) {
+      prefs.relationshipIntent = dto.goalOnEcho;
+    }
+    return Object.keys(prefs).length > 0
+      ? (prefs as Prisma.InputJsonValue)
+      : null;
   }
 
   /**
@@ -248,11 +289,16 @@ export class OnboardingService {
     const scores = calculateDimensionScores(responses);
     const surveyScores = toSurveyDimensionScores(scores);
 
+    // 理想伴侣维度（Card 16-18），无数据时所有维度 value=0 confidence=low
+    const idealScores = calculateIdealPartnerDimensions(responses);
+    const idealDimsJson = toSurveyIdealPartnerDimensions(idealScores);
+
     // 4. 合并到 surveyJson（保留已有数据）
     const mergedSurvey = {
       ...existingSurvey,
       scenarioCards: responses,
       dimensionScores: surveyScores,
+      idealPartnerDimensions: idealDimsJson,
     };
     const jsonPayload = mergedSurvey as unknown as Prisma.InputJsonValue;
 
@@ -496,16 +542,27 @@ export class OnboardingService {
       const result = await this.styleGen.generate(survey, dialogue);
       styleMd = result.styleMd;
       // coreCandidates 可在后续存储 profile.core 时使用，此处暂不处理
-      if (styleMd) {
-        await this.prisma.profile.upsert({
-          where: { userId },
-          create: { userId, styleMd },
-          update: { styleMd },
-        });
-      }
     } catch {
       // fallback：不影响主流程
     }
+
+    // v2.3 改动: finalize 时同步 OnboardingSession.surveyJson 到 Profile.bioJson，
+    // 确保 idealPartnerSketch / personaSketch / roleplayChats 等最新数据被持久化到 Profile。
+    // 修复点：Phase 1.6 IdealPartnerSketchService 虽已 dual-write bioJson，但若用户
+    // 后续调整了 Phase 2 角色扮演或维度数据，bioJson 可能与 surveyJson 不一致。
+    // 此时统一同步一次，保证查询 Profile.bioJson 时一定能取到 idealPartnerSketch。
+    await this.prisma.profile.upsert({
+      where: { userId },
+      create: {
+        userId,
+        bioJson: survey as unknown as Prisma.InputJsonValue,
+        ...(styleMd ? { styleMd } : {}),
+      },
+      update: {
+        bioJson: survey as unknown as Prisma.InputJsonValue,
+        ...(styleMd ? { styleMd } : {}),
+      },
+    });
 
     // REQ-01: Real embedding from LLM, written via raw SQL for pgvector.
     const profile = await this.prisma.profile.findUnique({ where: { userId } });
@@ -525,16 +582,37 @@ export class OnboardingService {
       return Math.sqrt(variance) >= 0.001;
     };
 
+    // Ideal partner embedding（双通道匹配：A.ideal ↔ B.self + B.ideal ↔ A.self）
+    const idealText = buildTextForIdealEmbedding(profile, survey, userId);
+    const idealResult = await this.llm.embed(idealText);
+    if (idealResult.quality === 'fake') {
+      logger.error(`Ideal embedding is fake — matching quality degraded for userId=${userId}`);
+    }
+
     if (quality === 'real' && isValidEmbedding(embedding)) {
-      // Use raw SQL for pgvector compatibility (Prisma Json type cannot hold
-      // native vector literals).
+      const selfVecStr = `[${embedding.join(',')}]`;
+      const idealValid =
+        idealResult.quality === 'real' && isValidEmbedding(idealResult.vector);
+      const idealVecStr = idealValid
+        ? `[${idealResult.vector.join(',')}]`
+        : null;
+
       try {
-        const vectorStr = `[${embedding.join(',')}]`;
-        await this.prisma.$executeRaw`
-          INSERT INTO profile_embeddings (user_id, embedding)
-          VALUES (${userId}, ${vectorStr}::vector)
-          ON CONFLICT (user_id) DO UPDATE SET embedding = ${vectorStr}::vector
-        `;
+        if (idealVecStr) {
+          await this.prisma.$executeRaw`
+            INSERT INTO profile_embeddings (user_id, embedding, ideal_embedding)
+            VALUES (${userId}, ${selfVecStr}::vector, ${idealVecStr}::vector)
+            ON CONFLICT (user_id) DO UPDATE SET
+              embedding = ${selfVecStr}::vector,
+              ideal_embedding = ${idealVecStr}::vector
+          `;
+        } else {
+          await this.prisma.$executeRaw`
+            INSERT INTO profile_embeddings (user_id, embedding)
+            VALUES (${userId}, ${selfVecStr}::vector)
+            ON CONFLICT (user_id) DO UPDATE SET embedding = ${selfVecStr}::vector
+          `;
+        }
       } catch (e) {
         logger.error(`pgvector write failed for userId=${userId}: ${(e as Error).message}`);
       }
@@ -681,6 +759,17 @@ export class OnboardingService {
     // Phase 1.5: personaSketch 已生成
     if (!survey.personaSketch?.narrative) {
       throw new BadRequestException('Phase 1.5 人格画像尚未生成');
+    }
+
+    // Phase 1.6: idealPartnerSketch（软校验：有维度数据但无 sketch 时仅警告，不阻断）
+    if (
+      survey.idealPartnerDimensions &&
+      Object.keys(survey.idealPartnerDimensions).length > 0 &&
+      !survey.idealPartnerSketch?.narrative
+    ) {
+      logger.warn(
+        `Phase 1.6: idealPartnerDimensions present but idealPartnerSketch missing for finalize`,
+      );
     }
 
     // Phase 2: 至少 2 段 roleplayChat 完成（建议 Role 2 + Role 3）

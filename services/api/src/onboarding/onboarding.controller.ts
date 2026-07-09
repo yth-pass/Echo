@@ -4,6 +4,7 @@ import { JwtAuthGuard } from '../common/jwt-auth.guard';
 import { CurrentUser } from '../common/current-user.decorator';
 import { OnboardingService } from './onboarding.service';
 import { PersonaSketchService } from './persona-sketch.service';
+import { IdealPartnerSketchService } from './ideal-partner-sketch.service';
 import { RoleplayAgentService } from './roleplay-agent.service';
 import {
   DialogueStartDto,
@@ -13,6 +14,7 @@ import {
   Phase1HintDto,
   PersonaSketchAdjustDto,
   BatchAdjustDto,
+  IdealPartnerAdjustDto,
   RoleplayStartDto,
   RoleplayTurnDto,
   RoleplayEndDto,
@@ -27,6 +29,7 @@ export class OnboardingController {
   constructor(
     private readonly onboarding: OnboardingService,
     private readonly personaSketch: PersonaSketchService,
+    private readonly idealPartnerSketch: IdealPartnerSketchService,
     private readonly roleplayAgent: RoleplayAgentService,
   ) {}
 
@@ -81,6 +84,18 @@ export class OnboardingController {
   @Post('persona-sketch/batch-adjust')
   batchAdjustSketch(@CurrentUser() userId: string, @Body() dto: BatchAdjustDto) {
     return this.personaSketch.batchAdjust(userId, dto.corrections);
+  }
+
+  // ---------- Phase 1.6: 理想伴侣画像合成 ----------
+
+  @Post('ideal-partner-sketch/generate')
+  generateIdealSketch(@CurrentUser() userId: string) {
+    return this.idealPartnerSketch.generate(userId);
+  }
+
+  @Post('ideal-partner-sketch/adjust')
+  adjustIdealSketch(@CurrentUser() userId: string, @Body() dto: IdealPartnerAdjustDto) {
+    return this.idealPartnerSketch.adjust(userId, dto.userFeedback);
   }
 
   // ---------- Phase 1.7: 个性化角色档案 ----------

@@ -1,0 +1,14 @@
+{
+  "other_agent_id": "clone_b_threshold",
+  "dimensions": {
+    "familiarity": 9,
+    "warmth": 24,
+    "trust": 12,
+    "tension": 0
+  },
+  "composite_affinity": 14,
+  "relationship_label": "stranger",
+  "last_interaction_at": "2026-06-15T08:22:27.687Z",
+  "last_updated_at": "2026-06-15T08:22:27.687Z",
+  "version": 4
+}

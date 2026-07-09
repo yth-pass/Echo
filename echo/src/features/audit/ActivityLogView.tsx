@@ -4,6 +4,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { LottieLoader } from '../../components/LottieLoader';
 import { Header } from '../shell/Header';
@@ -20,9 +21,11 @@ const FILTERS = ['全部', '发布', '评论', '点赞', '对话'] as const;
 export function ActivityLogView({
   onOpenPost,
   onOpenSession,
+  headerRight,
 }: {
   onOpenPost: (id: string) => void;
   onOpenSession: (id: string) => void;
+  headerRight?: ReactNode;
 }) {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('全部');
   const [items, setItems] = useState<ActivityRow[]>([]);
@@ -60,7 +63,7 @@ export function ActivityLogView({
 
   return (
     <div className="pb-24">
-      <Header title="活动记录" />
+      <Header title="活动记录" rightSlot={headerRight} />
       <div className="px-5 mt-4">
         <div className="flex gap-2 mb-6 overflow-x-auto no-scrollbar pb-1">
           {FILTERS.map((f) => (
@@ -68,9 +71,12 @@ export function ActivityLogView({
               key={f}
               type="button"
               onClick={() => setFilter(f)}
-              className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap ${
-                f === filter ? 'bg-echo-blue text-echo-dark' : 'bg-white/5 text-gray-400'
-              }`}
+              className="px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap"
+              style={
+                f === filter
+                  ? { backgroundColor: '#2B8AEF', color: '#ffffff' }
+                  : { backgroundColor: '#E8F4FF', color: '#7b7487' }
+              }
             >
               {f}
             </button>
@@ -78,12 +84,13 @@ export function ActivityLogView({
         </div>
 
         {showError && (
-          <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-center space-y-3 mb-4">
-            <p className="text-sm text-red-300">无法加载活动记录，请检查 API 与登录</p>
+          <div className="p-4 rounded-2xl text-center space-y-3 mb-4 border" style={{ backgroundColor: 'rgba(186,26,26,0.08)', borderColor: 'rgba(186,26,26,0.15)' }}>
+            <p className="text-sm" style={{ color: '#ba1a1a' }}>无法加载活动记录，请检查 API 与登录</p>
             <button
               type="button"
               onClick={() => void fetchActivity()}
-              className="inline-flex items-center gap-2 text-xs font-bold text-echo-blue"
+              className="inline-flex items-center gap-2 text-xs font-bold"
+              style={{ color: '#2B8AEF' }}
             >
               <RefreshCw className="w-3.5 h-3.5" />
               {COPY.btn.tryAgain}
@@ -92,25 +99,25 @@ export function ActivityLogView({
         )}
         {loading && (
           <div className="space-y-4 mb-4">
-            <div className="flex justify-center py-2">
-              <LottieLoader size={48} />
+            <div className="flex justify-center">
+              <LottieLoader size={288} />
             </div>
             {[0, 1, 2].map((i) => (
-              <div key={i} className="h-14 rounded-2xl bg-white/5 animate-pulse ml-4" />
+              <div key={i} className="h-14 rounded-2xl animate-pulse ml-4" style={{ backgroundColor: '#E8F4FF' }} />
             ))}
           </div>
         )}
         {showEmpty && (
-          <p className="text-sm text-gray-500 text-center py-8">{COPY.empty.activity}</p>
+          <p className="text-sm text-center py-8" style={{ color: '#7b7487' }}>{COPY.empty.activity}</p>
         )}
         {source === 'api' && hasApi && !loading && rows.length > 0 && (
-          <p className="text-[10px] text-gray-600 mb-4 text-left">
+          <p className="text-[10px] mb-4 text-left" style={{ color: '#7b7487' }}>
             点击可查看详情。
           </p>
         )}
 
         {!loading && !showError && rows.length > 0 && (
-          <div className="space-y-6 relative ml-4 before:absolute before:left-0 before:top-2 before:bottom-2 before:w-px before:bg-white/10">
+          <div className="space-y-6 relative ml-4" style={{ borderLeft: '1px solid #d9e3f4' }}>
             {rows.map((log, i) => {
               const pending = log.kind === 'post' && log.moderationStatus === 'pending';
               return (
@@ -122,17 +129,20 @@ export function ActivityLogView({
                   className={`relative pl-8 w-full text-left ${pending ? 'opacity-60 cursor-default' : 'active:opacity-80'}`}
                 >
                   <div
-                    className={`absolute left-[-4.5px] top-1.5 w-2 h-2 rounded-full ${
-                      pending ? 'bg-amber-500/80' : 'bg-echo-blue shadow-[0_0_8px_rgba(0,242,255,0.8)]'
-                    }`}
+                    className="absolute top-1.5 w-2 h-2 rounded-full"
+                    style={{
+                      left: '-4.5px',
+                      backgroundColor: pending ? 'rgba(180,130,0,0.8)' : '#2B8AEF',
+                      boxShadow: pending ? undefined : '0 0 8px rgba(43,138,239,0.6)',
+                    }}
                   />
-                  <p className="text-[10px] text-gray-500 mb-1">
+                  <p className="text-[10px] mb-1" style={{ color: '#7b7487' }}>
                     {log.time} · {log.type}
                     {pending && (
-                      <span className="ml-2 text-amber-400/90 font-bold">审核中</span>
+                      <span className="ml-2 font-bold" style={{ color: 'rgba(180,130,0,0.9)' }}>审核中</span>
                     )}
                   </p>
-                  <p className="text-sm text-gray-300 pr-4">{log.content}</p>
+                  <p className="text-sm pr-4" style={{ color: '#121c28' }}>{log.content}</p>
                 </button>
               );
             })}

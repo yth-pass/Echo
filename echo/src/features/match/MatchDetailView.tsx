@@ -191,14 +191,16 @@ export function MatchDetailView({
           <button
             type="button"
             onClick={onBack}
-            className="flex-1 py-4 bg-white/5 rounded-2xl font-bold text-gray-400 text-sm"
+            className="flex-1 py-4 rounded-2xl font-bold text-sm"
+            style={{ backgroundColor: '#E8F4FF', color: '#7b7487' }}
           >
             再观察一下
           </button>
           <button
             type="button"
             onClick={onBack}
-            className="flex-[2] py-4 bg-echo-blue text-echo-dark rounded-2xl font-bold flex items-center justify-center gap-2"
+            className="flex-[2] py-4 rounded-2xl font-bold flex items-center justify-center gap-2"
+            style={{ backgroundColor: '#2B8AEF', color: '#f8f9ff' }}
           >
             <Heart className="w-5 h-5 fill-current" />
             开启真实联络
@@ -213,7 +215,8 @@ export function MatchDetailView({
             type="button"
             onClick={() => void respond(false)}
             disabled={handoffResponding}
-            className="flex-1 py-4 bg-white/5 rounded-2xl font-bold text-gray-400 text-sm disabled:opacity-50"
+            className="flex-1 py-4 rounded-2xl font-bold text-sm disabled:opacity-50"
+            style={{ backgroundColor: '#E8F4FF', color: '#7b7487' }}
           >
             拒绝
           </button>
@@ -221,7 +224,8 @@ export function MatchDetailView({
             type="button"
             onClick={() => void respond(true)}
             disabled={handoffResponding}
-            className="flex-[2] py-4 bg-echo-blue text-echo-dark rounded-2xl font-bold flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(0,242,255,0.4)] disabled:opacity-50"
+            className="flex-[2] py-4 rounded-2xl font-bold flex items-center justify-center gap-2 disabled:opacity-50"
+            style={{ backgroundColor: '#2B8AEF', color: '#f8f9ff', boxShadow: '0 0 20px rgba(43,138,239,0.3)' }}
           >
             <Heart className="w-5 h-5 fill-current" />
             {handoffResponding ? COPY.loading.handoff : '接受真人联络'}
@@ -235,14 +239,16 @@ export function MatchDetailView({
           <button
             type="button"
             onClick={onBack}
-            className="flex-1 py-4 bg-white/5 rounded-2xl font-bold text-gray-400 text-sm"
+            className="flex-1 py-4 rounded-2xl font-bold text-sm"
+            style={{ backgroundColor: '#E8F4FF', color: '#7b7487' }}
           >
             返回
           </button>
           <button
             type="button"
             disabled
-            className="flex-[2] py-4 bg-white/10 rounded-2xl font-bold text-gray-400 text-sm"
+            className="flex-[2] py-4 rounded-2xl font-bold text-sm"
+            style={{ backgroundColor: '#E8F4FF', color: '#7b7487' }}
           >
             {resolvedHandoffStatus === 'accepted' ? '已接受联络' : '已拒绝联络'}
           </button>
@@ -251,7 +257,7 @@ export function MatchDetailView({
     }
     return (
       <div className="space-y-2">
-        <p className="text-xs text-gray-500 text-center">
+        <p className="text-xs text-center" style={{ color: '#7b7487' }}>
           {displayAffinityPercent < HANDOFF_THRESHOLD_PERCENT
             ? `好感度未达接力阈值（演示约 ${HANDOFF_THRESHOLD_PERCENT}%）`
             : '接力邀请生成中，请稍后刷新或继续让分身对话'}
@@ -259,7 +265,8 @@ export function MatchDetailView({
         <button
           type="button"
           onClick={onBack}
-          className="w-full py-4 bg-white/5 rounded-2xl font-bold text-gray-400 text-sm"
+          className="w-full py-4 rounded-2xl font-bold text-sm"
+          style={{ backgroundColor: '#E8F4FF', color: '#7b7487' }}
         >
           返回
         </button>
@@ -271,33 +278,35 @@ export function MatchDetailView({
     <motion.div
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
-      className="fixed inset-0 bg-echo-dark z-[100] flex flex-col"
+      className="fixed inset-0 z-[100] flex flex-col"
+      style={{ backgroundColor: '#f8f9ff' }}
     >
-      <div className="p-6 glass flex items-center justify-between">
-        <button type="button" onClick={onBack} className="text-gray-400">
+      <div className="p-6 flex items-center justify-between" style={{ backgroundColor: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(12px)', border: '1px solid #d9e3f4' }}>
+        <button type="button" onClick={onBack} style={{ color: '#7b7487' }}>
           返回
         </button>
-        <h2 className="font-bold">缘分详情</h2>
+        <h2 className="font-bold" style={{ color: '#121c28' }}>缘分详情</h2>
         <div className="w-4" />
       </div>
 
       <div className="flex-1 overflow-y-auto pb-32">
-        <div className="relative h-64 flex items-end justify-center pb-8 border-b border-echo-blue/20 text-center">
-          <div className="absolute inset-0 bg-gradient-to-t from-echo-blue/20 to-transparent" />
+        <div className="relative h-64 flex items-end justify-center pb-8 border-b text-center" style={{ borderColor: 'rgba(43,138,239,0.2)' }}>
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(43,138,239,0.12), transparent)' }} />
           <div className="relative flex flex-col items-center">
-            <div className="w-24 h-24 rounded-full border-2 border-echo-blue p-1 echo-glow-blue mb-4">
+            <div className="w-24 h-24 rounded-full border-2 p-1 mb-4" style={{ borderColor: '#2B8AEF', boxShadow: '0 0 16px rgba(43,138,239,0.25)' }}>
               <img
                 src={`https://api.dicebear.com/7.x/notionists/svg?seed=${match.name}`}
                 alt="match"
                 className="w-full h-full rounded-full"
               />
             </div>
-            <h3 className="text-2xl font-bold">{match.name}</h3>
+            <h3 className="text-2xl font-bold" style={{ color: '#121c28' }}>{match.name}</h3>
             <div className="flex gap-2 mt-2">
               {match.tags.map((t) => (
                 <span
                   key={t}
-                  className="text-[10px] bg-echo-blue/10 text-echo-blue px-2 py-0.5 rounded-full"
+                  className="text-[10px] px-2 py-0.5 rounded-full"
+                  style={{ backgroundColor: 'rgba(43,138,239,0.1)', color: '#2B8AEF' }}
                 >
                   {t}
                 </span>
@@ -305,16 +314,16 @@ export function MatchDetailView({
             </div>
           </div>
           <div className="absolute top-4 right-6 text-right">
-            <p className="text-4xl font-bold text-echo-blue">{displayAffinityPercent}%</p>
-            <p className="text-[10px] text-echo-blue/50 uppercase tracking-tighter">
+            <p className="text-4xl font-bold" style={{ color: '#2B8AEF' }}>{displayAffinityPercent}%</p>
+            <p className="text-[10px] uppercase tracking-tighter" style={{ color: 'rgba(43,138,239,0.5)' }}>
               {hasApi && sessionAffinity ? '会话好感度' : '契合度报告'}
             </p>
           </div>
         </div>
 
         {hasApi && sessionRelationship && (
-          <div className="mx-6 -mt-2 mb-4 p-4 rounded-2xl bg-echo-card/60 border border-white/5 text-left text-xs text-gray-400">
-            <div className="font-bold text-gray-300 mb-1">关系提示 · {sessionRelationship.label}</div>
+          <div className="mx-6 -mt-2 mb-4 p-4 rounded-2xl border text-left text-xs" style={{ backgroundColor: '#ffffff', borderColor: '#d9e3f4', color: '#7b7487' }}>
+            <div className="font-bold mb-1" style={{ color: '#121c28' }}>关系提示 · {sessionRelationship.label}</div>
             <div>信任：{sessionRelationship.hints.trust}</div>
             <div>张力：{sessionRelationship.hints.tension}</div>
             <div className="mt-1 text-[10px] opacity-70">熟悉度 {sessionRelationship.dimensions.familiarity} / 温暖 {sessionRelationship.dimensions.warmth}</div>
@@ -323,39 +332,40 @@ export function MatchDetailView({
 
         <div className="px-6 py-8 space-y-8">
           <section>
-            <h4 className="text-xs font-bold text-gray-500 uppercase mb-3 text-left">分身契合理由</h4>
+            <h4 className="text-xs font-bold uppercase mb-3 text-left" style={{ color: '#7b7487' }}>分身契合理由</h4>
             <div className="space-y-3 text-left">
               {affinityReasons.map((reason, i) => (
                 <div
                   key={i}
-                  className="flex gap-3 bg-echo-card p-4 rounded-2xl border border-white/5"
+                  className="flex gap-3 p-4 rounded-2xl border"
+                  style={{ backgroundColor: '#ffffff', borderColor: '#d9e3f4' }}
                 >
-                  <Sparkles className="w-5 h-5 text-echo-blue shrink-0" />
-                  <p className="text-sm text-gray-300">{reason}</p>
+                  <Sparkles className="w-5 h-5 shrink-0" style={{ color: '#2B8AEF' }} />
+                  <p className="text-sm" style={{ color: '#121c28' }}>{reason}</p>
                 </div>
               ))}
             </div>
           </section>
 
           <section className="text-left">
-            <h4 className="text-xs font-bold text-gray-500 uppercase mb-3 text-left">关于她 (真人摘要)</h4>
-            <p className="text-gray-400 leading-relaxed text-sm">{formatBio(match.bio)}</p>
+            <h4 className="text-xs font-bold uppercase mb-3 text-left" style={{ color: '#7b7487' }}>关于她 (真人摘要)</h4>
+            <p className="leading-relaxed text-sm" style={{ color: '#7b7487' }}>{formatBio(match.bio)}</p>
           </section>
 
           <section className="text-left">
-            <h4 className="text-xs font-bold text-gray-500 uppercase mb-3 text-left">分身对话精选</h4>
+            <h4 className="text-xs font-bold uppercase mb-3 text-left" style={{ color: '#7b7487' }}>分身对话精选</h4>
             {showMockStaticDialogue ? (
               <div className="space-y-2">
-                <div className="p-3 bg-white/5 rounded-xl border-l-2 border-echo-blue text-left">
-                  <p className="text-[10px] text-gray-500 mb-1">{match.name}：</p>
-                  <p className="text-sm italic text-gray-300">
-                    “其实比起结局，我更在意那些在城市缝隙里独自看海的瞬间。”
+                <div className="p-3 rounded-xl border-l-2 text-left" style={{ backgroundColor: '#E8F4FF', borderColor: '#2B8AEF' }}>
+                  <p className="text-[10px] mb-1" style={{ color: '#7b7487' }}>{match.name}：</p>
+                  <p className="text-sm italic" style={{ color: '#121c28' }}>
+                    "其实比起结局，我更在意那些在城市缝隙里独自看海的瞬间。"
                   </p>
                 </div>
-                <div className="p-3 bg-echo-blue/5 rounded-xl border-r-2 border-echo-blue text-right">
-                  <p className="text-[10px] text-echo-blue/50 mb-1">我的分身：</p>
-                  <p className="text-sm italic text-echo-blue/80">
-                    “那种孤独感并非缺失，而是一种清醒。很高兴我们的「算法」捕捉到了这一点。”
+                <div className="p-3 rounded-xl border-r-2 text-right" style={{ backgroundColor: 'rgba(43,138,239,0.05)', borderColor: '#2B8AEF' }}>
+                  <p className="text-[10px] mb-1" style={{ color: 'rgba(43,138,239,0.5)' }}>我的分身：</p>
+                  <p className="text-sm italic" style={{ color: 'rgba(43,138,239,0.8)' }}>
+                    "那种孤独感并非缺失，而是一种清醒。很高兴我们的「算法」捕捉到了这一点。"
                   </p>
                 </div>
               </div>
@@ -375,7 +385,7 @@ export function MatchDetailView({
         </div>
       </div>
 
-      <div className="p-6 pb-10 glass border-t border-white/10 space-y-3">
+      <div className="p-6 pb-10 border-t space-y-3" style={{ backgroundColor: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(12px)', border: '1px solid #d9e3f4' }}>
         {(onDismiss || onBlock) && (
           <div className="flex gap-2">
             {onDismiss && (
@@ -385,7 +395,8 @@ export function MatchDetailView({
                   onDismiss(match);
                   onBack();
                 }}
-                className="flex-1 py-3 bg-white/5 rounded-2xl font-bold text-gray-400 text-xs"
+                className="flex-1 py-3 rounded-2xl font-bold text-xs"
+                style={{ backgroundColor: '#E8F4FF', color: '#7b7487' }}
               >
                 {COPY.btn.dismiss}
               </button>
@@ -403,7 +414,8 @@ export function MatchDetailView({
                   onBack();
                 }}
                 disabled={hasApi && !match.candidateUserId}
-                className="flex-1 py-3 bg-red-500/10 rounded-2xl font-bold text-red-400 text-xs disabled:opacity-40"
+                className="flex-1 py-3 rounded-2xl font-bold text-xs disabled:opacity-40"
+                style={{ backgroundColor: 'rgba(186,26,26,0.08)', color: '#ba1a1a' }}
               >
                 {COPY.btn.block}
               </button>
@@ -418,7 +430,8 @@ export function MatchDetailView({
               setShowReport(true);
             }}
             disabled={hasApi && !match.candidateUserId}
-            className="flex-1 py-3 bg-amber-500/10 rounded-2xl font-bold text-amber-400/90 text-xs disabled:opacity-40"
+            className="flex-1 py-3 rounded-2xl font-bold text-amber-400/90 text-xs disabled:opacity-40"
+            style={{ backgroundColor: 'rgba(245,158,11,0.1)' }}
           >
             举报分身
           </button>
@@ -429,7 +442,8 @@ export function MatchDetailView({
                 setReportMode('session');
                 setShowReport(true);
               }}
-              className="flex-1 py-3 bg-amber-500/10 rounded-2xl font-bold text-amber-400/90 text-xs"
+              className="flex-1 py-3 rounded-2xl font-bold text-amber-400/90 text-xs"
+              style={{ backgroundColor: 'rgba(245,158,11,0.1)' }}
             >
               举报会话
             </button>

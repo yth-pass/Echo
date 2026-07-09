@@ -19,6 +19,7 @@
 | [Campus-Pilot-Launch-Plan-Echo.md](./Campus-Pilot-Launch-Plan-Echo.md) | 校园试点发布与 GTM |
 | [Strategic-Update-Plan-Echo.md](./Strategic-Update-Plan-Echo.md) | **CEO 战略更新计划** — Part I（CEO §1–§13）+ Part II（CTO §14–§26）+ Part III（CMO §27–§41） |
 | [Echo-Delightful-Experience-Design.md](./Echo-Delightful-Experience-Design.md) | **趣味体验设计方案** — 期待感循环、信任仪表盘、Handoff 仪式、分身养成、微文案库 |
+| [Echo-Background-Music-Strategy.md](./Echo-Background-Music-Strategy.md) | **背景音乐策略** — 各阶段音乐风格建议、回声主题品牌音乐身份、AI 音乐生成 Prompt、分身音乐指纹 |
 | [glossary.md](./glossary.md) | 术语表 |
 
 英文索引：[`docs/README.md`](../docs/README.md)。

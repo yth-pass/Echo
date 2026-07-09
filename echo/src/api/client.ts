@@ -109,7 +109,7 @@ function handleAuthFailure(): void {
  * - credentials: 'include' 携带 httpOnly cookie
  */
 async function request<T>(
-  method: 'GET' | 'POST' | 'PUT',
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE',
   path: string,
   body?: object,
   options?: { signal?: AbortSignal; _isRetry?: boolean },
@@ -205,6 +205,14 @@ export async function apiPutJson<TBody extends object, TRes>(
   signal?: AbortSignal,
 ): Promise<ApiResult<TRes>> {
   return request<TRes>('PUT', path, body, { signal });
+}
+
+/** DELETE JSON; returns ApiResult. */
+export async function apiDeleteJson<TRes>(
+  path: string,
+  signal?: AbortSignal,
+): Promise<ApiResult<TRes>> {
+  return request<TRes>('DELETE', path, undefined, { signal });
 }
 
 // ---------------------------------------------------------------------------

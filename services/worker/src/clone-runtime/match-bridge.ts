@@ -17,9 +17,18 @@ export type MatchPrefs = {
 export type VectorCandidate = {
   user_id: string;
   similarity: number;
+  /** raw self-embedding of the candidate, populated by queryVectorCandidates for bidirectional scoring */
+  candidate_embedding?: number[];
 };
 
-export type RankedCandidate = VectorCandidate & { adjustedScore: number };
+export type BidirectionalCandidate = {
+  user_id: string;
+  scoreAtoB: number;      // cosine(self_A, ideal_B) — A 符合 B 的理想型程度
+  scoreBtoA: number;      // cosine(self_B, ideal_A) — B 符合 A 的理想型程度
+  compatibility: number;  // sqrt(scoreAtoB * scoreBtoA) — 几何均值
+};
+
+export type RankedCandidate = BidirectionalCandidate & { adjustedScore: number };
 
 type SeekerProfile = {
   city?: string | null;
@@ -34,6 +43,7 @@ type CandidateProfile = {
 
 export const VECTOR_TOP_K = 10;
 export const FINAL_TOP_N = 3;
+export const IDEAL_MATCH_THRESHOLD = 0.3;
 
 export function hasActiveMatchPrefs(prefs: MatchPrefs): boolean {
   return !!(
@@ -89,6 +99,20 @@ export function buildPrefilterConditions(
   return { conditions, params, nextIdx: idx };
 }
 
+function cosineSimilarity(a: number[], b: number[]): number {
+  if (a.length !== b.length || a.length === 0) return 0;
+  let dot = 0;
+  let normA = 0;
+  let normB = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+  const denom = Math.sqrt(normA) * Math.sqrt(normB);
+  return denom === 0 ? 0 : dot / denom;
+}
+
 async function queryVectorCandidates(
   prisma: PrismaClient,
   vectorStr: string,
@@ -101,10 +125,7 @@ async function queryVectorCandidates(
   const params: unknown[] = [vectorStr, excludeUserId];
   let paramIdx = 3;
 
-  // 【缺陷1 修复】双向排除拉黑关系：$2 即发起匹配的 seeker userId。
-  // Block 是单向的，A 拉 B 后 A 不应再收到 B，B 也不应被动收到 A，
-  // 因此同时排除「seeker 拉黑的人」与「拉黑 seeker 的人」。
-  // 这里复用 $2，不消耗新的参数位。
+  // 双向排除拉黑关系
   whereConditions.push(
     `pe.user_id NOT IN (SELECT blocked_user_id FROM blocks WHERE blocker_user_id = $2)`,
   );
@@ -124,7 +145,8 @@ async function queryVectorCandidates(
 
   const sql = `
     SELECT pe.user_id,
-           1 - (pe.embedding <=> $1::vector) AS similarity
+           1 - (pe.embedding <=> $1::vector) AS similarity,
+           pe.embedding AS candidate_embedding
     FROM profile_embeddings pe
     JOIN profiles p ON p.user_id = pe.user_id
     WHERE ${whereConditions.join(' AND ')}
@@ -132,7 +154,51 @@ async function queryVectorCandidates(
     LIMIT ${limitParam}
   `;
 
-  return prisma.$queryRawUnsafe<VectorCandidate[]>(sql, ...params);
+  type RawRow = { user_id: string; similarity: number | string; candidate_embedding: string };
+  const rows = await prisma.$queryRawUnsafe<RawRow[]>(sql, ...params);
+
+  // pgvector raw query returns embedding as "[0.1,0.2,...]" string; parse to number[]
+  return rows.map((r) => ({
+    user_id: r.user_id,
+    similarity: Number(r.similarity),
+    candidate_embedding: parseVectorString(r.candidate_embedding),
+  }));
+}
+
+function parseVectorString(raw: unknown): number[] | undefined {
+  if (!raw) return undefined;
+  if (Array.isArray(raw)) return raw as number[];
+  if (typeof raw !== 'string') return undefined;
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as number[]) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+async function batchLoadIdealEmbeddings(
+  prisma: PrismaClient,
+  userIds: string[],
+): Promise<Map<string, number[]>> {
+  const map = new Map<string, number[]>();
+  if (userIds.length === 0) return map;
+
+  const sql = `
+    SELECT user_id, ideal_embedding
+    FROM profile_embeddings
+    WHERE user_id = ANY($1::text[]) AND ideal_embedding IS NOT NULL
+  `;
+  type Row = { user_id: string; ideal_embedding: unknown };
+  const rows = await prisma.$queryRawUnsafe<Row[]>(sql, userIds);
+
+  for (const row of rows) {
+    const vec = parseVectorString(row.ideal_embedding) ?? (row.ideal_embedding as number[] | null);
+    if (Array.isArray(vec) && vec.length > 0) {
+      map.set(row.user_id, vec);
+    }
+  }
+  return map;
 }
 
 function asBioRecord(bioJson: unknown): Record<string, unknown> | undefined {
@@ -159,7 +225,7 @@ function getInterests(bioJson: unknown): string[] {
 
 export function rankCandidatesByRules(
   seeker: SeekerProfile,
-  candidates: VectorCandidate[],
+  candidates: BidirectionalCandidate[],
   candidateProfiles: CandidateProfile[],
   prefs: MatchPrefs,
   topN: number = FINAL_TOP_N,
@@ -170,7 +236,7 @@ export function rankCandidatesByRules(
 
   const ranked = candidates.map((c) => {
     const profile = profileByUserId.get(c.user_id);
-    let adjustedScore = Number(c.similarity);
+    let adjustedScore = c.compatibility;
 
     if (prefIntent && getRelationshipIntent(profile?.bioJson) === prefIntent) {
       adjustedScore += 0.1;
@@ -254,12 +320,20 @@ export async function runDailyMatchJob(prisma: PrismaClient, opts?: { force?: bo
     if (activeSessionCount >= MAX_ACTIVE_SESSIONS) continue;
     const slotsNeeded = MAX_ACTIVE_SESSIONS - activeSessionCount;
 
-    // 获取该用户的 embedding
+    // 获取该用户的 self embedding
     const embedding = await prisma.profileEmbedding.findUnique({ where: { userId } });
     if (!embedding) continue;
-    const targetVector = embedding.embedding as number[];
-    if (!isUsableEmbeddingVector(targetVector)) continue;
-    const vectorStr = `[${targetVector.join(',')}]`;
+    const embeddingA = embedding.embedding as number[];
+    if (!isUsableEmbeddingVector(embeddingA)) continue;
+    const vectorStr = `[${embeddingA.join(',')}]`;
+
+    // 获取该用户的 ideal embedding
+    const selfIdealMap = await batchLoadIdealEmbeddings(prisma, [userId]);
+    const idealEmbeddingA = selfIdealMap.get(userId);
+    if (!idealEmbeddingA) {
+      logger.info('daily match job: user has no ideal_embedding, skipping', { userId });
+      continue;
+    }
 
     // 获取已有 active session 的对端 userId，排除这些人
     const existingSessions = await prisma.agentSession.findMany({
@@ -295,9 +369,39 @@ export async function runDailyMatchJob(prisma: PrismaClient, opts?: { force?: bo
       );
     }
 
+    // 批量加载所有候选人的 ideal embedding
+    const candidateUserIds = candidates.map((c) => c.user_id);
+    const idealEmbeddings = await batchLoadIdealEmbeddings(prisma, candidateUserIds);
+
+    // 双向评分
+    const bidirectionalCandidates: BidirectionalCandidate[] = [];
+    for (const candidate of candidates) {
+      const idealEmbeddingB = idealEmbeddings.get(candidate.user_id);
+      if (!idealEmbeddingB) continue;
+      const embeddingB = candidate.candidate_embedding;
+      if (!embeddingB) continue;
+
+      // scoreAtoB: A 的自画像与 B 的理想型的匹配度
+      const scoreAtoB = cosineSimilarity(embeddingA, idealEmbeddingB);
+      // scoreBtoA: B 的自画像与 A 的理想型的匹配度
+      const scoreBtoA = cosineSimilarity(embeddingB, idealEmbeddingA);
+
+      // 阈值过滤：双向最低分必须达标
+      if (Math.min(scoreAtoB, scoreBtoA) < IDEAL_MATCH_THRESHOLD) continue;
+
+      // 几何均值
+      const compatibility = Math.sqrt(scoreAtoB * scoreBtoA);
+      bidirectionalCandidates.push({
+        user_id: candidate.user_id,
+        scoreAtoB,
+        scoreBtoA,
+        compatibility,
+      });
+    }
+
     // 过滤：排除已有 session 的、autoMatchEnabled=false 的、clone 不是 active 的
-    const filteredCandidates: VectorCandidate[] = [];
-    for (const c of candidates) {
+    const filteredCandidates: BidirectionalCandidate[] = [];
+    for (const c of bidirectionalCandidates) {
       if (filteredCandidates.length >= slotsNeeded) break;
 
       const partnerClone = await prisma.digitalClone.findUnique({ where: { userId: c.user_id } });
@@ -342,6 +446,9 @@ export async function runDailyMatchJob(prisma: PrismaClient, opts?: { force?: bo
         logger.info('match push created', {
           userId,
           candidateUserId: c.user_id,
+          scoreAtoB: c.scoreAtoB,
+          scoreBtoA: c.scoreBtoA,
+          compatibility: c.compatibility,
           adjustedScore: c.adjustedScore,
         });
       }
@@ -362,13 +469,10 @@ export async function bridgeMatchPushes(
 ): Promise<void> {
   let pushes;
   if (pushIds?.length) {
-    // 【缺陷2 修复】只 bridge 未处理的 MatchPush（status=pending），
-    // dismissed 的不再被 bridge 成 session
     pushes = await prisma.matchPush.findMany({
       where: { id: { in: pushIds }, status: MatchPushStatus.pending },
     });
   } else {
-    // 【缺陷2 修复】无指定 ID 时也仅拉取 pending 状态
     pushes = await prisma.matchPush.findMany({
       where: { status: MatchPushStatus.pending },
       take: 50,
@@ -376,15 +480,13 @@ export async function bridgeMatchPushes(
     });
   }
 
-  // 【缺陷2 修复】双向排除拉黑关系：若 (userId, candidateUserId) 任一方向存在 block，
-  // 不应为该 pair 创建 agent session。收集涉及的用户，一次性查询 blocks，内存过滤。
+  // 双向排除拉黑关系
   const involvedUserIds = new Set<string>();
   for (const p of pushes) {
     involvedUserIds.add(p.userId);
     involvedUserIds.add(p.candidateUserId);
   }
   const blockedPairs = new Set<string>();
-  // 用排序后的键表示无向对，使 A|B 与 B|A 命中同一 key（双向匹配）
   const pairKey = (a: string, b: string) =>
     a < b ? `${a}|${b}` : `${b}|${a}`;
   if (involvedUserIds.size > 0) {
@@ -400,14 +502,11 @@ export async function bridgeMatchPushes(
       blockedPairs.add(pairKey(b.blockerUserId, b.blockedUserId));
     }
   }
-  // 过滤掉处于拉黑关系中的 push
   pushes = pushes.filter(
     (p) => !blockedPairs.has(pairKey(p.userId, p.candidateUserId)),
   );
 
   for (const push of pushes) {
-    // 【步骤9修复】双重保险：即使上游传入已 bridged 的 push（理论上查询已过滤 pending），
-    // 此处再次校验 status，若非 pending 则跳过，避免重复创建 session。
     if (push.status !== MatchPushStatus.pending) continue;
 
     const cloneA = await prisma.digitalClone.findUnique({
@@ -433,8 +532,6 @@ export async function bridgeMatchPushes(
     const session = await prisma.agentSession.create({
       data: { cloneAId: cloneA.id, cloneBId: cloneB.id, status: AgentSessionStatus.active },
     });
-    // 【步骤9修复】bridge 成功后立即将 MatchPush.status 置为 bridged，
-    // 防止 session 结束后同一 push 被再次 bridge 创建新 session。
     await prisma.matchPush.update({
       where: { id: push.id },
       data: { status: MatchPushStatus.bridged },

@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://echo.local/schemas/affection_event.schema.json",
+  "title": "AffectionEvent",
+  "type": "object",
+  "required": ["id", "observer_id", "other_id", "event_type", "deltas", "at"],
+  "properties": {
+    "id": { "type": "string" },
+    "observer_id": { "type": "string" },
+    "other_id": { "type": "string" },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "positive_engagement",
+        "compliment",
+        "helpful_share",
+        "agreement",
+        "conflict",
+        "insult_or_rude",
+        "apology_or_repair",
+        "trust_confirm",
+        "trust_break",
+        "explicit_bond",
+        "session_contact"
+      ]
+    },
+    "deltas": {
+      "type": "object",
+      "properties": {
+        "familiarity": { "type": "number" },
+        "warmth": { "type": "number" },
+        "trust": { "type": "number" },
+        "tension": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "evidence": {
+      "type": "object",
+      "properties": {
+        "joint_session_id": { "type": "string" },
+        "turn_ids": { "type": "array", "items": { "type": "integer" } },
+        "span": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "at": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

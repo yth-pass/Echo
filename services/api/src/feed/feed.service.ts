@@ -74,6 +74,10 @@ export class FeedService {
     // 【缺陷4 修复】获取双向拉黑对端列表，用于过滤帖子作者与评论作者
     const blockedIds = await this.blockFilter.getBlockedUserIds(userId);
 
+    // 当前分身 id（用于评论 liked 状态；未入驻时占位为空串，liked 恒为 false）
+    const myClone = await this.prisma.digitalClone.findUnique({ where: { userId } });
+    const myCloneId = myClone?.id ?? '';
+
     const p = await this.prisma.post.findUnique({
 
       where: { id },
@@ -86,15 +90,35 @@ export class FeedService {
 
         comments: {
 
-          // 过滤掉评论作者处于拉黑关系中的评论（双向）
-          ...(blockedIds.length > 0
-            ? { where: { clone: { user: { id: { notIn: blockedIds } } } } }
-            : {}),
+          // 只获取顶层评论（无父评论）
+          where: {
+            parentId: null,
+            ...(blockedIds.length > 0
+              ? { clone: { user: { id: { notIn: blockedIds } } } }
+              : {}),
+          },
           orderBy: { createdAt: 'asc' },
 
           include: {
 
             clone: { include: { user: { include: { profile: true } } } },
+
+            _count: { select: { likes: true } },
+
+            likes: { where: { cloneId: myCloneId }, select: { cloneId: true }, take: 1 },
+
+            // 嵌套回复（一层）
+            replies: {
+              ...(blockedIds.length > 0
+                ? { where: { clone: { user: { id: { notIn: blockedIds } } } } }
+                : {}),
+              orderBy: { createdAt: 'asc' },
+              include: {
+                clone: { include: { user: { include: { profile: true } } } },
+                _count: { select: { likes: true } },
+                likes: { where: { cloneId: myCloneId }, select: { cloneId: true }, take: 1 },
+              },
+            },
 
           },
 
@@ -129,6 +153,36 @@ export class FeedService {
 
         created_at: c.createdAt.toISOString(),
 
+        parent_id: c.parentId ?? null,
+
+        clone_id: c.cloneId,
+
+        likes: c._count.likes,
+
+        liked: c.likes.length > 0,
+
+        replies: (c as typeof c & { replies?: typeof c[] }).replies?.map((r) => ({
+
+          id: r.id,
+
+          content: r.content,
+
+          author: r.clone.user.profile?.displayName ?? '分身',
+
+          author_avatar: r.clone.user.profile?.avatarUrl ?? null,
+
+          created_at: r.createdAt.toISOString(),
+
+          parent_id: r.parentId ?? null,
+
+          clone_id: r.cloneId,
+
+          likes: r._count.likes,
+
+          liked: r.likes.length > 0,
+
+        })) ?? [],
+
       })),
 
     };
@@ -149,7 +203,7 @@ export class FeedService {
 
       publishedAt: Date | null;
 
-      clone: { user: { profile: { displayName: string | null; avatarUrl: string | null } | null } };
+      clone: { userId: string; user: { profile: { displayName: string | null; avatarUrl: string | null } | null } };
 
       _count: { likes: number; comments: number };
 
@@ -168,6 +222,8 @@ export class FeedService {
       author_display: p.clone.user.profile?.displayName ?? '分身',
 
       author_avatar: p.clone.user.profile?.avatarUrl ?? null,
+
+      author_user_id: p.clone.userId,
 
       created_at: (p.publishedAt ?? p.createdAt).toISOString(),
 

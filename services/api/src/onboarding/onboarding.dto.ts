@@ -179,8 +179,8 @@ export class RoleplayChatMessageDto {
 }
 
 export class RoleplayChatDto {
-  @IsEnum(['stranger', 'bestfriend', 'crush', 'oldfriend'])
-  roleName!: 'stranger' | 'bestfriend' | 'crush' | 'oldfriend';
+  @IsEnum(['stranger', 'bestfriend', 'crush', 'disappointed'])
+  roleName!: 'stranger' | 'bestfriend' | 'crush' | 'disappointed';
 
   @IsString()
   agentName!: string;
@@ -307,6 +307,47 @@ export class BatchAdjustDto {
   @ValidateNested({ each: true })
   @Type(() => SentenceCorrectionDto)
   corrections!: SentenceCorrectionDto[];
+}
+
+// ---------- Phase 1.6: 理想伴侣画像 ----------
+
+export class IdealPartnerDimensionsDto {
+  @IsNumber()
+  emotionalSafety!: number;
+
+  @IsNumber()
+  spaceRespect!: number;
+
+  @IsNumber()
+  directCommunication!: number;
+
+  @IsNumber()
+  conflictResolution!: number;
+}
+
+export class IdealPartnerSketchDto {
+  @IsString()
+  narrative!: string;
+
+  @IsObject()
+  @ValidateNested()
+  @Type(() => IdealPartnerDimensionsDto)
+  dimensions!: IdealPartnerDimensionsDto;
+
+  @IsString()
+  @IsOptional()
+  userFeedback?: string;
+
+  @IsString()
+  generatedAt!: string;
+}
+
+/** 用户纠正确认反馈（Phase 1.6 页面的 "Is this accurate?" 区域） */
+export class IdealPartnerAdjustDto {
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  userFeedback?: string; // 自由文本纠正，或 'deferred' 表示"不确定，以后再调"
 }
 
 export class Phase0IdentityDto {
@@ -538,6 +579,17 @@ export class SurveyDto {
   @Type(() => UserFeedbackDto)
   userFeedback?: UserFeedbackDto;
 
+  // --- v2.3 Phase 1.6: 理想伴侣画像合成 ---
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => IdealPartnerSketchDto)
+  idealPartnerSketch?: IdealPartnerSketchDto;
+
+  // --- v2.3: 理想伴侣维度（来自 Card 16/17/18） ---
+  @IsOptional()
+  @IsObject()
+  idealPartnerDimensions?: Record<string, { value: number; confidence: string }>;
+
   // --- v2.2 Phase 2: 对话式角色扮演 ---
   @IsOptional()
   @IsArray()
@@ -603,10 +655,10 @@ export class PersonaSketchAdjustDto {
 // ---------- Phase 2: 对话式角色扮演 ----------
 
 export class RoleplayStartDto {
-  @IsEnum(['stranger', 'bestfriend', 'crush', 'oldfriend'], {
-    message: '角色扮演请选择：陌生人、好朋友、心动对象或老朋友',
+  @IsEnum(['stranger', 'bestfriend', 'crush', 'disappointed'], {
+    message: '角色扮演请选择：陌生人、好朋友、心动对象或失望对象',
   })
-  roleName!: 'stranger' | 'bestfriend' | 'crush' | 'oldfriend';
+  roleName!: 'stranger' | 'bestfriend' | 'crush' | 'disappointed';
 }
 
 export class RoleplayTurnDto {

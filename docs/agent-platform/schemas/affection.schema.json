@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://echo.local/schemas/affection.schema.json",
+  "title": "Affection",
+  "type": "object",
+  "required": ["other_agent_id", "dimensions", "composite_affinity", "relationship_label", "version"],
+  "properties": {
+    "other_agent_id": { "type": "string" },
+    "dimensions": {
+      "type": "object",
+      "required": ["familiarity", "warmth", "trust", "tension", "tension_quality"],
+      "properties": {
+        "familiarity": { "type": "number", "minimum": 0, "maximum": 100 },
+        "warmth": { "type": "number", "minimum": 0, "maximum": 100 },
+        "trust": { "type": "number", "minimum": 0, "maximum": 100 },
+        "tension": { "type": "number", "minimum": 0, "maximum": 100 },
+        "tension_quality": { "type": "string", "enum": ["situational", "structural"] }
+      },
+      "additionalProperties": false
+    },
+    "composite_affinity": { "type": "number", "minimum": 0, "maximum": 100 },
+    "relationship_label": {
+      "type": "string",
+      "enum": [
+        "stranger",
+        "acquaintance",
+        "friendly_acquaintance",
+        "good_terms",
+        "close",
+        "strained",
+        "distant",
+        "friendly_but_cautious"
+      ]
+    },
+    "last_updated_at": { "type": "string", "format": "date-time" },
+    "last_interaction_at": { "type": "string", "format": "date-time" },
+    "version": { "type": "integer", "minimum": 1 }
+  },
+  "additionalProperties": false
+}

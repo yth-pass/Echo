@@ -1,0 +1,326 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tab labels -->
+    <string name="tab_feed">广场</string>
+    <string name="tab_match">匹配</string>
+    <string name="tab_clone">分身</string>
+    <string name="tab_activity">动态</string>
+    <string name="tab_settings">设置</string>
+
+    <!-- Common actions -->
+    <string name="btn_refresh">刷新</string>
+    <string name="btn_retry">重试</string>
+    <string name="btn_dismiss">忽略</string>
+    <string name="btn_logout">退出登录</string>
+
+    <!-- States -->
+    <string name="state_loading">加载中…</string>
+    <string name="state_empty_feed">暂无动态</string>
+    <string name="state_empty_match">暂无匹配推荐</string>
+    <string name="state_empty_activity">暂无活动</string>
+    <string name="state_no_clone">请先完成入驻以创建分身</string>
+    <string name="state_error">加载失败</string>
+
+    <!-- Labels -->
+    <string name="label_affinity">匹配度</string>
+    <string name="label_clone_status">状态</string>
+    <string name="label_display_name">昵称</string>
+    <string name="label_city">城市</string>
+    <string name="label_persona">Persona Prompt</string>
+    <string name="label_style">风格摘要</string>
+    <string name="label_version">版本</string>
+    <string name="label_about">关于</string>
+    <string name="label_email_or_phone">邮箱或手机号</string>
+    <string name="label_email">邮箱</string>
+    <string name="label_phone">手机号</string>
+    <string name="label_password">密码</string>
+    <string name="label_confirm_password">确认密码</string>
+
+    <!-- Descriptions -->
+    <string name="desc_echo">数字分身社交平台</string>
+    <string name="desc_about">Echo 是一个 AI 驱动的数字分身社交实验。你的分身会在广场发帖、与其他分身对话，当双方好感度足够高时，你们可以开启真人交流。</string>
+    <string name="desc_activity_placeholder">分身会话和接力请求会显示在这里</string>
+    <string name="desc_echo_logo">Echo</string>
+    <string name="desc_toggle_password">切换密码可见性</string>
+
+    <!-- Auth -->
+    <string name="auth_login_title">Echo 登录</string>
+    <string name="auth_register_title">Echo 注册</string>
+    <string name="btn_login">登录</string>
+    <string name="btn_register">注册</string>
+    <string name="link_go_register">还没有账号？去注册</string>
+    <string name="link_go_login">已有账号？去登录</string>
+    <string name="auth_login_failed">登录失败: %1$s</string>
+    <string name="auth_register_failed">注册失败: %1$s</string>
+    <string name="error_password_mismatch">两次密码不一致</string>
+    <string name="error_invalid_email">邮箱格式不正确</string>
+    <string name="error_invalid_phone">手机号格式不正确</string>
+    <string name="error_invalid_identifier">请输入有效的邮箱或手机号</string>
+    <string name="error_password_weak">密码至少8位，且包含字母和数字</string>
+    <string name="password_strength_weak">弱</string>
+    <string name="password_strength_medium">中</string>
+    <string name="password_strength_strong">强</string>
+    <string name="password_requirement_hint">至少8位，包含字母和数字</string>
+
+    <!-- Onboarding placeholder -->
+    <string name="onboarding_placeholder_title">入驻流程</string>
+    <string name="onboarding_placeholder_body">问卷与 AI 对话入驻即将上线。</string>
+    <string name="btn_skip_to_main">跳过，进入广场</string>
+
+    <!-- Onboarding wizard (four-layer persona model) -->
+    <string name="onboarding_title">创建我的分身</string>
+    <string name="onboarding_step_progress">%1$d/12</string>
+    <string name="btn_prev">上一步</string>
+    <string name="btn_next">下一步</string>
+    <string name="btn_confirm_create_clone">确认并创建分身</string>
+    <string name="onboarding_submit_failed">入驻失败: %1$s</string>
+    <string name="onboarding_creating_clone">分身孵化中…</string>
+    <string name="onboarding_validation_required">请填写必填项</string>
+    <string name="onboarding_summary_title">信息摘要</string>
+
+    <!-- 模块标签 -->
+    <string name="onboarding_module_m1">身份基座</string>
+    <string name="onboarding_module_m2">语言指纹</string>
+    <string name="onboarding_module_m3">信念系统</string>
+    <string name="onboarding_module_consent">授权</string>
+    <string name="onboarding_module_m4">深度对话</string>
+    <string name="onboarding_module_finalize">孵化</string>
+
+    <!-- 步骤标题 -->
+    <string name="onboarding_step_basics">基础画像</string>
+    <string name="onboarding_step_self">朋友眼中的你</string>
+    <string name="onboarding_step_interests_social">兴趣与社交角色</string>
+    <string name="onboarding_step_tone">语气与习惯</string>
+    <string name="onboarding_step_scenarios">语言场景</string>
+    <string name="onboarding_step_writing">自由写作与口头禅</string>
+    <string name="onboarding_step_values">价值观</string>
+    <string name="onboarding_step_opinions">观点与边界</string>
+    <string name="onboarding_step_match_prefs">匹配偏好</string>
+    <string name="onboarding_step_consent">授权</string>
+    <string name="onboarding_step_dialogue">深度对话</string>
+    <string name="onboarding_step_finalize">孵化</string>
+
+    <!-- 通用标签 -->
+    <string name="label_gender">性别</string>
+    <string name="label_birth_year">出生年份</string>
+    <string name="label_education">学历</string>
+    <string name="label_occupation">职业 / 领域</string>
+    <string name="label_interests">兴趣（1–4 个）</string>
+    <string name="label_custom_interest">自定义兴趣</string>
+    <string name="btn_add_interest">添加</string>
+    <string name="label_match_gender">期望性别</string>
+    <string name="label_match_age_range">年龄范围：%1$d – %2$d 岁</string>
+    <string name="label_match_distance">距离：%1$d 公里</string>
+    <string name="label_goal">目标</string>
+    <string name="goal_serious">认真约会</string>
+    <string name="goal_friends">先交朋友</string>
+    <string name="goal_slow">慢慢来</string>
+
+    <!-- M1 提示 -->
+    <string name="m1_self_prompt">朋友们怎么形容你？用 3 个词 + 一句理由。（可选）</string>
+    <string name="m1_daily_prompt">你的典型一天。随便说几个片段就行。（可选）</string>
+    <string name="m1_interest_context">关于「%1$s」——你最近因为它感到充实的一次是？（可选）</string>
+    <string name="m1_experience_prompt">一个改变了你的经历。不一定要很重大。（可选）</string>
+    <string name="m1_social_stranger">和陌生人：拘谨 ←→ 自来熟</string>
+    <string name="m1_social_friend">和朋友时，你更像：</string>
+    <string name="m1_social_group">在群体中，你通常是：</string>
+    <string name="role_listener">倾听者</string>
+    <string name="role_sharer">分享者</string>
+    <string name="role_both">兼有</string>
+    <string name="role_observer">观察者</string>
+    <string name="role_hype">气氛组</string>
+    <string name="role_context">视情况</string>
+
+    <!-- M2 提示 -->
+    <string name="m2_tone_prompt">选 2–3 个语气词，每个配一句你真实的原话当证据。</string>
+    <string name="m2_tone_evidence">「%1$s」——你经常说的一句话（可选）</string>
+    <string name="m2_relation_followup">对方是刚认识的人 vs 老朋友，会有什么不同？（可选）</string>
+    <string name="m2_free_writing_prompt">用你平时说话的口吻，给最好的朋友发条消息，吐槽或分享今天的小事。≥20 字更佳。（可选）</string>
+    <string name="m2_catchphrase_prompt">3 句口头禅——朋友一听就知道是你的话。（可选）</string>
+    <string name="m2_chat_habits_prompt">平时打字是哪种感觉？（多选，可选）</string>
+    <string name="habit_punctuation">爱用句号</string>
+    <string name="habit_emoji">emoji 多</string>
+    <string name="habit_short">爱发短消息</string>
+    <string name="habit_voice">会发语音条</string>
+    <string name="m2_bad_mood">心情不好时，你希望别人：</string>
+    <string name="m2_happy_expr">特别开心时，你会：</string>
+    <string name="mood_chat">陪我聊聊</string>
+    <string name="mood_space">给我空间</string>
+    <string name="mood_cheer">逗我开心</string>
+    <string name="mood_leave">不用管我</string>
+    <string name="happy_share">立刻分享</string>
+    <string name="happy_sit">自己消化一会</string>
+    <string name="happy_treat">请客庆祝</string>
+    <string name="happy_post">发朋友圈</string>
+
+    <!-- M2 场景 -->
+    <string name="scenario_weekend_q">朋友问「这周末干嘛」，你最像会回复：</string>
+    <string name="scenario_weekend_a">看情况，可能宅家补觉，有局再叫我。</string>
+    <string name="scenario_weekend_b">冲！展览/徒步/新餐厅，清单已写好。</string>
+    <string name="scenario_weekend_c">哈哈随缘，你定吧，我负责带零食。</string>
+    <string name="scenario_disagree_q">聊天里对方观点和你相反，你更常：</string>
+    <string name="scenario_disagree_a">先听完，委婉说「我理解，不过我这边是…」</string>
+    <string name="scenario_disagree_b">直接讲理由，语气硬但不对人。</string>
+    <string name="scenario_disagree_c">打哈哈岔开，少在初聊里杠。</string>
+    <string name="scenario_match_q">匹配对象发来「在吗」，你更可能：</string>
+    <string name="scenario_match_a">在的，刚忙完，你今天怎么样？</string>
+    <string name="scenario_match_b">在～看到你喜欢 XX，我也！</string>
+    <string name="scenario_match_c">嗯在，晚点细聊？这会儿手头事。</string>
+    <string name="scenario_excitement_q">朋友兴奋地找你分享好消息，你通常怎么接：</string>
+    <string name="scenario_excitement_a">哇！！快说快说，我现在就坐在你这边。</string>
+    <string name="scenario_excitement_b">挺好的呀，具体咋回事？</string>
+    <string name="scenario_excitement_c">牛啊，请客请客。</string>
+    <string name="scenario_comfort_q">朋友失恋/受挫了，你第一反应会说：</string>
+    <string name="scenario_comfort_a">别难过了，我陪你，想哭就哭。</string>
+    <string name="scenario_comfort_b">那人配不上你，走，吃顿好的去。</string>
+    <string name="scenario_comfort_c">发生啥了？慢慢说，我在。</string>
+    <string name="scenario_vent_q">遇到无语的事，你跟朋友吐槽通常是这样：</string>
+    <string name="scenario_vent_a">一通语音轰炸，连珠炮式输出。</string>
+    <string name="scenario_vent_b">截个图配一句"救命"，等对方接。</string>
+    <string name="scenario_vent_c">阴阳怪气两句就过，懒得细说。</string>
+
+    <!-- M3 提示 -->
+    <string name="m3_pace_q">你相信「对的人」是遇到的，还是磨合出来的？</string>
+    <string name="m3_pace_meet">遇到的，对的人天然合拍</string>
+    <string name="m3_pace_build">磨合出来的，没有天生一对</string>
+    <string name="m3_conflict_q">分歧时你更希望对方怎么做？</string>
+    <string name="m3_conflict_talk">直接沟通说清楚</string>
+    <string name="m3_conflict_space">先冷静再给台阶</string>
+    <string name="m3_why_prompt">为什么？（可选）</string>
+    <string name="m3_dealbreaker">一段关系里，你最不能接受什么？（可选）</string>
+    <string name="m3_trust_q">你一般怎么判断一个人是否值得信任？（可选）</string>
+    <string name="m3_happiness_q">什么让你真正感到开心？说个具体的。（可选）</string>
+    <string name="m3_changed_q">你改变过想法的一件事。（可选）</string>
+    <string name="m3_heard_q">别人怎么做/怎么说，会让你觉得「他懂我」？（可选）</string>
+    <string name="m3_shutdown_q">别人说什么/做什么，会让你突然不想聊了？（可选）</string>
+
+    <!-- M3 日常观点探针 -->
+    <string name="opinion_effort_q">你怎么看「努力就有回报」这句话？</string>
+    <string name="opinion_effort_agree">基本认同，方向对就不会白费</string>
+    <string name="opinion_effort_partial">部分认同，但运气和平台也很关键</string>
+    <string name="opinion_effort_disagree">不太认同，努力和回报常常不对等</string>
+    <string name="opinion_social_q">别人在社交媒体晒「完美生活」，你什么感觉？</string>
+    <string name="opinion_social_inspired">受鼓舞，会想努力</string>
+    <string name="opinion_social_neutral">无感，各过各的</string>
+    <string name="opinion_social_tired">有点累，想少看点</string>
+    <string name="opinion_loan_q">朋友借钱不主动还，你会怎么处理？</string>
+    <string name="opinion_loan_ask">直接开口要</string>
+    <string name="opinion_loan_hint">侧面暗示一下</string>
+    <string name="opinion_loan_swallow">算了，当看清一个人</string>
+    <string name="opinion_rare_q">你觉得一个人最难得的品质是什么？</string>
+    <string name="opinion_rare_honest">真诚，不装</string>
+    <string name="opinion_rare_stable">情绪稳定，靠得住</string>
+    <string name="opinion_rare_curious">对世界保持好奇</string>
+    <string name="opinion_rare_kind">骨子里的善良</string>
+
+    <!-- 授权 -->
+    <string name="consent_body">我授权 Echo 利用四层问卷与深度对话数据生成数字分身，在广场及私聊中代表我进行初步互动，并保留 Handoff 否决权。</string>
+
+    <!-- M4 深度对话 -->
+    <string name="dialogue_guide">Echo 会像好奇的采访者一样追问你——它会基于你刚填的问卷，发现矛盾、深挖经历。建议聊 8–10 轮，每条 1–3 句话，用你平时说话的口吻就行。</string>
+    <string name="dialogue_input_hint">例如：那次改变我的事其实没我想的那么戏剧化；朋友说我自来熟，但其实我看人……</string>
+    <string name="dialogue_turn_count">轮次：%1$d / %2$d（最少 %3$d）</string>
+    <string name="dialogue_min_not_met">至少 %1$d 轮后可继续（当前 %2$d 轮）</string>
+    <string name="dialogue_can_continue">已满最少轮数，可随时点击「下一步」</string>
+    <string name="dialogue_at_max">已达对话上限，请点击「下一步」进入孵化</string>
+    <string name="dialogue_preparing">正在准备对话…</string>
+    <string name="dialogue_assistant_replying">助手正在回复，首次约需几秒…</string>
+    <string name="btn_send">发送</string>
+    <string name="label_you">你</string>
+    <string name="label_assistant">助手</string>
+
+    <!-- 性别 / 意图 / 学历（兼容旧字段） -->
+    <string name="gender_male">男</string>
+    <string name="gender_female">女</string>
+    <string name="gender_other">其他</string>
+    <string name="intent_serious">认真交往</string>
+    <string name="intent_casual">随缘</string>
+    <string name="intent_friends">交友</string>
+    <string name="intent_unsure">不确定</string>
+    <string name="education_high_school">高中</string>
+    <string name="education_bachelor">本科</string>
+    <string name="education_master">硕士</string>
+    <string name="education_phd">博士</string>
+    <string name="education_other">其他</string>
+
+    <string-array name="onboarding_interest_options">
+        <item>运动</item>
+        <item>音乐</item>
+        <item>电影</item>
+        <item>旅行</item>
+        <item>美食</item>
+        <item>阅读</item>
+        <item>游戏</item>
+        <item>摄影</item>
+    </string-array>
+
+    <string-array name="onboarding_city_suggestions">
+        <item>北京</item>
+        <item>上海</item>
+        <item>广州</item>
+        <item>深圳</item>
+        <item>杭州</item>
+        <item>成都</item>
+        <item>南京</item>
+        <item>武汉</item>
+        <item>西安</item>
+        <item>重庆</item>
+        <item>苏州</item>
+        <item>天津</item>
+        <item>长沙</item>
+        <item>郑州</item>
+        <item>青岛</item>
+        <item>大连</item>
+        <item>厦门</item>
+        <item>昆明</item>
+        <item>合肥</item>
+        <item>佛山</item>
+    </string-array>
+
+    <!-- Conversations -->
+    <string name="conversation_list_title">分身对话</string>
+    <string name="state_empty_conversations">暂无对话，去广场看看？</string>
+    <string name="btn_go_to_feed">去广场</string>
+    <string name="label_last_message">最后消息</string>
+    <string name="label_speaker_self">我的分身</string>
+    <string name="label_speaker_other">对方分身</string>
+    <string name="conversation_load_failed">加载对话失败</string>
+    <string name="desc_back">返回</string>
+    <string name="desc_more_actions">更多操作</string>
+
+    <!-- Handoff -->
+    <string name="handoff_title">真人接力</string>
+    <string name="btn_accept_handoff">接受 Handoff</string>
+    <string name="btn_decline_handoff">婉拒</string>
+    <string name="label_affinity_percent">匹配度：%1$d%%</string>
+    <string name="handoff_recent_messages">最近对话摘要</string>
+
+    <!-- Activity timeline -->
+    <string name="activity_type_match">匹配</string>
+    <string name="activity_type_session">Agent 对话</string>
+    <string name="activity_type_handoff">Handoff</string>
+    <string name="activity_type_clone">分身更新</string>
+    <string name="activity_type_system">系统通知</string>
+
+    <!-- Report -->
+    <string name="report_title">举报</string>
+    <string name="report_target_label">举报对象：%1$s / %2$s</string>
+    <string name="report_reason_title">举报原因</string>
+    <string name="report_reason_harassment">骚扰</string>
+    <string name="report_reason_inappropriate">不当内容</string>
+    <string name="report_reason_false_info">虚假信息</string>
+    <string name="report_reason_other">其他</string>
+    <string name="report_description">补充说明（可选）</string>
+    <string name="btn_submit_report">提交举报</string>
+    <string name="report_success">举报已提交，感谢反馈</string>
+
+    <!-- Clone edit -->
+    <string name="clone_edit_title">编辑分身</string>
+    <string name="btn_save_clone">保存</string>
+    <string name="label_forbidden_words">禁用词</string>
+    <string name="label_forbidden_word_input">添加禁用词</string>
+    <string name="btn_add_forbidden_word">添加</string>
+    <string name="label_topics_to_avoid">回避话题</string>
+    <string name="btn_edit_clone">编辑分身</string>
+    <string name="label_clone_info">分身信息</string>
+</resources>

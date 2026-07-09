@@ -52,20 +52,20 @@ export function SessionChatMessages({
 }) {
   if (loading) {
     return (
-      <div className="flex flex-col items-center py-4">
-        <LottieLoader size={40} />
-        <p className="text-sm text-gray-500 mt-2">{COPY.loading.session}</p>
+      <div className="flex flex-col items-center py-2">
+        <LottieLoader size={240} />
+        <p className="text-base font-bold" style={{ color: '#121c28' }}>{COPY.loading.session}</p>
       </div>
     );
   }
   if (source === 'error') {
     return (
-      <p className="text-sm text-red-400 text-center py-4">无法加载对话，请检查 API 与登录</p>
+      <p className="text-sm text-center py-4" style={{ color: '#ba1a1a' }}>无法加载对话，请检查 API 与登录</p>
     );
   }
   if (messages.length === 0) {
     return (
-      <p className="text-sm text-gray-500 text-center py-4">
+      <p className="text-sm text-center py-4" style={{ color: '#7b7487' }}>
         {emptyHint ?? COPY.empty.messages}
       </p>
     );
@@ -177,23 +177,27 @@ function TurnBlock({ turn, visibleCount }: { turn: TurnGroup; visibleCount: numb
   return (
     <div className={turn.isSelf ? 'ml-8 space-y-1' : 'mr-8 space-y-1'}>
       <p
-        className={`text-[10px] ${turn.isSelf ? 'text-echo-blue/50 text-right' : 'text-gray-500 text-left'}`}
+        className={`text-[10px] ${turn.isSelf ? 'text-right' : 'text-left'}`}
+        style={{ color: turn.isSelf ? 'rgba(43,138,239,0.5)' : '#7b7487' }}
       >
         {turn.speakerName}：
       </p>
       {visible.map((m) => (
         <div
           key={m.id || `t${m.turn_index}-b${m.bubble_index}`}
-          className={`p-3 rounded-xl border border-white/5 ${
-            turn.isSelf
-              ? 'bg-echo-blue/5 border-r-2 border-echo-blue text-right'
-              : 'bg-white/5 border-l-2 border-echo-blue text-left'
-          }`}
+          className={`p-3 rounded-xl ${turn.isSelf ? 'text-right' : 'text-left'}`}
+          style={{
+            backgroundColor: turn.isSelf ? 'rgba(43,138,239,0.08)' : '#ffffff',
+            border: turn.isSelf
+              ? '1px solid #d9e3f4'
+              : '1px solid #d9e3f4',
+            borderRight: turn.isSelf ? '2px solid #2B8AEF' : undefined,
+            borderLeft: turn.isSelf ? undefined : '2px solid #2B8AEF',
+          }}
         >
           <p
-            className={`text-sm leading-relaxed italic ${
-              turn.isSelf ? 'text-echo-blue/80' : 'text-gray-300'
-            }`}
+            className="text-sm leading-relaxed italic"
+            style={{ color: turn.isSelf ? '#2B8AEF' : '#121c28' }}
           >
             &ldquo;{m.content}&rdquo;
           </p>
@@ -210,8 +214,8 @@ function TypingIndicator({ isSelf, name }: { isSelf: boolean; name: string }) {
     <div
       className={`flex items-center gap-1.5 py-1.5 ${isSelf ? 'justify-end ml-8' : 'justify-start mr-8'}`}
     >
-      <Loader2 className="w-3 h-3 animate-spin text-gray-500" />
-      <span className="text-[10px] text-gray-500">{name}正在想…</span>
+      <Loader2 className="w-3 h-3 animate-spin" style={{ color: '#7b7487' }} />
+      <span className="text-[10px]" style={{ color: '#7b7487' }}>{name}正在想…</span>
     </div>
   );
 }

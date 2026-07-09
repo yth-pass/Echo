@@ -32,6 +32,13 @@ const FREE_TEXT_WEIGHT_BOOST = 1.5;
 const CONSISTENCY_HIGH_MAX = 0.3;
 const CONSISTENCY_MEDIUM_MAX = 0.6;
 
+/** 理想伴侣探测卡 ID（Card 16-18） */
+export const IDEAL_PARTNER_CARD_IDS = new Set([
+  'unexpected_breakfast',
+  'silent_night',
+  'song_choice',
+]);
+
 // ─── Big Five 维度 key ──────────────────────────────────────────────────────────
 
 const BIG_FIVE_DIMS = [
@@ -90,6 +97,13 @@ export interface DimensionScores {
   rawDimensions: Record<string, number>;
 }
 
+export interface IdealPartnerDimensions {
+  needEmotionalSafety: DimensionScoreResult;
+  needSpaceRespect: DimensionScoreResult;
+  needDirectCommunication: DimensionScoreResult;
+  needConflictResolution: DimensionScoreResult;
+}
+
 // ─── 核心函数 ───────────────────────────────────────────────────────────────────
 
 /**
@@ -101,52 +115,8 @@ export interface DimensionScores {
 export function calculateDimensionScores(
   responses: ScenarioResponse[],
 ): DimensionScores {
-  // ① 建立 维度 → 卡片贡献记录
-  const dimCards = new Map<string, CardContribution[]>();
-
-  for (const resp of responses) {
-    const card = getCardDefinition(resp.cardId);
-    if (!card) continue;
-
-    // 计算该卡的权重
-    let weight = 1.0;
-    if (
-      resp.responseTimeMs != null &&
-      resp.responseTimeMs < QUICK_RESPONSE_THRESHOLD_MS
-    ) {
-      weight *= QUICK_RESPONSE_WEIGHT;
-    }
-    if (resp.choice === 'custom' || (resp.freeText && resp.freeText.trim())) {
-      weight *= FREE_TEXT_WEIGHT_BOOST;
-    }
-
-    // 取选项的贡献值
-    let contributions: Record<string, number> = {};
-    if (resp.choice !== 'custom') {
-      const option = card.options.find((o) => o.key === resp.choice);
-      if (option) {
-        contributions = option.dimensionContributions;
-      }
-    }
-    // choice === 'custom' 时 contributions 为空对象，维度贡献由自由文本承载
-    // （自由文本将在 Phase 1.5 由 LLM 分析，此处不产生数值贡献）
-
-    // 写入每个涉及的维度
-    for (const [dim, value] of Object.entries(contributions)) {
-      if (!dimCards.has(dim)) dimCards.set(dim, []);
-      dimCards.get(dim)!.push({
-        cardId: resp.cardId,
-        weightedScore: value * weight,
-        rawScore: value,
-      });
-    }
-  }
-
-  // ② 聚合每个维度
-  const aggregations = new Map<string, DimensionAggregation>();
-  for (const [dim, cards] of dimCards.entries()) {
-    aggregations.set(dim, aggregateDimension(dim, cards));
-  }
+  // ①② 收集卡片贡献并聚合每个维度
+  const aggregations = aggregateDimensionFromResponses(responses);
 
   // 无数据 fallback（所有维度共用）
   const noData: DimensionScoreResult = {
@@ -228,7 +198,106 @@ export function calculateDimensionScores(
   };
 }
 
+/**
+ * 计算理想伴侣维度分数（Card 16-18）。
+ *
+ * 只处理 3 张理想伴侣探测卡的回答，聚合为 4 个维度：
+ *   needEmotionalSafety / needSpaceRespect / needDirectCommunication / needConflictResolution
+ *
+ * 算法与 calculateDimensionScores 完全一致（加权均值 + clamp + 一致性检查），
+ * 通过 aggregateDimensionFromResponses 共享核心聚合逻辑。
+ *
+ * @param responses 用户对所有情境卡片的回答（自动过滤出 Card 16-18）
+ */
+export function calculateIdealPartnerDimensions(
+  responses: ScenarioResponse[],
+): IdealPartnerDimensions {
+  // 过滤出只属于理想伴侣卡片的回答
+  const idealResponses = responses.filter((r) =>
+    IDEAL_PARTNER_CARD_IDS.has(r.cardId),
+  );
+
+  // 复用共享聚合逻辑
+  const aggregations = aggregateDimensionFromResponses(idealResponses);
+
+  const noData: DimensionScoreResult = {
+    value: 0,
+    confidence: 'low' as const,
+    contradictions: ['no_data'],
+  };
+
+  const dims = [
+    'needEmotionalSafety',
+    'needSpaceRespect',
+    'needDirectCommunication',
+    'needConflictResolution',
+  ] as const;
+
+  const result = {} as IdealPartnerDimensions;
+  for (const dim of dims) {
+    const agg = aggregations.get(dim);
+    result[dim] = agg ? toScoreResult(agg) : { ...noData };
+  }
+
+  return result;
+}
+
 // ─── 内部工具 ────────────────────────────────────────────────────────────────────
+
+/**
+ * 从回答列表收集各维度的卡片贡献记录并聚合。
+ * 供 calculateDimensionScores 和 calculateIdealPartnerDimensions 共用。
+ */
+function aggregateDimensionFromResponses(
+  responses: ScenarioResponse[],
+): Map<string, DimensionAggregation> {
+  const dimCards = new Map<string, CardContribution[]>();
+
+  for (const resp of responses) {
+    const card = getCardDefinition(resp.cardId);
+    if (!card) continue;
+
+    // 计算该卡的权重
+    let weight = 1.0;
+    if (
+      resp.responseTimeMs != null &&
+      resp.responseTimeMs < QUICK_RESPONSE_THRESHOLD_MS
+    ) {
+      weight *= QUICK_RESPONSE_WEIGHT;
+    }
+    if (resp.choice === 'custom' || (resp.freeText && resp.freeText.trim())) {
+      weight *= FREE_TEXT_WEIGHT_BOOST;
+    }
+
+    // 取选项的贡献值
+    let contributions: Record<string, number> = {};
+    if (resp.choice !== 'custom') {
+      const option = card.options.find((o) => o.key === resp.choice);
+      if (option) {
+        contributions = option.dimensionContributions;
+      }
+    }
+    // choice === 'custom' 时 contributions 为空对象，维度贡献由自由文本承载
+    // （自由文本将在 Phase 1.5 由 LLM 分析，此处不产生数值贡献）
+
+    // 写入每个涉及的维度
+    for (const [dim, value] of Object.entries(contributions)) {
+      if (!dimCards.has(dim)) dimCards.set(dim, []);
+      dimCards.get(dim)!.push({
+        cardId: resp.cardId,
+        weightedScore: value * weight,
+        rawScore: value,
+      });
+    }
+  }
+
+  // 聚合每个维度
+  const aggregations = new Map<string, DimensionAggregation>();
+  for (const [dim, cards] of dimCards.entries()) {
+    aggregations.set(dim, aggregateDimension(dim, cards));
+  }
+  return aggregations;
+}
 
 /**
  * 聚合单维度：取加权均值并钳位，计算一致性。
@@ -409,5 +478,31 @@ export function toSurveyDimensionScores(
     timePerspective: scores.timePerspective,
     moralFoundations: scores.moralFoundations,
     attachmentStyle: scores.attachmentStyle,
+  };
+}
+
+/**
+ * 把 IdealPartnerDimensions 转为 OnboardingSurveyJson 可存储的扁平格式。
+ */
+export function toSurveyIdealPartnerDimensions(
+  dims: IdealPartnerDimensions,
+): Record<string, { value: number; confidence: string }> {
+  return {
+    needEmotionalSafety: {
+      value: dims.needEmotionalSafety.value,
+      confidence: dims.needEmotionalSafety.confidence,
+    },
+    needSpaceRespect: {
+      value: dims.needSpaceRespect.value,
+      confidence: dims.needSpaceRespect.confidence,
+    },
+    needDirectCommunication: {
+      value: dims.needDirectCommunication.value,
+      confidence: dims.needDirectCommunication.confidence,
+    },
+    needConflictResolution: {
+      value: dims.needConflictResolution.value,
+      confidence: dims.needConflictResolution.confidence,
+    },
   };
 }

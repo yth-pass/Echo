@@ -45,33 +45,7 @@ describe('buildPersonaContext', () => {
     };
   }
 
-  // ---- Fix 2: contradictions 注入 (oldfriend) ----
-
-  it('oldfriend 角色应注入 contradictions 段落', () => {
-    const survey = makeFullSurvey();
-    const result = (service as any).buildPersonaContext(survey, 'oldfriend');
-
-    // 包含基本画像
-    expect(result).toContain('你认识的林溪');
-    expect(result).toContain('林溪是一个温柔而内向的设计师');
-
-    // 包含矛盾标记段落
-    expect(result).toContain('林溪的内在矛盾');
-    expect(result).toContain('嘴上说不喜欢社交');
-    expect(result).toContain('自然地追问');
-  });
-
-  it('oldfriend 角色在 sections 缺失时不抛异常', () => {
-    const survey = makeSketchWithoutSections();
-    const result = (service as any).buildPersonaContext(survey, 'oldfriend');
-
-    expect(result).toContain('你认识的阿明');
-    expect(result).toContain('阿明是一个热爱户外运动的工程师');
-    // 没有矛盾段落
-    expect(result).not.toContain('内在矛盾');
-  });
-
-  // ---- Fix 1: sections null-guard (其他角色) ----
+  // ---- 其他角色统一走标准路径，disappointed 有专属画像注入 ----
 
   it.each(['stranger', 'bestfriend', 'crush'] as const)(
     '%s 角色在 sections 为 undefined 时不抛异常',
@@ -93,7 +67,37 @@ describe('buildPersonaContext', () => {
     expect(result).toContain('关于林溪的一些特征');
     expect(result).toContain('安静、细腻');
     expect(result).toContain('默默记住你说过的话');
-    // 不应包含矛盾段落
+    expect(result).not.toContain('内在矛盾');
+  });
+
+  // ---- disappointed 专属：画像 + 矛盾注入（因为之前有过好感，了解对方） ----
+
+  it('disappointed 角色应注入完整画像及 contradictions 段落', () => {
+    const survey = makeFullSurvey();
+    const result = (service as any).buildPersonaContext(survey, 'disappointed');
+
+    expect(result).toContain('你认识的林溪');
+    expect(result).toContain('林溪是一个温柔而内向的设计师');
+    expect(result).toContain('林溪的内在矛盾');
+    expect(result).toContain('嘴上说不喜欢社交');
+    expect(result).toContain('自然地追问');
+  });
+
+  it('disappointed 角色在 sections 缺失时不抛异常', () => {
+    const survey = makeSketchWithoutSections();
+    const result = (service as any).buildPersonaContext(survey, 'disappointed');
+
+    expect(result).toContain('你认识的阿明');
+    expect(result).toContain('阿明是一个热爱户外运动的工程师');
+    expect(result).not.toContain('内在矛盾');
+  });
+
+  it('disappointed 的 contradictions 为空字符串时不注入矛盾段落', () => {
+    const survey = makeFullSurvey();
+    survey.personaSketch!.sections.contradictions = '   ';
+    const result = (service as any).buildPersonaContext(survey, 'disappointed');
+
+    expect(result).toContain('你认识的林溪');
     expect(result).not.toContain('内在矛盾');
   });
 
@@ -101,14 +105,5 @@ describe('buildPersonaContext', () => {
     const survey: OnboardingSurveyJson = { displayName: '测试' };
     const result = (service as any).buildPersonaContext(survey, 'stranger');
     expect(result).toBe('');
-  });
-
-  it('oldfriend 的 contradictions 为空字符串时不注入矛盾段落', () => {
-    const survey = makeFullSurvey();
-    survey.personaSketch!.sections.contradictions = '   '; // 空白
-    const result = (service as any).buildPersonaContext(survey, 'oldfriend');
-
-    expect(result).toContain('你认识的林溪');
-    expect(result).not.toContain('内在矛盾');
   });
 });

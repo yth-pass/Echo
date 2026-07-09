@@ -10,6 +10,11 @@ class BlockDto {
   blockedUserId!: string;
 }
 
+class MatchRequestDto {
+  @IsString()
+  targetUserId!: string;
+}
+
 @Controller()
 @UseGuards(JwtAuthGuard)
 export class MatchesController {
@@ -26,6 +31,16 @@ export class MatchesController {
   @Post('matches/:id/dismiss')
   dismiss(@CurrentUser() userId: string, @Param('id') id: string) {
     return this.matches.dismiss(userId, id);
+  }
+
+  @Post('matches/:id/accept')
+  accept(@CurrentUser() userId: string, @Param('id') id: string) {
+    return this.matches.acceptMatch(userId, id);
+  }
+
+  @Post('matches/request')
+  request(@CurrentUser() userId: string, @Body() dto: MatchRequestDto) {
+    return this.matches.requestMatch(userId, dto.targetUserId);
   }
 
   @Post('blocks')

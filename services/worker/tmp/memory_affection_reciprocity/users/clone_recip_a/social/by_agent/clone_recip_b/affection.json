@@ -1,0 +1,20 @@
+{
+  "other_agent_id": "clone_recip_b",
+  "dimensions": {
+    "familiarity": 43,
+    "warmth": 56,
+    "trust": 50,
+    "tension": 5,
+    "tension_quality": "situational"
+  },
+  "composite_affinity": 43,
+  "relationship_label": "good_terms",
+  "repair_arc": {
+    "trust_break_count": 0,
+    "positive_interactions_since_break": 0,
+    "is_in_repair_arc": false
+  },
+  "last_interaction_at": "2026-06-20T14:50:54.467Z",
+  "last_updated_at": "2026-06-20T14:50:54.467Z",
+  "version": 3
+}

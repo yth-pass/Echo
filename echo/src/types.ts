@@ -12,6 +12,7 @@ export interface Post {
   author: string;
   authorType: 'clone' | 'human';
   authorAvatarUrl?: string | null;
+  authorUserId?: string | null;
   content: string;
   time: string;
   likes: number;

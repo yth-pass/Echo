@@ -1,0 +1,165 @@
+# Echo — Class Diagrams (System Design 2.0)
+
+## 1. 新增/修改的 Prisma 数据模型
+
+```mermaid
+classDiagram
+    direction TB
+
+    class Handoff {
+        +String id
+        +String sessionId
+        +String userAId
+        +String userBId
+        +HandoffStatus status
+        +DateTime? acceptedAt
+        +Json? contactInfoJson
+        +DateTime createdAt
+    }
+
+    class HandoffResponse {
+        +String id
+        +String handoffId
+        +String userId
+        +HandoffDecision decision
+        +DateTime createdAt
+    }
+
+    class DeviceToken {
+        +String id
+        +String userId
+        +String token
+        +String platform
+        +DateTime createdAt
+        +DateTime updatedAt
+    }
+
+    class ProfileEmbedding {
+        +String userId
+        +Float[] embedding
+    }
+
+    class AffinityScore {
+        +String sessionId
+        +Float score
+        +Json? breakdownJson
+        +DateTime updatedAt
+    }
+
+    class AgentSession {
+        +String id
+        +String cloneAId
+        +String cloneBId
+        +AgentSessionStatus status
+        +DateTime startedAt
+        +DateTime? endedAt
+        +Json? metadataJson
+    }
+
+    class AgentMessage {
+        +String id
+        +String sessionId
+        +String speakerCloneId
+        +String content
+        +Int turnIndex
+        +String? turnId
+        +DateTime createdAt
+    }
+
+    class DigitalClone {
+        +String id
+        +String userId
+        +CloneStatus status
+        +DateTime? consentAt
+    }
+
+    class User {
+        +String id
+        +String? phone
+        +String? email
+        +UserStatus status
+    }
+
+    Handoff "1" --> "*" HandoffResponse : has
+    HandoffResponse --> Handoff : handoffId FK
+    DeviceToken --> User : userId FK
+    ProfileEmbedding --> Profile : userId FK
+    AgentSession "1" --> "0..1" Handoff : may_create
+    AgentSession "1" --> "0..1" AffinityScore : yields
+    AgentSession "1" --> "*" AgentMessage : contains
+    DigitalClone "1" --> "*" AgentMessage : speaker
+```
+
+---
+
+## 2. 核心服务类图
+
+```mermaid
+classDiagram
+    direction TB
+
+    class Observability {
+        +createLogger(module: string) Logger
+        +incrementCounter(name: string, labels: object) void
+        +generateCorrelationId() string
+    }
+
+    class LlmService {
+        +chat(messages: Message[], options?: ChatOptions) Promise~string~
+        +embed(text: string) Promise~number[]~
+        +embedBatch(texts: string[]) Promise~number[][]~
+    }
+
+    class LlmProxyController {
+        +proxy(userId: string, body: ProxyRequest) Promise~ProxyResponse~
+    }
+
+    class ModerationService {
+        +checkSensitiveWords(text: string) SensitiveResult
+        +llmClassify(text: string) Promise~ModerationVerdict~
+        +moderate(text: string) Promise~ModerationResult~
+    }
+
+    class UnifiedAnalysisService {
+        +analyze(turns: Turn[], context: AnalysisContext) Promise~UnifiedAnalysisResult~
+    }
+
+    class AffectionCalculator {
+        +calculate(analysis: UnifiedAnalysisResult) AffinityComponents
+        +updateSessionAffinity(sessionId: string, components: AffinityComponents) Promise~float~
+    }
+
+    class PushService {
+        +sendPush(userId: string, type: PushType, payload: object) Promise~void~
+        +registerToken(userId: string, token: string, platform: string) Promise~void~
+        +sendToUser(userId: string, notification: object, data: object) Promise~void~
+    }
+
+    class HandoffsService {
+        +getOne(userId: string, id: string) Promise~HandoffDetail~
+        +respond(userId: string, id: string, accept: boolean) Promise~HandoffResult~
+        +checkBilateral(id: string) Promise~HandoffStatus~
+    }
+
+    class OnboardingService {
+        +finalize(userId: string) Promise~FinalizeResult~
+        -generateEmbedding(profileText: string) Promise~number[]~
+    }
+
+    class PrismaService {
+        +handoff: HandoffDelegate
+        +handoffResponse: HandoffResponseDelegate
+        +deviceToken: DeviceTokenDelegate
+        +$executeRaw: function
+        +$queryRaw: function
+    }
+
+    LlmService --> Observability : uses
+    ModerationService --> LlmService : uses
+    ModerationService --> Observability : uses
+    UnifiedAnalysisService --> LlmService : uses
+    HandoffsService --> PushService : triggers
+    HandoffsService --> PrismaService : uses
+    OnboardingService --> LlmService : embed()
+    PushService --> PrismaService : deviceToken CRUD
+```

@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Echo · Onboarding 真空区优化方案对比</title>
+<style>
+  :root {
+    --bg: #f8f9ff;
+    --ink: #121c28;
+    --ink-2: #4a4455;
+    --ink-3: #7b7487;
+    --ink-4: #9b95a8;
+    --primary: #630ed4;
+    --primary-2: #7c3aed;
+    --line: #d9e3f4;
+    --pink: #ff8db8;
+    --blue: #8ec6ff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #0f1119; color: #e7e9f3; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft Yahei", sans-serif; -webkit-font-smoothing: antialiased; }
+  body { padding: 24px 16px 60px; }
+  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: 0.5px; }
+  .sub { font-size: 13px; color: #9aa1b5; margin: 0 0 28px; line-height: 1.55; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px 18px; font-size: 12px; color: #9aa1b5; margin-bottom: 20px; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 28px; }
+  .card { background: #161924; border: 1px solid #232737; border-radius: 18px; padding: 18px 18px 22px; }
+  .card h2 { font-size: 14px; margin: 0 0 4px; letter-spacing: 0.4px; color: #f0f2fa; }
+  .card p.lede { font-size: 12px; color: #9aa1b5; margin: 0 0 14px; line-height: 1.55; }
+  .pill { display: inline-block; font-size: 10px; padding: 3px 8px; border-radius: 999px; background: rgba(124,58,237,.15); color: #c8b0ff; margin-right: 6px; }
+  .pill.bad { background: rgba(239,68,68,.15); color: #fca5a5; }
+  .pill.good { background: rgba(16,185,129,.15); color: #6ee7b7; }
+
+  /* Phone frame */
+  .phone { width: 320px; height: 640px; border-radius: 32px; background: var(--bg); color: var(--ink); overflow: hidden; position: relative; margin: 0 auto; box-shadow: 0 18px 40px rgba(0,0,0,.45); }
+  .phone-inner { position: absolute; inset: 0; display: flex; flex-direction: column; }
+  .head { display: flex; align-items: center; gap: 10px; padding: 14px 18px 8px; }
+  .xbtn { width: 32px; height: 32px; border-radius: 50%; background: var(--line); color: var(--ink-2); display: flex; align-items: center; justify-content: center; font-size: 13px; }
+  .bar { flex: 1; height: 4px; background: var(--line); border-radius: 999px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; background: var(--primary); border-radius: 999px; }
+  .count { font-size: 11px; color: var(--ink-3); }
+
+  .illu { display: flex; justify-content: center; padding: 4px 0 0; }
+  .illu svg { width: 230px; height: 100px; }
+
+  h3.title { font-size: 22px; color: var(--primary); margin: 8px 18px 0; line-height: 1.15; position: relative; }
+  h3.title .req { position: absolute; right: -8px; top: -2px; width: 6px; height: 6px; border-radius: 50%; background: #a43073; }
+  p.sub-title { font-size: 14px; color: var(--ink-2); margin: 4px 18px 0; }
+
+  .input-wrap { margin: 18px 18px 0; }
+  .input {
+    height: 52px; border-radius: 14px; background: #ffffff; border: 1px solid var(--line);
+    display: flex; align-items: center; padding: 0 16px; color: var(--ink-3); font-size: 14px;
+  }
+
+  .echo-hint { font-size: 12px; color: var(--ink-4); text-align: center; margin-top: 12px; }
+
+  /* ───────── 1. 现状 ───────── */
+  .v1 .body { flex: 1; display: flex; flex-direction: column; }
+  .v1 .spacer { flex: 1; }   /* ← this is the vacuum */
+  .v1 .input-wrap { margin-top: 16px; }
+  .v1 .echo-hint { margin-top: 18px; }
+
+  /* ───────── 2. 标签随输入提示 ───────── */
+  .v2 .body { flex: 1; display: flex; flex-direction: column; padding-top: 4px; }
+  .v2 .tags { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 18px; margin-top: 14px; }
+  .v2 .tag {
+    padding: 8px 12px; border-radius: 999px; background: #ffffff; color: var(--ink-2);
+    font-size: 12px; border: 1px solid var(--line); display: inline-flex; align-items: center; gap: 6px;
+  }
+  .v2 .tag.suggest { border-style: dashed; color: var(--ink-3); }
+  .v2 .tag .add { width: 14px; height: 14px; border-radius: 50%; background: var(--line); color: var(--ink-2); display: inline-flex; align-items: center; justify-content: center; font-size: 10px; line-height: 1; }
+  .v2 .input-wrap { margin-top: 14px; }
+  .v2 .divider { font-size: 10px; color: var(--ink-4); letter-spacing: 0.5px; padding: 0 18px; margin-top: 10px; }
+  .v2 .micro { padding: 0 18px; margin-top: 6px; font-size: 11px; color: var(--ink-3); }
+  .v2 .micro b { color: var(--ink-2); font-weight: 600; }
+
+  /* ───────── 3. 倒计时进度 / 进度小提示 ───────── */
+  .v3 .body { flex: 1; display: flex; flex-direction: column; }
+  .v3 .pace { padding: 14px 18px 0; }
+  .v3 .pace-title { font-size: 11px; color: var(--ink-3); letter-spacing: 0.4px; }
+  .v3 .pace-row { display: flex; gap: 4px; margin-top: 8px; }
+  .v3 .pace-row span { flex: 1; height: 6px; border-radius: 4px; background: var(--line); }
+  .v3 .pace-row span.done { background: var(--primary); }
+  .v3 .pace-row span.cur { background: linear-gradient(90deg, var(--primary), #c8a8ff); }
+  .v3 .pace-foot { font-size: 11px; color: var(--ink-3); margin-top: 8px; display: flex; justify-content: space-between; }
+  .v3 .pace-foot b { color: var(--primary); }
+  .v3 .input-wrap { margin-top: 18px; }
+  .v3 .trust { padding: 0 18px; margin-top: 12px; display: flex; gap: 14px; font-size: 11px; color: var(--ink-3); }
+  .v3 .trust i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #b9f0d8; margin-right: 5px; vertical-align: middle; }
+
+  /* ───────── 4. Echo 视角预览 ───────── */
+  .v4 .body { flex: 1; display: flex; flex-direction: column; }
+  .v4 .preview { margin: 14px 18px 0; padding: 12px 14px; background: #ffffff; border: 1px solid var(--line); border-radius: 14px; }
+  .v4 .preview-label { font-size: 10px; color: var(--ink-3); letter-spacing: 0.5px; }
+  .v4 .bubble { margin-top: 6px; background: linear-gradient(135deg, #efe6ff, #f8f4ff); border-radius: 12px; padding: 10px 12px; font-size: 12px; color: var(--ink-2); line-height: 1.5; }
+  .v4 .bubble b { color: var(--primary); }
+  .v4 .hint-row { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+  .v4 .hint-row span { font-size: 10px; color: var(--ink-3); }
+  .v4 .input-wrap { margin-top: 12px; }
+  .v4 .name-chips { display: flex; gap: 6px; margin-top: 6px; padding: 0 18px; }
+  .v4 .name-chips span { font-size: 11px; padding: 4px 8px; border-radius: 999px; background: rgba(99,14,212,.08); color: var(--primary-2); }
+
+  /* Bottom nav shared */
+  .foot { padding: 12px 18px 16px; display: flex; justify-content: space-between; align-items: center; }
+  .skip { color: var(--ink-3); font-size: 12px; }
+  .cta { background: var(--primary); color: #fff; padding: 12px 22px; border-radius: 999px; font-size: 13px; font-weight: 600; box-shadow: 0 8px 16px -4px rgba(99,14,212,.3); display: inline-flex; align-items: center; gap: 6px; }
+
+  .v-meta { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,.04); font-size: 11px; color: #aab1c4; line-height: 1.55; }
+  .v-meta b { color: #f0f2fa; }
+  .v-meta.warn { background: rgba(239,68,68,.07); }
+  .v-meta.go { background: rgba(16,185,129,.07); }
+
+  @media (max-width: 360px) { .phone { width: 100%; } }
+</style>
+</head>
+<body>
+  <h1>Echo · Onboarding 1/18 真空区优化方案</h1>
+  <p class="sub">问题：第 1 卡片是单行 input，无法撑满 flex-1 容器，导致输入框到「继续」按钮之间留出 ~35% 屏高的空白，视觉重心下坠。下面提供 3 种解法 + 1 个现状对照。</p>
+
+  <div class="legend">
+    <span><i class="dot" style="background:#fca5a5"></i>现状 (空)</span>
+    <span><i class="dot" style="background:#6ee7b7"></i>推荐方案</span>
+    <span><i class="dot" style="background:#c8b0ff"></i>备选</span>
+  </div>
+
+  <div class="grid">
+
+    <!-- ── 1. 现状 ── -->
+    <div class="card">
+      <h2>① 现状对照 <span class="pill bad">视觉失衡</span></h2>
+      <p class="lede">输入框后到「继续」按钮之间出现 ~220px 空白；插画距标题太近、标题距输入框太远，三段重心散开。</p>
+      <div class="phone v1">
+        <div class="phone-inner">
+          <div class="head">
+            <div class="xbtn">×</div>
+            <div class="bar"><i style="width:5.5%"></i></div>
+            <div class="count">1/18</div>
+          </div>
+          <div class="body">
+            <div class="illu">
+              <svg viewBox="0 0 240 100" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <radialGradient id="g1" cx="50%" cy="50%"><stop offset="0" stop-color="#ffd0e1"/><stop offset="1" stop-color="#ff8db8"/></radialGradient>
+                  <radialGradient id="g2" cx="50%" cy="50%"><stop offset="0" stop-color="#cfe4ff"/><stop offset="1" stop-color="#8ec6ff"/></radialGradient>
+                </defs>
+                <circle cx="40" cy="22" r="5" fill="#ff8db8"/>
+                <circle cx="200" cy="18" r="4" fill="#ff8db8"/>
+                <circle cx="14" cy="60" r="3" fill="#ffd24a"/>
+                <circle cx="226" cy="58" r="3" fill="#ffd24a"/>
+                <ellipse cx="90" cy="74" rx="44" ry="22" fill="url(#g1)"/>
+                <ellipse cx="150" cy="74" rx="44" ry="22" fill="url(#g2)"/>
+                <circle cx="78" cy="74" r="3" fill="#121c28"/>
+                <circle cx="102" cy="74" r="3" fill="#121c28"/>
+                <circle cx="138" cy="74" r="3" fill="#121c28"/>
+                <circle cx="162" cy="74" r="3" fill="#121c28"/>
+                <ellipse cx="84" cy="80" rx="4" ry="2" fill="#ff7aa8"/>
+                <ellipse cx="96" cy="80" rx="4" ry="2" fill="#ff7aa8"/>
+                <ellipse cx="144" cy="80" rx="4" ry="2" fill="#5fa9ff"/>
+                <ellipse cx="156" cy="80" rx="4" ry="2" fill="#5fa9ff"/>
+              </svg>
+            </div>
+            <h3 class="title">你希望怎么被称呼？<span class="req"></span></h3>
+            <p class="sub-title">在 Echo 上大家怎么叫你？</p>
+            <div class="input-wrap"><div class="input">比如：小明、Echo、阿杰…</div></div>
+            <p class="echo-hint">你的回声会用这个名字和你说话</p>
+            <div class="spacer"></div>
+          </div>
+          <div class="foot">
+            <div class="skip">跳过</div>
+            <div class="cta">继续 →</div>
+          </div>
+        </div>
+      </div>
+      <div class="v-meta warn">
+        <b>诊断：</b>flex-1 容器只有单行 input 可填充，剩余空间全部落到 spacer → 输入框浮在上半屏，按钮孤悬底部。
+      </div>
+    </div>
+
+    <!-- ── 2. 名字灵感标签 (Recommended) ── -->
+    <div class="card">
+      <h2>② 名字灵感标签 <span class="pill good">推荐</span></h2>
+      <p class="lede">在输入框下方铺 6-8 个名字灵感 chip，dashed 风格=可点击填入。降低取名焦虑，同时把空白区变成有用的「灵感库」。</p>
+      <div class="phone v2">
+        <div class="phone-inner">
+          <div class="head">
+            <div class="xbtn">×</div>
+            <div class="bar"><i style="width:5.5%"></i></div>
+            <div class="count">1/18</div>
+          </div>
+          <div class="body">
+            <div class="illu">
+              <svg viewBox="0 0 240 100" xmlns="http://www.w3.org/2000/svg">
+                <ellipse cx="90" cy="74" rx="44" ry="22" fill="url(#g1)"/>
+                <ellipse cx="150" cy="74" rx="44" ry="22" fill="url(#g2)"/>
+                <circle cx="78" cy="74" r="3" fill="#121c28"/>
+                <circle cx="102" cy="74" r="3" fill="#121c28"/>
+                <circle cx="138" cy="74" r="3" fill="#121c28"/>
+                <circle cx="162" cy="74" r="3" fill="#121c28"/>
+              </svg>
+            </div>
+            <h3 class="title">你希望怎么被称呼？<span class="req"></span></h3>
+            <p class="sub-title">在 Echo 上大家怎么叫你？</p>
+            <div class="input-wrap"><div class="input">小明</div></div>
+            <div class="divider">没想好？试试这些 ↓</div>
+            <div class="tags">
+              <span class="tag">Echo<i class="add">+</i></span>
+              <span class="tag">阿杰<i class="add">+</i></span>
+              <span class="tag">小满<i class="add">+</i></span>
+              <span class="tag">星野<i class="add">+</i></span>
+              <span class="tag">知夏<i class="add">+</i></span>
+              <span class="tag suggest"><i class="add">+</i> 随机一个</span>
+            </div>
+            <p class="micro">选了名字后，下一步我们才知道 <b>怎么称呼你</b>，回声才会用对。</p>
+          </div>
+          <div class="foot">
+            <div class="skip">跳过</div>
+            <div class="cta">继续 →</div>
+          </div>
+        </div>
+      </div>
+      <div class="v-meta go">
+        <b>收益：</b>① 消除空白 ② 解决「叫啥好」的冷启动 ③ 选中即填，零成本提升完成率
+        <br/><b>风险：</b>低；chip 随机感强，可加一段『不喜欢？再换一组』
+      </div>
+    </div>
+
+    <!-- ── 3. 步骤节奏预览 ── -->
+    <div class="card">
+      <h2>③ 流程节奏卡 <span class="pill">备选</span></h2>
+      <p class="lede">用 18 段「节拍」可视化整体进度，把"18 步"从数字变成可感知的节奏。第 1 步点亮 + 浅紫色脉冲，下方加完成度预估。</p>
+      <div class="phone v3">
+        <div class="phone-inner">
+          <div class="head">
+            <div class="xbtn">×</div>
+            <div class="bar"><i style="width:5.5%"></i></div>
+            <div class="count">1/18</div>
+          </div>
+          <div class="body">
+            <div class="illu">
+              <svg viewBox="0 0 240 100" xmlns="http://www.w3.org/2000/svg">
+                <ellipse cx="90" cy="74" rx="44" ry="22" fill="url(#g1)"/>
+                <ellipse cx="150" cy="74" rx="44" ry="22" fill="url(#g2)"/>
+                <circle cx="78" cy="74" r="3" fill="#121c28"/>
+                <circle cx="102" cy="74" r="3" fill="#121c28"/>
+                <circle cx="138" cy="74" r="3" fill="#121c28"/>
+                <circle cx="162" cy="74" r="3" fill="#121c28"/>
+              </svg>
+            </div>
+            <h3 class="title">你希望怎么被称呼？<span class="req"></span></h3>
+            <p class="sub-title">在 Echo 上大家怎么叫你？</p>
+            <div class="pace">
+              <div class="pace-title">整段旅程 · 共 18 步</div>
+              <div class="pace-row">
+                <span class="cur"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+              </div>
+              <div class="pace-foot"><span>已走 1 步</span><span>预计 <b>3 分钟</b> 完成</span></div>
+            </div>
+            <div class="input-wrap"><div class="input">小明</div></div>
+            <div class="trust">
+              <span><i></i>不上传通讯录</span>
+              <span><i></i>随时可跳过</span>
+              <span><i></i>可改名</span>
+            </div>
+          </div>
+          <div class="foot">
+            <div class="skip">跳过</div>
+            <div class="cta">继续 →</div>
+          </div>
+        </div>
+      </div>
+      <div class="v-meta">
+        <b>收益：</b>把"漫长 18 步"的心智压力拆解成可视节拍
+        <br/><b>注意：</b>进度条本身就是节拍 — 视觉上会和顶部进度条重复，需简化
+      </div>
+    </div>
+
+    <!-- ── 4. Echo 视角预览 ── -->
+    <div class="card">
+      <h2>④ Echo 视角预览 <span class="pill">备选</span></h2>
+      <p class="lede">"你的回声会这样叫你" — 把 echoHint 升级为可视化对话气泡预览，输入"小明"即看到回声用这个名字说话。强化"我在为未来的对话做准备"。</p>
+      <div class="phone v4">
+        <div class="phone-inner">
+          <div class="head">
+            <div class="xbtn">×</div>
+            <div class="bar"><i style="width:5.5%"></i></div>
+            <div class="count">1/18</div>
+          </div>
+          <div class="body">
+            <div class="illu">
+              <svg viewBox="0 0 240 100" xmlns="http://www.w3.org/2000/svg">
+                <ellipse cx="90" cy="74" rx="44" ry="22" fill="url(#g1)"/>
+                <ellipse cx="150" cy="74" rx="44" ry="22" fill="url(#g2)"/>
+                <circle cx="78" cy="74" r="3" fill="#121c28"/>
+                <circle cx="102" cy="74" r="3" fill="#121c28"/>
+                <circle cx="138" cy="74" r="3" fill="#121c28"/>
+                <circle cx="162" cy="74" r="3" fill="#121c28"/>
+              </svg>
+            </div>
+            <h3 class="title">你希望怎么被称呼？<span class="req"></span></h3>
+            <p class="sub-title">在 Echo 上大家怎么叫你？</p>
+            <div class="input-wrap"><div class="input">小明</div></div>
+            <div class="preview">
+              <div class="preview-label">你的回声会这样和你说话</div>
+              <div class="bubble">"<b>小明</b>，很高兴认识你。接下来我会用这个名字和你聊天。"</div>
+              <div class="hint-row">
+                <span>输入即预览</span>
+                <span>↻ 换一句</span>
+              </div>
+            </div>
+          </div>
+          <div class="foot">
+            <div class="skip">跳过</div>
+            <div class="cta">继续 →</div>
+          </div>
+        </div>
+      </div>
+      <div class="v-meta">
+        <b>收益：</b>提前"看见"回声，建立情感钩子
+        <br/><b>注意：</b>回声预览内容如果太"AI 套话"会扣分；可只显示前几个字
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

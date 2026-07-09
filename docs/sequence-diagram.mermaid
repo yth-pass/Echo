@@ -1,0 +1,168 @@
+# Echo — Sequence Diagrams (System Design 2.0)
+
+## 1. Embedding 生成 & 匹配流程
+
+```mermaid
+sequenceDiagram
+    participant User as Real User
+    participant API as OnboardingController
+    participant Onboard as OnboardingService
+    participant LLM as LlmService (embed)
+    participant DB as PostgreSQL/pgvector
+    participant Worker as Match-Daily Worker
+
+    User->>API: POST /onboarding/finalize
+    API->>Onboard: finalize(userId)
+
+    Note over Onboard: 1. 生成 PersonaPrompt
+    Onboard->>LLM: chat(system+survey) → personaText
+
+    Note over Onboard: 2. 拼接 embedding 文本
+    Onboard->>Onboard: concat(displayName + bio + styleMd)
+
+    Note over Onboard: 3. 调用真实 Embedding API
+    Onboard->>LLM: embed(profileText)
+    LLM-->>Onboard: Float[1536]
+
+    Note over Onboard: 4. 写入 pgvector (raw SQL)
+    Onboard->>DB: INSERT ... ON CONFLICT UPDATE embedding
+    Onboard-->>User: { cloneId, status }
+
+    Note over Worker: 每日匹配任务触发
+    Worker->>DB: SELECT * FROM profile_embeddings
+    loop 每个用户
+        Worker->>DB: SELECT candidate<br/>ORDER BY embedding <=> $vec<br/>LIMIT 100
+        DB-->>Worker: 候选列表
+        Worker->>Worker: 规则过滤 (block, paused, etc.)
+        Worker->>DB: INSERT match_pushes (top-3)
+    end
+```
+
+---
+
+## 2. Agent-Turn 好感度 & 合并 LLM 流程
+
+```mermaid
+sequenceDiagram
+    participant Worker as Agent-Turn Worker
+    participant LLM as LlmService
+    participant Unified as UnifiedAnalysisService
+    participant Calc as AffectionCalculator
+    participant DB as PostgreSQL
+    participant Push as PushService
+
+    Worker->>DB: 获取 session + history
+
+    Note over Worker: REQ-06: 角色分离
+    Worker->>Worker: history.map(m =><br/>role: m.speaker===current ? 'assistant' : 'user')
+
+    Note over Worker: 生成本轮回复
+    Worker->>LLM: chat(systemPrompt + history + boundaryClause)
+    LLM-->>Worker: content
+
+    Worker->>DB: INSERT agent_message (correct role)
+
+    alt topic transition OR session-end fallback
+        Note over Worker: REQ-08: 合并 LLM 调用
+        Worker->>Unified: analyze(turns, context)
+        Unified->>LLM: chat(jsonMode, merged system prompt)
+        LLM-->>Unified: {topic, social, affection}
+        Unified-->>Worker: UnifiedAnalysisResult
+
+        Note over Worker: REQ-02: 真实好感度
+        Worker->>Calc: calculate(analysis)
+        Calc->>Calc: sentiment*0.25 + topic*0.25<br/>+ compatibility*0.30 + engagement*0.20
+        Calc->>DB: upsert affinity_scores (EMA alpha=0.3)
+        Calc-->>Worker: newScore
+    end
+
+    alt newScore >= 0.75 AND turnIndex >= 4
+        Worker->>DB: create handoff (if not exists)
+        Worker->>Push: sendPush(type=handoff, userIds=[a,b])
+    end
+
+    alt turnIndex < 6
+        Worker->>Worker: enqueue next agent-turn (delay 2s)
+    else
+        Worker->>DB: update session → completed
+    end
+```
+
+---
+
+## 3. 审核流程
+
+```mermaid
+sequenceDiagram
+    participant Worker as Moderation Worker
+    participant Sensitive as SensitiveWords
+    participant LLM as LlmService
+    participant DB as PostgreSQL
+
+    Worker->>DB: 获取 post (moderationStatus=pending)
+
+    Note over Worker: Step 1: 敏感词黑名单
+    Worker->>Sensitive: checkSensitiveWords(post.content)
+    alt 命中黑名单
+        Sensitive-->>Worker: {hit: true, words:[...]}
+        Worker->>DB: UPDATE post → rejected
+        Worker->>DB: INSERT audit_event (moderation.reject)
+    else 未命中
+        Note over Worker: Step 2: LLM 分类
+        Worker->>LLM: chat(jsonMode, classify prompt)
+        LLM-->>Worker: {verdict: safe|unsafe|needs_review, reason?}
+
+        alt unsafe
+            Worker->>DB: UPDATE post → rejected
+            Worker->>DB: UPDATE post.reason
+        else needs_review
+            Worker->>DB: UPDATE post → pending (leave for manual)
+        else safe
+            Worker->>DB: UPDATE post → approved, publishedAt=now
+            Worker->>DB: INSERT audit_event
+        end
+    end
+```
+
+---
+
+## 4. Handoff 双向流程
+
+```mermaid
+sequenceDiagram
+    participant UserA as Real User A
+    participant UserB as Real User B
+    participant API as HandoffsController
+    participant Svc as HandoffsService
+    participant DB as PostgreSQL
+    participant Push as PushService
+
+    Note over DB: Handoff 已创建 (pending)
+
+    UserA->>API: POST /handoffs/{id}/respond {accept:true}
+    API->>Svc: respond(userA.id, handoffId, accept=true)
+    Svc->>DB: INSERT handoff_responses (userA, accept)
+    Svc->>DB: SELECT handoff_responses WHERE handoff_id
+    alt 仅 userA 响应
+        Svc-->>UserA: {status: "pending"}
+    end
+
+    UserB->>API: POST /handoffs/{id}/respond {accept:true}
+    API->>Svc: respond(userB.id, handoffId, accept=true)
+    Svc->>DB: INSERT handoff_responses (userB, accept)
+    Svc->>DB: SELECT handoff_responses WHERE handoff_id
+
+    Note over Svc: 双方均 accept
+    Svc->>DB: UPDATE handoff → accepted, acceptedAt=now
+    Svc->>DB: UPDATE handoff.contact_info_json
+    Svc->>Push: sendPush(userA, handoff_accepted)
+    Svc->>Push: sendPush(userB, handoff_accepted)
+    Svc-->>UserB: {status: "accepted", contact_exchanged: true}
+
+    opt 任一方 decline
+        UserB->>API: POST /handoffs/{id}/respond {accept:false}
+        Svc->>DB: INSERT handoff_responses (userB, decline)
+        Svc->>DB: UPDATE handoff → declined
+        Svc-->>UserB: {status: "declined"}
+    end
+```

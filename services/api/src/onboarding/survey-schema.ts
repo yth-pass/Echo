@@ -87,7 +87,7 @@ export type DimensionScore = {
 };
 
 export type RoleplayChat = {
-  roleName: 'stranger' | 'bestfriend' | 'crush' | 'oldfriend';
+  roleName: 'stranger' | 'bestfriend' | 'crush' | 'disappointed';
   agentName: string;
   messages: Array<{ role: 'user' | 'assistant'; content: string; timestamp: number }>;
   startedAt: number;
@@ -130,9 +130,31 @@ export type AgentProfiles = {
   stranger?: AgentProfile;
   bestfriend?: AgentProfile;
   crush?: AgentProfile;
-  oldfriend?: AgentProfile;
+  disappointed?: AgentProfile;
   generationTimestamp?: number;
 };
+
+// ---------- Phase 1.6: 理想伴侣画像 ----------
+
+/** LLM 合成的"你需要什么样的伴侣"自然语言描述，与 PersonaSketch 对称 */
+export interface IdealPartnerSketch {
+  /** 200-400 字自然语言描述 */
+  narrative: string;
+
+  /** 四维雷达图数据（前端可视化用），值域 -1 ~ +1 */
+  dimensions: {
+    emotionalSafety: number;
+    spaceRespect: number;
+    directCommunication: number;
+    conflictResolution: number;
+  };
+
+  /** 用户纠正确认文本（最多 100 字），或 'deferred' 表示以后再调 */
+  userFeedback?: string;
+
+  /** 生成时间戳 (ISO 8601) */
+  generatedAt: string;
+}
 
 // ---------- 完整问卷结构 ----------
 
@@ -215,6 +237,12 @@ export type OnboardingSurveyJson = {
     moralFoundations?: Record<string, number>;
     attachmentStyle?: string;
   };
+
+  // --- v2.3: 理想伴侣维度（来自 Card 16/17/18） ---
+  idealPartnerDimensions?: Record<string, { value: number; confidence: string }>;
+
+  // --- v2.3 Phase 1.6: 理想伴侣画像合成 ---
+  idealPartnerSketch?: IdealPartnerSketch;
 
   // --- v2.2 Phase 1.5: 人格画像合成 ---
   personaSketch?: {
@@ -408,6 +436,84 @@ export function buildTextForEmbedding(
   }
 
   return parts.length > 0 ? parts.join(' | ') : userId;
+}
+
+/**
+ * Build embedding text for ideal-partner matching channel.
+ * Captures attachment-derived needs, ideal-partner dimensions (Card 16/17/18),
+ * value-alignment signals, and relationship intent.
+ * Uses the same `key:value` + ` | ` join style as buildTextForEmbedding.
+ */
+export function buildTextForIdealEmbedding(
+  profile: { bioJson?: unknown } | null,
+  survey: OnboardingSurveyJson,
+  userId: string,
+): string {
+  const parts: string[] = [];
+
+  // ★ 0. 用户反馈前缀（如果用户在 Phase 1.6 页面提交了纠正文本，作为最高优先级信号前置）
+  if (survey.idealPartnerSketch?.userFeedback && survey.idealPartnerSketch.userFeedback !== 'deferred') {
+    parts.push(`userCorrection:${survey.idealPartnerSketch.userFeedback.slice(0, 100)}`);
+  }
+
+  // 1. 依恋衍生需求（从现有 15 张卡的 attachAvoidance / attachAnxiety 推算出的 attachmentStyle）
+  if (survey.dimensionScores?.attachmentStyle) {
+    const style = survey.dimensionScores.attachmentStyle;
+    const styleMap: Record<string, string> = {
+      secure:      'needs partner who naturally balances intimacy and independence, neither clingy nor cold',
+      preoccupied: 'needs partner who provides stable emotional affirmation, consistent and reliable, no hot-and-cold',
+      dismissing:  'needs partner who respects personal boundaries, no emotional hostage-taking, gives ample space',
+      fearful:     'needs extremely patient partner who tolerates push-pull rhythms, won\'t give up when pushed away',
+    };
+    parts.push(`attachmentNeed:${styleMap[style] ?? style}`);
+  }
+
+  // 2. 理想伴侣维度（来自新卡 16/17/18 的 idealPartnerDimensions）
+  const idealDims = survey.idealPartnerDimensions;
+  if (idealDims) {
+    const descs: string[] = [];
+
+    const val = (key: string) => idealDims[key]?.value;
+
+    if (val('needEmotionalSafety') !== undefined) {
+      if (val('needEmotionalSafety')! > 0.3) descs.push('high emotional safety need: requires partner to be stable, reliable, an emotional anchor');
+      else if (val('needEmotionalSafety')! < -0.3) descs.push('low emotional dependence: does not need frequent relationship status confirmation');
+    }
+    if (val('needSpaceRespect') !== undefined) {
+      if (val('needSpaceRespect')! > 0.3) descs.push('high independence need: requires partner to respect alone time, no intrusion');
+      else if (val('needSpaceRespect')! < -0.3) descs.push('prefers close connection: wants partner to share most of their time');
+    }
+    if (val('needDirectCommunication') !== undefined) {
+      if (val('needDirectCommunication')! > 0.3) descs.push('prefers direct expression: dislikes guessing, needs partner to speak plainly');
+      else if (val('needDirectCommunication')! < -0.3) descs.push('prefers gentle expression: wants partner to deliver opinions tactfully');
+    }
+    if (val('needConflictResolution') !== undefined) {
+      if (val('needConflictResolution')! > 0.3) descs.push('resolve conflicts directly: dislikes silent treatment, needs partner who can handle straight talk');
+      else if (val('needConflictResolution')! < -0.3) descs.push('digest conflicts individually: prefers partner to give buffer space during conflicts');
+    }
+
+    if (descs.length) parts.push(`partnerExpectation:${descs.join('; ')}`);
+  }
+
+  // 3. 价值观对齐信号
+  if (survey.trustView?.trim()) {
+    parts.push(`trustExpectation:${survey.trustView.trim().slice(0, 60)}`);
+  }
+  if (survey.happinessView?.trim()) {
+    parts.push(`happinessView:${survey.happinessView.trim().slice(0, 60)}`);
+  }
+
+  // 4. 关系意图
+  const relationshipIntent =
+    survey.goal?.trim() ||
+    (typeof profile?.bioJson === 'object' && profile?.bioJson !== null
+      ? (profile.bioJson as Record<string, unknown>)?.datingGoal as string
+      : undefined);
+  if (relationshipIntent) {
+    parts.push(`relationshipGoal:${relationshipIntent}`);
+  }
+
+  return parts.length > 0 ? parts.join(' | ') : `idealPartnerDefault_${userId}`;
 }
 
 /**

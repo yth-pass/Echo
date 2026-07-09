@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://echo.local/schemas/topic_judge_output.schema.json",
+  "title": "TopicJudgeOutput",
+  "type": "object",
+  "required": ["transition", "confidence"],
+  "properties": {
+    "transition": {
+      "type": "string",
+      "enum": ["continue_main", "continue_sub", "new_sub", "return_to_main", "new_main"]
+    },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "reason": { "type": "string" },
+    "main_topic_update": {
+      "type": "object",
+      "properties": {
+        "label": { "type": "string" },
+        "summary": { "type": "string", "maxLength": 150 }
+      },
+      "additionalProperties": false
+    },
+    "subtopic": {
+      "type": "object",
+      "properties": {
+        "action": { "type": "string", "enum": ["create", "update"] },
+        "label": { "type": "string" },
+        "summary": { "type": "string", "maxLength": 150 },
+        "return_hint": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "subtopic_close": {
+      "type": "object",
+      "properties": {
+        "topic_id": { "type": "string" },
+        "final_summary": { "type": "string", "maxLength": 150 },
+        "valence": {
+          "type": "string",
+          "enum": ["positive", "neutral", "negative"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "new_main_topic": {
+      "type": "object",
+      "properties": {
+        "label": { "type": "string" },
+        "summary": { "type": "string", "maxLength": 150 }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://echo.local/schemas/current_topic.schema.json",
+  "title": "CurrentTopic",
+  "type": "object",
+  "required": ["main_topic", "focus"],
+  "properties": {
+    "main_topic": {
+      "type": "object",
+      "required": ["topic_id", "label", "phase"],
+      "properties": {
+        "topic_id": { "type": "string" },
+        "label": { "type": "string" },
+        "summary": { "type": "string", "maxLength": 150 },
+        "phase": {
+          "type": "string",
+          "enum": ["opening", "ongoing", "closing"]
+        },
+        "subtopics_hint": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "started_at": { "type": "string", "format": "date-time" },
+        "last_turn_id": { "type": "integer" }
+      },
+      "additionalProperties": false
+    },
+    "active_subtopic": {
+      "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/subtopic" }]
+    },
+    "subtopic_history": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/subtopicClosed" }
+    },
+    "subtopic_stack": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/subtopic" }
+    },
+    "focus": {
+      "type": "string",
+      "enum": ["main", "sub"]
+    },
+    "meta": {
+      "type": "object",
+      "properties": {
+        "session_id": { "type": "string" },
+        "updated_at": { "type": "string", "format": "date-time" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "subtopic": {
+      "type": "object",
+      "required": ["topic_id", "label"],
+      "properties": {
+        "topic_id": { "type": "string" },
+        "label": { "type": "string" },
+        "summary": { "type": "string", "maxLength": 150 },
+        "phase": { "type": "string" },
+        "return_hint": { "type": "string" },
+        "started_at": { "type": "string", "format": "date-time" },
+        "last_turn_id": { "type": "integer" },
+        "turn_count": { "type": "integer" }
+      },
+      "additionalProperties": false
+    },
+    "subtopicClosed": {
+      "type": "object",
+      "required": ["topic_id", "label"],
+      "properties": {
+        "topic_id": { "type": "string" },
+        "label": { "type": "string" },
+        "summary": { "type": "string", "maxLength": 150 },
+        "valence": {
+          "type": "string",
+          "enum": ["positive", "neutral", "negative"]
+        },
+        "started_at": { "type": "string", "format": "date-time" },
+        "ended_at": { "type": "string", "format": "date-time" },
+        "turn_range": {
+          "type": "array",
+          "items": { "type": "integer" },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

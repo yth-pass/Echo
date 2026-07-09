@@ -3,10 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Clock, MessageSquare, RefreshCw, Sparkles } from 'lucide-react';
+import { useState } from 'react';
+import type { ReactNode } from 'react';
+import { Clock, MessageSquare, RefreshCw, Sparkles, Zap } from 'lucide-react';
 import { LottieLoader } from '../../components/LottieLoader';
 import type { Match } from '../../types';
 import type { MatchSource } from '../../api/match';
+import { triggerMatch } from '../../api/match';
 import { getApiBaseUrl } from '../../api/client';
 import { Header } from '../shell/Header';
 import { COPY } from '../../copy';
@@ -21,6 +24,7 @@ export function MatchView({
   onDismiss,
   onBlock,
   onOpenSession,
+  headerRight,
 }: {
   matches: Match[];
   loading?: boolean;
@@ -31,12 +35,14 @@ export function MatchView({
   onDismiss: (m: Match) => void;
   onBlock: (m: Match) => void;
   onOpenSession?: (sessionId: string) => void;
+  headerRight?: ReactNode;
 }) {
   const hasApi = Boolean(getApiBaseUrl());
   const showMockBanner = source === 'mock';
   const showError = source === 'error';
   const showEmpty = !loading && source === 'api' && matches.length === 0;
   const pendingHandoff = matches.some((m) => m.handoffId);
+  const [triggerStatus, setTriggerStatus] = useState<'idle' | 'loading' | 'ok' | 'err'>('idle');
 
   const handleBlock = (match: Match) => {
     if (!match.candidateUserId && hasApi) return;
@@ -51,16 +57,46 @@ export function MatchView({
 
   return (
     <div className="pb-24">
-      <Header title="社交实验室" />
+      <Header title="社交实验室" rightSlot={headerRight} />
       <div className="px-5 mt-4 space-y-4">
+        {/* [Dev] 手动触发匹配 */}
+        <button
+          type="button"
+          disabled={triggerStatus === 'loading'}
+          onClick={async () => {
+            setTriggerStatus('loading');
+            const ok = await triggerMatch();
+            setTriggerStatus(ok ? 'ok' : 'err');
+            setTimeout(() => setTriggerStatus('idle'), 3000);
+          }}
+          className="w-full p-4 rounded-2xl flex items-center justify-between text-left active:opacity-80 transition-opacity disabled:opacity-50"
+          style={{ backgroundColor: 'rgba(43,138,239,0.08)', border: '1px solid rgba(43,138,239,0.15)' }}
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl" style={{ backgroundColor: 'rgba(43,138,239,0.08)', color: '#2B8AEF' }}>
+              <Zap className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-sm font-bold" style={{ color: '#2B8AEF' }}>手动触发匹配</p>
+              <p className="text-[10px]" style={{ color: '#7b7487' }}>
+                {triggerStatus === 'idle' && '跳过时间窗口，立即执行匹配'}
+                {triggerStatus === 'loading' && '正在触发…'}
+                {triggerStatus === 'ok' && '已触发，等待 Worker 处理'}
+                {triggerStatus === 'err' && '触发失败，检查 Worker 是否运行'}
+              </p>
+            </div>
+          </div>
+        </button>
+
         {showError && (
-          <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-center space-y-3">
-            <p className="text-sm text-red-300">无法连接匹配服务，请检查 API 与登录</p>
+          <div className="p-4 rounded-2xl border text-center space-y-3" style={{ backgroundColor: 'rgba(186,26,26,0.08)', borderColor: 'rgba(186,26,26,0.15)' }}>
+            <p className="text-sm" style={{ color: '#ba1a1a' }}>无法连接匹配服务，请检查 API 与登录</p>
             {onRefresh && (
               <button
                 type="button"
                 onClick={onRefresh}
-                className="inline-flex items-center gap-2 text-xs font-bold text-echo-blue"
+                className="inline-flex items-center gap-2 text-xs font-bold"
+                style={{ color: '#2B8AEF' }}
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 {COPY.btn.tryAgain}
@@ -69,7 +105,7 @@ export function MatchView({
           </div>
         )}
         {actionError && (
-          <p className="text-sm text-red-400 text-center">{actionError}</p>
+          <p className="text-sm text-center" style={{ color: '#ba1a1a' }}>{actionError}</p>
         )}
         {pendingHandoff && source === 'api' && (
           <div className="p-4 bg-echo-orange/10 border border-echo-orange/20 rounded-2xl flex items-center gap-4">
@@ -82,26 +118,29 @@ export function MatchView({
         )}
         {loading && (
           <div className="space-y-4">
-            <div className="flex justify-center py-2">
-              <LottieLoader size={48} />
+            <div className="flex justify-center">
+              <LottieLoader size={288} />
             </div>
             {[0, 1].map((i) => (
               <div
                 key={i}
-                className="p-5 rounded-3xl bg-echo-card border border-white/5 animate-pulse h-40"
+                className="p-5 rounded-3xl border animate-pulse h-40"
+                style={{ backgroundColor: '#ffffff', borderColor: '#d9e3f4' }}
               />
             ))}
-            <p className="text-center text-xs text-gray-500">{COPY.loading.match}</p>
+            <p className="text-center text-base font-bold tracking-wide" style={{ color: '#121c28' }}>
+            {COPY.loading.match}</p>
           </div>
         )}
         {!loading && showEmpty && (
           <div className="py-16 text-center space-y-2">
-            <p className="text-sm text-gray-400">{COPY.empty.match}</p>
+            <p className="text-sm" style={{ color: '#7b7487' }}>{COPY.empty.match}</p>
             {onRefresh && (
               <button
                 type="button"
                 onClick={onRefresh}
-                className="mt-4 inline-flex items-center gap-2 text-xs font-bold text-echo-blue"
+                className="mt-4 inline-flex items-center gap-2 text-xs font-bold"
+                style={{ color: '#2B8AEF' }}
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 刷新
@@ -112,24 +151,25 @@ export function MatchView({
         {!loading && (
           <>
             {matches.length > 0 && (
-              <h2 className="text-xs font-bold text-gray-500 uppercase tracking-widest pt-2 mb-2">
+              <h2 className="text-xs font-bold uppercase tracking-widest pt-2 mb-2" style={{ color: '#7b7487' }}>
                 正在进行的秘密外交
               </h2>
             )}
             {matches.map((match) => (
               <div
                 key={match.id}
-                className="p-5 rounded-3xl bg-echo-card border border-white/5 relative overflow-hidden"
+                className="p-5 rounded-3xl border relative overflow-hidden"
+                style={{ backgroundColor: '#ffffff', borderColor: '#d9e3f4' }}
               >
                 <div className="absolute top-0 right-0 p-4">
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-echo-blue">{match.affinity}%</p>
-                    <p className="text-[10px] text-echo-blue/60 uppercase">Affinity</p>
+                    <p className="text-2xl font-bold" style={{ color: '#2B8AEF' }}>{match.affinity}%</p>
+                    <p className="text-[10px] uppercase" style={{ color: 'rgba(43,138,239,0.6)' }}>Affinity</p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-full border flex items-center justify-center" style={{ backgroundColor: '#E8F4FF', borderColor: '#d9e3f4' }}>
                     <img
                       src={`https://api.dicebear.com/7.x/notionists/svg?seed=${match.name}`}
                       alt="match"
@@ -137,12 +177,13 @@ export function MatchView({
                     />
                   </div>
                   <div>
-                    <p className="font-bold">{match.name}</p>
+                    <p className="font-bold" style={{ color: '#121c28' }}>{match.name}</p>
                     <div className="flex gap-1 mt-1 flex-wrap">
                       {match.tags.map((t) => (
                         <span
                           key={t}
-                          className="text-[10px] bg-white/5 px-2 py-0.5 rounded-md text-gray-400"
+                          className="text-[10px] px-2 py-0.5 rounded-md"
+                          style={{ backgroundColor: '#E8F4FF', color: '#7b7487' }}
                         >
                           {t}
                         </span>
@@ -151,11 +192,11 @@ export function MatchView({
                   </div>
                 </div>
 
-                <div className="bg-black/20 p-3 rounded-xl border border-white/5">
-                  <p className="text-[11px] text-gray-500 mb-1 flex items-center gap-1">
+                <div className="p-3 rounded-xl border" style={{ backgroundColor: '#E8F4FF', borderColor: '#d9e3f4' }}>
+                  <p className="text-[11px] mb-1 flex items-center gap-1" style={{ color: '#7b7487' }}>
                     <MessageSquare className="w-3 h-3" /> {COPY.status.chatSummary}
                   </p>
-                  <p className="text-sm text-gray-300 italic">
+                  <p className="text-sm italic" style={{ color: '#121c28' }}>
                     {match.lastMessage ? `"${match.lastMessage}"` : COPY.status.chatOngoing}
                   </p>
                 </div>
@@ -169,7 +210,7 @@ export function MatchView({
                     </span>
                   )}
                   {typeof match.dailyTurnCount === 'number' && (
-                    <span className="text-[10px] text-gray-500 bg-white/5 px-2 py-0.5 rounded-full">
+                    <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ color: '#7b7487', backgroundColor: '#E8F4FF' }}>
                       今天 {match.dailyTurnCount}/100 轮
                     </span>
                   )}
@@ -179,7 +220,8 @@ export function MatchView({
                   <button
                     type="button"
                     onClick={() => onDismiss(match)}
-                    className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-bold text-gray-400"
+                    className="flex-1 py-2.5 rounded-xl text-xs font-bold"
+                    style={{ backgroundColor: '#E8F4FF', color: '#7b7487' }}
                   >
                     {COPY.btn.dismiss}
                   </button>
@@ -187,7 +229,8 @@ export function MatchView({
                     type="button"
                     onClick={() => handleBlock(match)}
                     disabled={hasApi && !match.candidateUserId}
-                    className="flex-1 py-2.5 bg-red-500/10 hover:bg-red-500/20 rounded-xl text-xs font-bold text-red-400 disabled:opacity-40"
+                    className="flex-1 py-2.5 rounded-xl text-xs font-bold disabled:opacity-40"
+                    style={{ backgroundColor: 'rgba(186,26,26,0.08)', color: '#ba1a1a' }}
                   >
                     {COPY.btn.block}
                   </button>
@@ -197,7 +240,8 @@ export function MatchView({
                   <button
                     type="button"
                     onClick={() => onOpenSession(match.sessionId!)}
-                    className="w-full mt-2 py-3 bg-echo-blue/10 hover:bg-echo-blue/20 rounded-xl text-xs font-bold text-echo-blue transition-colors"
+                    className="w-full mt-2 py-3 rounded-xl text-xs font-bold transition-colors"
+                    style={{ backgroundColor: 'rgba(43,138,239,0.1)', color: '#2B8AEF' }}
                   >
                     查看对话记录
                   </button>
@@ -205,7 +249,8 @@ export function MatchView({
                 <button
                   type="button"
                   onClick={() => onSelect(match)}
-                  className="w-full mt-2 py-3 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-bold transition-colors"
+                  className="w-full mt-2 py-3 rounded-xl text-xs font-bold transition-colors"
+                  style={{ backgroundColor: '#E8F4FF', color: '#121c28' }}
                 >
                   查看详情
                 </button>

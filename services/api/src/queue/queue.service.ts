@@ -1,6 +1,6 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { Queue } from 'bullmq';
-import { RedisService } from '../redis/redis.service';
+import Redis from 'ioredis';
 
 export const QUEUE_NAMES = {
   POST_DRAFT: 'post-draft',
@@ -13,13 +13,26 @@ export const QUEUE_NAMES = {
 @Injectable()
 export class QueueService implements OnModuleDestroy {
   private readonly queues = new Map<string, Queue>();
+  private readonly logger = new Logger(QueueService.name);
+  /** Dedicated BullMQ connection — always connects regardless of BYPASS_REDIS. */
+  private readonly bullConnection: Redis;
 
-  constructor(private readonly redis: RedisService) {}
+  constructor() {
+    const url = process.env.REDIS_URL ?? 'redis://localhost:6379';
+    const useTls = url.startsWith('rediss://');
+    this.bullConnection = new Redis(url, {
+      maxRetriesPerRequest: null,
+      ...(useTls ? { tls: {} } : {}),
+    });
+    this.bullConnection.on('error', (err) => {
+      this.logger.warn('BullMQ Redis connection error', { error: err.message });
+    });
+  }
 
   private getQueue(name: string): Queue {
     let q = this.queues.get(name);
     if (!q) {
-      q = new Queue(name, { connection: this.redis.client });
+      q = new Queue(name, { connection: this.bullConnection });
       this.queues.set(name, q);
     }
     return q;

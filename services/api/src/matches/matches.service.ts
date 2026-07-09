@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { MatchPushStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { BlockFilterService } from '../common/block-filter.service';
+import { NotificationService } from '../notifications/notification.service';
 
 @Injectable()
 export class MatchesService {
@@ -11,6 +12,7 @@ export class MatchesService {
     private readonly audit: AuditService,
     // 【缺陷4 修复】注入 BlockFilterService，对匹配/会话查询做双向拉黑过滤
     private readonly blockFilter: BlockFilterService,
+    private readonly notifications: NotificationService,
   ) {}
 
   // 【缺陷10修复】根据双方 persona/profile 与 affinity 动态生成匹配原因
@@ -184,5 +186,145 @@ export class MatchesService {
       referenceId: blockedUserId,
     });
     return { blocked: true };
+  }
+
+  /**
+   * 用户主动发起匹配请求（从用户主页点击"发起匹配"）。
+   * 创建一条 pending MatchPush 并通知对方。
+   */
+  async requestMatch(requesterId: string, targetUserId: string) {
+    if (requesterId === targetUserId) {
+      throw new BadRequestException('不能向自己发起匹配请求');
+    }
+
+    // 检查双向拉黑
+    const blockedIds = await this.blockFilter.getBlockedUserIds(requesterId);
+    if (blockedIds.includes(targetUserId)) {
+      throw new BadRequestException('无法向该用户发起匹配请求');
+    }
+
+    // 检查是否已有 pending/accepted/bridged 的匹配
+    const existing = await this.prisma.matchPush.findFirst({
+      where: {
+        userId: requesterId,
+        candidateUserId: targetUserId,
+        status: { not: MatchPushStatus.dismissed },
+      },
+    });
+    if (existing) {
+      throw new BadRequestException('已存在匹配记录，请勿重复发起');
+    }
+
+    // 检查对方是否已向自己发起过请求
+    const reverse = await this.prisma.matchPush.findFirst({
+      where: {
+        userId: targetUserId,
+        candidateUserId: requesterId,
+        status: { not: MatchPushStatus.dismissed },
+      },
+    });
+    if (reverse) {
+      throw new BadRequestException('对方已向你发起匹配请求，请到匹配列表查看');
+    }
+
+    // 创建匹配推送
+    const push = await this.prisma.matchPush.create({
+      data: {
+        userId: requesterId,
+        candidateUserId: targetUserId,
+        status: MatchPushStatus.pending,
+      },
+    });
+
+    // 获取发起者昵称
+    const requesterProfile = await this.prisma.profile.findUnique({
+      where: { userId: requesterId },
+      select: { displayName: true },
+    });
+    const requesterName = requesterProfile?.displayName ?? '某位用户';
+
+    // 通知目标用户
+    await this.notifications.create({
+      userId: targetUserId,
+      type: 'match_request',
+      title: '新匹配请求',
+      body: `${requesterName} 向你发起了匹配邀请`,
+      refType: 'match_push',
+      refId: push.id,
+      fromUserId: requesterId,
+    });
+
+    await this.audit.log({
+      userId: requesterId,
+      eventType: 'match_requested',
+      summaryZh: `向用户 ${targetUserId} 发起匹配请求`,
+      referenceId: push.id,
+    });
+
+    return { requested: true, matchPushId: push.id };
+  }
+
+  /**
+   * 接受来自他人的匹配请求。
+   * 将原 MatchPush 标记为 accepted，创建反向 MatchPush，通知发起者。
+   */
+  async acceptMatch(userId: string, matchPushId: string) {
+    const push = await this.prisma.matchPush.findFirst({
+      where: { id: matchPushId, candidateUserId: userId, status: MatchPushStatus.pending },
+    });
+    if (!push) {
+      throw new BadRequestException('匹配请求不存在或已处理');
+    }
+
+    // 更新原 MatchPush 为 accepted
+    await this.prisma.matchPush.update({
+      where: { id: matchPushId },
+      data: { status: MatchPushStatus.accepted },
+    });
+
+    // 创建反向 MatchPush（让发起者也能在列表中看到）
+    const existingReverse = await this.prisma.matchPush.findFirst({
+      where: {
+        userId: userId,
+        candidateUserId: push.userId,
+        status: { not: MatchPushStatus.dismissed },
+      },
+    });
+    if (!existingReverse) {
+      await this.prisma.matchPush.create({
+        data: {
+          userId: userId,
+          candidateUserId: push.userId,
+          status: MatchPushStatus.accepted,
+        },
+      });
+    }
+
+    // 获取接受者昵称
+    const accepterProfile = await this.prisma.profile.findUnique({
+      where: { userId },
+      select: { displayName: true },
+    });
+    const accepterName = accepterProfile?.displayName ?? '某位用户';
+
+    // 通知原发起者：对方已接受
+    await this.notifications.create({
+      userId: push.userId,
+      type: 'match_accepted',
+      title: '匹配请求已被接受',
+      body: `${accepterName} 接受了你的匹配邀请`,
+      refType: 'match_push',
+      refId: matchPushId,
+      fromUserId: userId,
+    });
+
+    await this.audit.log({
+      userId,
+      eventType: 'match_accepted',
+      summaryZh: `接受匹配请求（push=${matchPushId}）`,
+      referenceId: matchPushId,
+    });
+
+    return { accepted: true };
   }
 }

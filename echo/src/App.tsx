@@ -18,6 +18,7 @@ import { pollFeedUntilNewPost } from './api/posts';
 import {
   fetchMe,
   getStoredAccessToken,
+  clearTokens,
   clearProactiveRefresh,
   scheduleProactiveRefresh,
   type AuthSession,
@@ -33,6 +34,7 @@ import { FeedView } from './features/feed/FeedView';
 import { MatchView } from './features/match/MatchView';
 import { MatchDetailView } from './features/match/MatchDetailView';
 import { CloneView } from './features/clone/CloneView';
+import { IdealPartnerSetup } from './features/clone/IdealPartnerSetup';
 import { ActivityLogView } from './features/audit/ActivityLogView';
 import { SettingsView } from './features/settings/SettingsView';
 import { AvatarSettings } from './features/settings/AvatarSettings';
@@ -40,8 +42,11 @@ import { MatchPrefsSettings } from './features/settings/MatchPrefsSettings';
 import { AccountSettings } from './features/settings/AccountSettings';
 import { PrivacySettings } from './features/settings/PrivacySettings';
 import { IdentitySettings } from './features/settings/IdentitySettings';
+import { SocialBoundariesSettings } from './features/settings/SocialBoundariesSettings';
 import { PostDetailView } from './features/feed/PostDetailView';
 import { SessionTranscriptView } from './features/audit/SessionTranscriptView';
+import { UserProfileView } from './features/profile/UserProfileView';
+import { NotificationBell } from './features/notifications/NotificationBell';
 import { COPY } from './copy';
 
 // 【缺陷6修复】路由→tabId 映射，用于底部导航高亮
@@ -290,6 +295,17 @@ export default function App() {
           void refreshMatches();
         }, 200);
       }
+      // 通知事件：匹配请求/接受也触发匹配列表刷新
+      if (msg.type === 'notification') {
+        const payload = msg.payload;
+        const notifType = payload?.notificationType;
+        if (notifType === 'match_request' || notifType === 'match_accepted') {
+          if (matchDebounceRef.current) clearTimeout(matchDebounceRef.current);
+          matchDebounceRef.current = setTimeout(() => {
+            void refreshMatches();
+          }, 200);
+        }
+      }
     };
 
     return connectLiveEvents({ onEvent: handleLive });
@@ -356,7 +372,11 @@ export default function App() {
           path="*"
           element={
             <ErrorBoundary>
-              <Onboarding userId={currentUserId} onComplete={() => { setState('main'); navigate('/', { replace: true }); }} />
+              <Onboarding
+                userId={currentUserId}
+                onComplete={() => { setState('main'); navigate('/', { replace: true }); }}
+                onClose={() => { clearProactiveRefresh(); clearTokens(); setState('auth'); navigate('/login', { replace: true }); }}
+              />
             </ErrorBoundary>
           }
         />
@@ -407,8 +427,22 @@ export default function App() {
         element={<PrivacySettings onBack={() => navigate(-1)} />}
       />
       <Route
+        path="/settings/boundaries"
+        element={<SocialBoundariesSettings onBack={() => navigate(-1)} />}
+      />
+      <Route
         path="/settings/identity"
         element={<IdentitySettings onBack={() => navigate(-1)} />}
+      />
+      {/* 理想型补做（全屏，已 finalize 用户绕开 OnboardingSession 限制） */}
+      <Route
+        path="/ideal-setup"
+        element={<IdealPartnerSetup />}
+      />
+      {/* 用户主页（全屏覆盖） */}
+      <Route
+        path="/user/:userId"
+        element={<UserProfileRoute currentUserId={currentUserId} onBack={() => navigate(-1)} />}
       />
       {/* 主界面布局（含底部导航） */}
       <Route
@@ -422,6 +456,7 @@ export default function App() {
             matchLoading={matchLoading}
             matchSource={matchSource}
             matchActionError={matchActionError}
+            currentUserId={currentUserId}
             onRefreshFeed={() => void refreshFeed()}
             onRefreshMatches={() => void refreshMatches()}
             onDismiss={handleDismissMatch}
@@ -484,6 +519,11 @@ function SessionRoute({ onBack }: { onBack: () => void }) {
   return <SessionTranscriptView sessionId={id} onBack={onBack} />;
 }
 
+function UserProfileRoute({ currentUserId, onBack }: { currentUserId: string; onBack: () => void }) {
+  const { userId = '' } = useParams();
+  return <UserProfileView userId={userId} currentUserId={currentUserId} onBack={onBack} />;
+}
+
 // ---------------------------------------------------------------------------
 // 【缺陷6修复】MainLayout：主界面布局 + 底部导航 + 子路由 Outlet
 // ---------------------------------------------------------------------------
@@ -495,6 +535,7 @@ function MainLayout(props: {
   matchLoading: boolean;
   matchSource: MatchSource | 'idle';
   matchActionError: string | null;
+  currentUserId: string;
   onRefreshFeed: () => void;
   onRefreshMatches: () => void;
   onDismiss: (m: Match) => void;
@@ -508,8 +549,11 @@ function MainLayout(props: {
   // 【缺陷6修复】从路由推导当前 tab
   const currentTab: TabId = ROUTE_TO_TAB[location.pathname] ?? 'feed';
 
+  // 通知铃铛（每个 tab 的 Header 右侧共享）
+  const bellSlot = <NotificationBell />;
+
   return (
-    <div className="max-w-md mx-auto min-h-screen bg-echo-dark text-white relative">
+    <div className="max-w-[375px] mx-auto min-h-screen relative" style={{ backgroundColor: '#f8f9ff', color: '#121c28' }}>
       <div className="pb-20">
         {/* 【缺陷6修复】用路由替代 currentTab 条件渲染 */}
         {currentTab === 'feed' && (
@@ -519,6 +563,8 @@ function MainLayout(props: {
             source={props.feedSource}
             onRefresh={props.onRefreshFeed}
             onOpenPost={(id) => navigate(`/post/${id}`)}
+            onOpenProfile={(userId) => navigate(`/user/${userId}`)}
+            headerRight={bellSlot}
           />
         )}
         {currentTab === 'match' && (
@@ -532,21 +578,23 @@ function MainLayout(props: {
             onDismiss={props.onDismiss}
             onBlock={props.onBlock}
             onOpenSession={(id) => navigate(`/session/${id}`)}
+            headerRight={bellSlot}
           />
         )}
         {currentTab === 'clone' && (
-          <CloneView onPostQueued={props.onPostQueued} />
+          <CloneView onPostQueued={props.onPostQueued} headerRight={bellSlot} />
         )}
         {currentTab === 'log' && (
           <ActivityLogView
             onOpenPost={(id) => navigate(`/post/${id}`)}
             onOpenSession={(id) => navigate(`/session/${id}`)}
+            headerRight={bellSlot}
           />
         )}
-        {currentTab === 'settings' && <SettingsView onLogout={props.onLogout} />}
+        {currentTab === 'settings' && <SettingsView onLogout={props.onLogout} headerRight={bellSlot} />}
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto h-20 glass border-t border-white/10 px-6 flex items-center justify-between z-50">
+      <div className="fixed bottom-0 left-0 right-0 max-w-[375px] mx-auto h-20 px-6 flex items-center justify-between z-50" style={{ backgroundColor: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(12px)', borderTop: '1px solid #d9e3f4' }}>
         {(
           [
             { id: 'feed' as const, icon: <Home className="w-6 h-6" />, label: '动态', path: '/' },
@@ -560,9 +608,8 @@ function MainLayout(props: {
             key={tab.id}
             type="button"
             onClick={() => navigate(tab.path)}
-            className={`flex flex-col items-center gap-1 transition-all ${
-              currentTab === tab.id ? 'text-echo-blue' : 'text-gray-500 hover:text-gray-300'
-            }`}
+            className="flex flex-col items-center gap-1 transition-all"
+            style={{ color: currentTab === tab.id ? '#2B8AEF' : '#7b7487' }}
           >
             {tab.icon}
             <span className="text-[10px] font-bold">{tab.label}</span>

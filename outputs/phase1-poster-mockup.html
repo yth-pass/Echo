@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Echo Phase 1 海报 UI 模板</title>
+  <style>
+    :root {
+      --bg: #f7f5f2;
+      --card-bg: #ffffff;
+      --text: #2d2a26;
+      --text-muted: #8a837c;
+      --coral: #FF6B6B;
+      --coral-light: #fff0f0;
+      --violet: #7C5CFC;
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-pill: 999px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+      gap: 28px;
+    }
+
+    h1 {
+      font-size: 22px;
+      margin: 0 0 4px;
+      text-align: center;
+      color: var(--text);
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: var(--text-muted);
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .archetype-switcher {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      max-width: 720px;
+    }
+
+    .archetype-switcher button {
+      border: 1px solid #e5e0db;
+      background: white;
+      border-radius: var(--radius-pill);
+      padding: 8px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all .2s ease;
+      color: var(--text);
+    }
+
+    .archetype-switcher button:hover,
+    .archetype-switcher button.active {
+      background: var(--coral);
+      color: white;
+      border-color: var(--coral);
+    }
+
+    /* Poster canvas 9:16 */
+    .poster {
+      width: 360px;
+      height: 640px;
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.12);
+      background: linear-gradient(170deg, #fff6f4 0%, #fff0f0 45%, #ffe8e8 100%);
+      display: flex;
+      flex-direction: column;
+      padding: 22px 24px 24px;
+      transition: background .5s ease;
+    }
+
+    /* Top bar */
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 18px;
+      color: var(--coral);
+    }
+
+    .logo-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--coral);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 12px;
+    }
+
+    .top-tag {
+      font-size: 11px;
+      color: var(--text-muted);
+      background: rgba(255,255,255,0.7);
+      padding: 5px 10px;
+      border-radius: var(--radius-pill);
+      backdrop-filter: blur(4px);
+    }
+
+    /* Hero */
+    .hero {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .deco-ring {
+      position: absolute;
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,107,107,0.12) 0%, rgba(255,107,107,0) 70%);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .elf-illustration {
+      width: 190px;
+      height: 190px;
+      z-index: 2;
+      filter: drop-shadow(0 12px 24px rgba(255,107,107,0.18));
+    }
+
+    .elf-name-wrap {
+      text-align: center;
+      margin-top: 10px;
+      z-index: 2;
+    }
+
+    .elf-name {
+      font-size: 30px;
+      font-weight: 800;
+      color: var(--coral);
+      margin: 0;
+      line-height: 1.1;
+    }
+
+    .elf-code {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      letter-spacing: 1px;
+    }
+
+    /* Declaration */
+    .declaration {
+      background: rgba(255,255,255,0.65);
+      border-radius: var(--radius-lg);
+      padding: 16px 18px;
+      text-align: center;
+      backdrop-filter: blur(6px);
+      margin-bottom: 14px;
+    }
+
+    .declaration-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .declaration-quote {
+      font-size: 15px;
+      line-height: 1.55;
+      color: var(--text);
+      margin: 0;
+      font-weight: 500;
+    }
+
+    .quote-mark {
+      color: var(--coral);
+      opacity: 0.4;
+      font-size: 20px;
+      line-height: 0;
+      vertical-align: middle;
+    }
+
+    /* Keyword sections */
+    .keyword-section {
+      background: rgba(255,255,255,0.7);
+      border-radius: var(--radius-lg);
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      backdrop-filter: blur(4px);
+    }
+
+    .keyword-title {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .keyword-title::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--coral);
+    }
+
+    .keyword-title.ideal::before {
+      background: var(--violet);
+    }
+
+    .keyword-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .pill {
+      font-size: 12px;
+      padding: 6px 12px;
+      border-radius: var(--radius-pill);
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .pill.personal {
+      background: var(--coral-light);
+      color: var(--coral);
+    }
+
+    .pill.ideal {
+      background: #f3f0ff;
+      color: var(--violet);
+    }
+
+    /* Footer CTA */
+    .footer {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-top: auto;
+    }
+
+    .cta-btn {
+      flex: 1;
+      background: linear-gradient(135deg, var(--coral), #ff8e8e);
+      color: white;
+      border: none;
+      border-radius: var(--radius-pill);
+      padding: 13px 18px;
+      font-size: 15px;
+      font-weight: 700;
+      box-shadow: 0 8px 20px rgba(255,107,107,0.28);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .share-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,107,107,0.25);
+      background: white;
+      color: var(--coral);
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .qr-block {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .qr {
+      width: 44px;
+      height: 44px;
+      background: #fff;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: var(--text-muted);
+      border: 1px solid rgba(0,0,0,0.06);
+    }
+
+    .qr-text {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+
+    .disclaimer {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: 8px;
+      opacity: 0.8;
+    }
+
+    /* Responsive */
+    @media (max-width: 400px) {
+      .poster { width: 100%; max-width: 360px; height: auto; aspect-ratio: 9/16; }
+    }
+  </style>
+</head>
+<body>
+
+  <div>
+    <h1>Echo Phase 1 入驻结果海报 · UI 模板</h1>
+    <p class="subtitle">点击下方原型切换不同回声精灵的配色与文案</p>
+  </div>
+
+  <div class="archetype-switcher" id="switcher">
+    <button class="active" data-key="glow-deer">栖光鹿</button>
+    <button data-key="star-fox">探梦狐</button>
+    <button data-key="jade-rabbit">沉璧兔</button>
+    <button data-key="neon-fish">跃鳞鱼</button>
+    <button data-key="watch-bear">守望熊</button>
+    <button data-key="dusk-butterfly">暮鳞蝶</button>
+  </div>
+
+  <div class="poster" id="poster">
+    <div class="topbar">
+      <div class="logo">
+        <div class="logo-icon">E</div>
+        <span>Echo</span>
+      </div>
+      <div class="top-tag">Phase 1 入驻结果</div>
+    </div>
+
+    <div class="hero">
+      <div class="deco-ring"></div>
+      <svg class="elf-illustration" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <!-- Glow Deer -->
+        <defs>
+          <linearGradient id="bodyGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#FF8E8E"/>
+            <stop offset="100%" stop-color="#FF6B6B"/>
+          </linearGradient>
+          <linearGradient id="heartGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#FFD1A9"/>
+            <stop offset="100%" stop-color="#FF9A8B"/>
+          </linearGradient>
+        </defs>
+        <!-- Ears -->
+        <ellipse cx="55" cy="68" rx="14" ry="22" fill="#FF8E8E" transform="rotate(-25 55 68)"/>
+        <ellipse cx="145" cy="68" rx="14" ry="22" fill="#FF8E8E" transform="rotate(25 145 68)"/>
+        <!-- Antlers -->
+        <path d="M70 55 Q60 35 50 40 M60 48 Q55 32 48 36" stroke="#D4A373" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <path d="M130 55 Q140 35 150 40 M140 48 Q145 32 152 36" stroke="#D4A373" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <!-- Body -->
+        <ellipse cx="100" cy="120" rx="62" ry="58" fill="url(#bodyGrad)"/>
+        <!-- Blush -->
+        <ellipse cx="72" cy="118" rx="10" ry="7" fill="#FFB6B6" opacity="0.8"/>
+        <ellipse cx="128" cy="118" rx="10" ry="7" fill="#FFB6B6" opacity="0.8"/>
+        <!-- Eyes -->
+        <circle cx="78" cy="105" r="10" fill="#2D2A26"/>
+        <circle cx="122" cy="105" r="10" fill="#2D2A26"/>
+        <circle cx="81" cy="102" r="3.5" fill="white"/>
+        <circle cx="125" cy="102" r="3.5" fill="white"/>
+        <!-- Smile -->
+        <path d="M92 128 Q100 134 108 128" stroke="#2D2A26" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <!-- Heart -->
+        <path d="M100 148 C90 138 80 148 100 168 C120 148 110 138 100 148" fill="url(#heartGrad)"/>
+        <!-- Paws holding heart -->
+        <ellipse cx="82" cy="156" rx="9" ry="7" fill="#FF8E8E"/>
+        <ellipse cx="118" cy="156" rx="9" ry="7" fill="#FF8E8E"/>
+        <!-- Floating sparkles -->
+        <circle cx="35" cy="55" r="2.5" fill="#FFD700" opacity="0.8"/>
+        <path d="M160 50 L162 55 L167 55 L163 58 L165 63 L160 60 L155 63 L157 58 L153 55 L158 55 Z" fill="#FFD700" opacity="0.7"/>
+      </svg>
+
+      <div class="elf-name-wrap">
+        <h2 class="elf-name">栖光鹿</h2>
+        <div class="elf-code">ELF-01</div>
+      </div>
+    </div>
+
+    <div class="declaration">
+      <div class="declaration-label">你的回声</div>
+      <p class="declaration-quote">
+        <span class="quote-mark">“</span>
+        我不急着改变世界，只想把温度传给你。
+        <span class="quote-mark">”</span>
+      </p>
+    </div>
+
+    <div class="keyword-section">
+      <div class="keyword-title">我的关键字</div>
+      <div class="keyword-pills">
+        <span class="pill personal">温暖</span>
+        <span class="pill personal">倾听</span>
+        <span class="pill personal">稳定</span>
+        <span class="pill personal">活在当下</span>
+        <span class="pill personal">真诚</span>
+      </div>
+    </div>
+
+    <div class="keyword-section">
+      <div class="keyword-title ideal">我想遇见</div>
+      <div class="keyword-pills">
+        <span class="pill ideal">情感确认</span>
+        <span class="pill ideal">边界感</span>
+        <span class="pill ideal">有话直说</span>
+        <span class="pill ideal">不隔夜</span>
+      </div>
+    </div>
+
+    <div class="footer">
+      <button class="cta-btn">
+        <span>生成我的分身</span>
+        <span>→</span>
+      </button>
+      <button class="share-btn">↗</button>
+    </div>
+
+    <div class="qr-block">
+      <div class="qr">QR</div>
+      <div class="qr-text">扫码也能测你的<br>回声精灵</div>
+    </div>
+
+    <div class="disclaimer">这些词是你此刻的回声，不是定义。</div>
+  </div>
+
+  <script>
+    const archetypes = {
+      'glow-deer': {
+        name: '栖光鹿',
+        code: 'ELF-01',
+        primary: '#FF6B6B',
+        light: '#fff0f0',
+        gradient: 'linear-gradient(170deg, #fff6f4 0%, #fff0f0 45%, #ffe8e8 100%)',
+        declaration: '我不急着改变世界，只想把温度传给你。',
+        personal: ['温暖', '倾听', '稳定', '活在当下', '真诚'],
+        ideal: ['情感确认', '边界感', '有话直说', '不隔夜'],
+        svg: 'glow-deer'
+      },
+      'star-fox': {
+        name: '探梦狐',
+        code: 'ELF-02',
+        primary: '#7C5CFC',
+        light: '#f3f0ff',
+        gradient: 'linear-gradient(170deg, #f7f4ff 0%, #f0ebff 45%, #e8e0ff 100%)',
+        declaration: '世界太大，我想牵着问题去找答案。',
+        personal: ['好奇', '探索', '未来', '外向', '开放'],
+        ideal: ['冒险精神', '深度对话', '独立', '目标感'],
+        svg: 'star-fox'
+      },
+      'jade-rabbit': {
+        name: '沉璧兔',
+        code: 'ELF-03',
+        primary: '#4ECDC4',
+        light: '#eafffc',
+        gradient: 'linear-gradient(170deg, #f4fffe 0%, #eafffc 45%, #dff8f6 100%)',
+        declaration: '人群很吵，但我愿意把安静分你一半。',
+        personal: ['沉静', '可靠', '深度', '内敛', '稳定'],
+        ideal: ['安静', '理解', '稳定', '不打扰'],
+        svg: 'jade-rabbit'
+      },
+      'neon-fish': {
+        name: '跃鳞鱼',
+        code: 'ELF-04',
+        primary: '#FF6B9D',
+        light: '#fff0f5',
+        gradient: 'linear-gradient(170deg, #fff5f8 0%, #ffe8f0 45%, #e8f6ff 100%)',
+        declaration: '生活是一场即兴演出，我想和你共舞。',
+        personal: ['鲜活', '即兴', '表达', '外向', ' playful'],
+        ideal: ['有趣', '轻松', '不较真', '当下'],
+        svg: 'neon-fish'
+      },
+      'watch-bear': {
+        name: '守望熊',
+        code: 'ELF-05',
+        primary: '#D4A373',
+        light: '#fff7ed',
+        gradient: 'linear-gradient(170deg, #fffbf5 0%, #fff7ed 45%, #f5e6d3 100%)',
+        declaration: '承诺不是一瞬间，是我每天的选择。',
+        personal: ['担当', '守护', '长远', '可靠', '温暖'],
+        ideal: ['责任', '稳定', '长远', '真诚'],
+        svg: 'watch-bear'
+      },
+      'dusk-butterfly': {
+        name: '暮鳞蝶',
+        code: 'ELF-06',
+        primary: '#9A8BC2',
+        light: '#f5f2ff',
+        gradient: 'linear-gradient(170deg, #f8f6ff 0%, #f0ecff 45%, #e8e0f7 100%)',
+        declaration: '我的记忆里住着一个春天，想和你再走过去。',
+        personal: ['细腻', '怀旧', '创造', '敏感', '开放'],
+        ideal: ['共情', '耐心', '艺术', '温柔'],
+        svg: 'dusk-butterfly'
+      }
+    };
+
+    const svgLibrary = {
+      'glow-deer': `<defs><linearGradient id="bodyGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#FF8E8E"/><stop offset="100%" stop-color="#FF6B6B"/></linearGradient><linearGradient id="heartGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#FFD1A9"/><stop offset="100%" stop-color="#FF9A8B"/></linearGradient></defs><ellipse cx="55" cy="68" rx="14" ry="22" fill="#FF8E8E" transform="rotate(-25 55 68)"/><ellipse cx="145" cy="68" rx="14" ry="22" fill="#FF8E8E" transform="rotate(25 145 68)"/><path d="M70 55 Q60 35 50 40 M60 48 Q55 32 48 36" stroke="#D4A373" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M130 55 Q140 35 150 40 M140 48 Q145 32 152 36" stroke="#D4A373" stroke-width="4" fill="none" stroke-linecap="round"/><ellipse cx="100" cy="120" rx="62" ry="58" fill="url(#bodyGrad)"/><ellipse cx="72" cy="118" rx="10" ry="7" fill="#FFB6B6" opacity="0.8"/><ellipse cx="128" cy="118" rx="10" ry="7" fill="#FFB6B6" opacity="0.8"/><circle cx="78" cy="105" r="10" fill="#2D2A26"/><circle cx="122" cy="105" r="10" fill="#2D2A26"/><circle cx="81" cy="102" r="3.5" fill="white"/><circle cx="125" cy="102" r="3.5" fill="white"/><path d="M92 128 Q100 134 108 128" stroke="#2D2A26" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M100 148 C90 138 80 148 100 168 C120 148 110 138 100 148" fill="url(#heartGrad)"/><ellipse cx="82" cy="156" rx="9" ry="7" fill="#FF8E8E"/><ellipse cx="118" cy="156" rx="9" ry="7" fill="#FF8E8E"/><circle cx="35" cy="55" r="2.5" fill="#FFD700" opacity="0.8"/><path d="M160 50 L162 55 L167 55 L163 58 L165 63 L160 60 L155 63 L157 58 L153 55 L158 55 Z" fill="#FFD700" opacity="0.7"/>`,
+
+      'star-fox': `<defs><linearGradient id="foxGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#9F8BFF"/><stop offset="100%" stop-color="#7C5CFC"/></linearGradient><linearGradient id="tailGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#C4B8FF"/><stop offset="100%" stop-color="#7C5CFC"/></linearGradient></defs><path d="M145 130 Q180 120 175 80 Q170 50 150 60 Q140 90 130 110" fill="url(#tailGrad)"/><ellipse cx="100" cy="120" rx="58" ry="54" fill="url(#foxGrad)"/><path d="M70 70 L55 45 L80 60 Z" fill="#9F8BFF"/><path d="M130 70 L145 45 L120 60 Z" fill="#9F8BFF"/><ellipse cx="72" cy="118" rx="10" ry="7" fill="#B8A9FF" opacity="0.8"/><ellipse cx="128" cy="118" rx="10" ry="7" fill="#B8A9FF" opacity="0.8"/><circle cx="80" cy="105" r="10" fill="#2D2A26"/><circle cx="120" cy="105" r="10" fill="#2D2A26"/><circle cx="83" cy="102" r="3.5" fill="white"/><circle cx="123" cy="102" r="3.5" fill="white"/><path d="M94 128 Q100 134 106 128" stroke="#2D2A26" stroke-width="2.5" fill="none" stroke-linecap="round"/><circle cx="40" cy="50" r="2" fill="white" opacity="0.9"/><circle cx="55" cy="40" r="1.5" fill="white" opacity="0.7"/><circle cx="160" cy="55" r="2" fill="white" opacity="0.8"/><path d="M120 60 L124 68 L132 68 L126 74 L128 82 L120 77 L112 82 L114 74 L108 68 L116 68 Z" fill="#FFD700" opacity="0.8"/>`,
+
+      'jade-rabbit': `<defs><linearGradient id="rabbitGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#7EDBD6"/><stop offset="100%" stop-color="#4ECDC4"/></linearGradient></defs><ellipse cx="62" cy="60" rx="11" ry="30" fill="#7EDBD6" transform="rotate(-12 62 60)"/><ellipse cx="138" cy="60" rx="11" ry="30" fill="#7EDBD6" transform="rotate(12 138 60)"/><ellipse cx="100" cy="120" rx="58" ry="54" fill="url(#rabbitGrad)"/><ellipse cx="72" cy="118" rx="10" ry="7" fill="#B3E8E4" opacity="0.8"/><ellipse cx="128" cy="118" rx="10" ry="7" fill="#B3E8E4" opacity="0.8"/><circle cx="80" cy="105" r="9" fill="#2D2A26"/><circle cx="120" cy="105" r="9" fill="#2D2A26"/><circle cx="83" cy="102" r="3" fill="white"/><circle cx="123" cy="102" r="3" fill="white"/><path d="M94 128 Q100 132 106 128" stroke="#2D2A26" stroke-width="2.5" fill="none" stroke-linecap="round"/><ellipse cx="100" cy="152" rx="22" ry="18" fill="#E0F7F6" stroke="#B3E8E4" stroke-width="2"/><circle cx="90" cy="148" r="2" fill="#7EDBD6" opacity="0.6"/><circle cx="110" cy="152" r="2" fill="#7EDBD6" opacity="0.6"/><circle cx="100" cy="158" r="2" fill="#7EDBD6" opacity="0.6"/><path d="M45 90 Q35 80 40 70" stroke="#7EDBD6" stroke-width="2" fill="none" opacity="0.5" stroke-linecap="round"/>`,
+
+      'neon-fish': `<defs><linearGradient id="fishGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#FF8BA7"/><stop offset="100%" stop-color="#4A90D9"/></linearGradient></defs><ellipse cx="100" cy="120" rx="64" ry="52" fill="url(#fishGrad)"/><path d="M155 120 L185 100 L185 140 Z" fill="#4A90D9"/><ellipse cx="72" cy="118" rx="10" ry="7" fill="#FFC4D0" opacity="0.8"/><ellipse cx="128" cy="118" rx="10" ry="7" fill="#FFC4D0" opacity="0.8"/><circle cx="80" cy="105" r="10" fill="#2D2A26"/><circle cx="120" cy="105" r="10" fill="#2D2A26"/><circle cx="83" cy="102" r="3.5" fill="white"/><circle cx="123" cy="102" r="3.5" fill="white"/><path d="M92 130 Q100 138 108 130" stroke="#2D2A26" stroke-width="2.5" fill="none" stroke-linecap="round"/><ellipse cx="70" cy="130" rx="8" ry="5" fill="#87CEEB" opacity="0.6" transform="rotate(-20 70 130)"/><ellipse cx="130" cy="110" rx="8" ry="5" fill="#87CEEB" opacity="0.6" transform="rotate(20 130 110)"/><ellipse cx="100" cy="150" rx="8" ry="5" fill="#87CEEB" opacity="0.6" transform="rotate(-10 100 150)"/><circle cx="40" cy="60" r="2" fill="#4A90D9" opacity="0.6"/><circle cx="160" cy="50" r="2" fill="#FF8BA7" opacity="0.6"/>`,
+
+      'watch-bear': `<defs><linearGradient id="bearGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#E5B88A"/><stop offset="100%" stop-color="#D4A373"/></linearGradient></defs><circle cx="52" cy="60" r="16" fill="#E5B88A"/><circle cx="148" cy="60" r="16" fill="#E5B88A"/><ellipse cx="100" cy="122" rx="62" ry="58" fill="url(#bearGrad)"/><ellipse cx="72" cy="120" rx="10" ry="7" fill="#F5D0B0" opacity="0.8"/><ellipse cx="128" cy="120" rx="10" ry="7" fill="#F5D0B0" opacity="0.8"/><circle cx="80" cy="105" r="10" fill="#2D2A26"/><circle cx="120" cy="105" r="10" fill="#2D2A26"/><circle cx="83" cy="102" r="3.5" fill="white"/><circle cx="123" cy="102" r="3.5" fill="white"/><path d="M92 130 Q100 136 108 130" stroke="#2D2A26" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M50 90 Q70 85 90 95 Q100 80 110 95 Q130 85 150 90" stroke="#B08968" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.6"/><ellipse cx="75" cy="155" rx="12" ry="9" fill="#E5B88A"/><ellipse cx="125" cy="155" rx="12" ry="9" fill="#E5B88A"/>`,
+
+      'dusk-butterfly': `<defs><linearGradient id="wingGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#D5C9E8"/><stop offset="100%" stop-color="#9A8BC2"/></linearGradient></defs><path d="M100 110 Q60 60 40 90 Q30 120 70 130 Q100 140 100 120" fill="url(#wingGrad)" opacity="0.85"/><path d="M100 110 Q140 60 160 90 Q170 120 130 130 Q100 140 100 120" fill="url(#wingGrad)" opacity="0.85"/><path d="M100 120 Q70 150 60 170 Q80 175 100 150" fill="url(#wingGrad)" opacity="0.7"/><path d="M100 120 Q130 150 140 170 Q120 175 100 150" fill="url(#wingGrad)" opacity="0.7"/><ellipse cx="100" cy="115" rx="12" ry="34" fill="#8B7DB5"/><ellipse cx="72" cy="118" rx="8" ry="6" fill="#C4B8D9" opacity="0.8"/><ellipse cx="128" cy="118" rx="8" ry="6" fill="#C4B8D9" opacity="0.8"/><circle cx="96" cy="108" r="5" fill="#2D2A26"/><circle cx="104" cy="108" r="5" fill="#2D2A26"/><circle cx="97" cy="106" r="1.5" fill="white"/><circle cx="105" cy="106" r="1.5" fill="white"/><path d="M96 122 Q100 125 104 122" stroke="#2D2A26" stroke-width="1.5" fill="none" stroke-linecap="round"/><circle cx="55" cy="80" r="1.5" fill="#FFD700" opacity="0.6"/><circle cx="145" cy="75" r="1.5" fill="#FFD700" opacity="0.6"/>`
+    };
+
+    const poster = document.getElementById('poster');
+    const buttons = document.querySelectorAll('#switcher button');
+
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        buttons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const key = btn.dataset.key;
+        const data = archetypes[key];
+        applyArchetype(data, key);
+      });
+    });
+
+    function applyArchetype(data, key) {
+      poster.style.background = data.gradient;
+      poster.style.setProperty('--coral', data.primary);
+      poster.style.setProperty('--coral-light', data.light);
+
+      document.querySelector('.elf-name').textContent = data.name;
+      document.querySelector('.elf-code').textContent = data.code;
+      document.querySelector('.declaration-quote').innerHTML =
+        `<span class="quote-mark">“</span>${data.declaration}<span class="quote-mark">”</span>`;
+
+      const personalPills = data.personal.map(k => `<span class="pill personal">${k}</span>`).join('');
+      document.querySelector('.keyword-section:first-of-type .keyword-pills').innerHTML = personalPills;
+
+      const idealPills = data.ideal.map(k => `<span class="pill ideal">${k}</span>`).join('');
+      document.querySelector('.keyword-section:last-of-type .keyword-pills').innerHTML = idealPills;
+
+      const svg = document.querySelector('.elf-illustration');
+      svg.innerHTML = svgLibrary[key];
+
+      // Update decorative ring color
+      const ring = document.querySelector('.deco-ring');
+      ring.style.background = `radial-gradient(circle, ${data.primary}22 0%, ${data.primary}00 70%)`;
+
+      // Update buttons
+      document.querySelector('.cta-btn').style.background = `linear-gradient(135deg, ${data.primary}, ${lighten(data.primary, 20)})`;
+      document.querySelector('.cta-btn').style.boxShadow = `0 8px 20px ${data.primary}48`;
+      document.querySelector('.share-btn').style.color = data.primary;
+      document.querySelector('.share-btn').style.borderColor = `${data.primary}40`;
+      document.querySelector('.logo').style.color = data.primary;
+      document.querySelector('.logo-icon').style.background = data.primary;
+      document.querySelectorAll('.keyword-title::before').forEach ? null : null;
+      document.querySelector('.keyword-title').style.setProperty('--coral', data.primary);
+
+      // Update quote marks color
+      document.querySelectorAll('.quote-mark').forEach(el => el.style.color = data.primary);
+    }
+
+    function lighten(hex, percent) {
+      const num = parseInt(hex.replace('#', ''), 16);
+      const amt = Math.round(2.55 * percent);
+      const R = (num >> 16) + amt;
+      const G = (num >> 8 & 0x00FF) + amt;
+      const B = (num & 0x0000FF) + amt;
+      return '#' + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+        (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+        (B < 255 ? B < 1 ? 0 : B : 255))
+        .toString(16).slice(1);
+    }
+  </script>
+
+</body>
+</html>
