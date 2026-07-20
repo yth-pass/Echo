@@ -28,6 +28,7 @@ This directory holds product and engineering blueprints. **Implementation status
 | [Echo-Delightful-Experience-Design.md](./Echo-Delightful-Experience-Design.md) | **Delightful experience design** — Anticipation Loop, Trust Dashboard, Handoff ceremony, Clone nurture, microcopy |
 | [Echo-Background-Music-Strategy.md](./Echo-Background-Music-Strategy.md) | **Background music strategy** — Per-stage music recommendations, Echo Motif brand sonic identity, AI music generation prompts, clone music fingerprint |
 | [glossary.md](./glossary.md) | Terminology |
+| [Production-Deployment-Reference.md](./Production-Deployment-Reference.md) | **Production deployment** — live server, Docker Compose services, env vars, update workflows, integrations |
 
 **Chinese mirror:** same filenames under [`docs_CN/`](../docs_CN/). See [`docs_CN/README.md`](../docs_CN/README.md).
 

@@ -21,6 +21,7 @@
 | [Echo-Delightful-Experience-Design.md](./Echo-Delightful-Experience-Design.md) | **趣味体验设计方案** — 期待感循环、信任仪表盘、Handoff 仪式、分身养成、微文案库 |
 | [Echo-Background-Music-Strategy.md](./Echo-Background-Music-Strategy.md) | **背景音乐策略** — 各阶段音乐风格建议、回声主题品牌音乐身份、AI 音乐生成 Prompt、分身音乐指纹 |
 | [glossary.md](./glossary.md) | 术语表 |
+| [Production-Deployment-Reference.md](./Production-Deployment-Reference.md) | **生产环境部署参考** — 线上服务器、Docker Compose 服务、环境变量、更新流程、集成配置 |
 
 英文索引：[`docs/README.md`](../docs/README.md)。
 
