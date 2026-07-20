@@ -256,6 +256,69 @@ export class OnboardingService {
   }
 
   /**
+   * GET /onboarding/progress — 入驻整体进度查询（幂等，恢复用）。
+   *
+   * 从 OnboardingSession.surveyJson 字段存在性推断 currentPhase，并返回各 phase 已保存的字段。
+   * 前端 mount 时调用以支持跨设备/清缓存后恢复。
+   *
+   * 推断逻辑（向后兼容旧 session）：
+   *   - roleplayChats 中存在 endedAt > 0 → 'finalize'
+   *   - roleplayChats 非空 或 agentProfiles 存在 → 'phase2'
+   *   - idealPartnerSketch 存在 → 'phase1_6'
+   *   - personaSketch 存在 → 'phase1_5'
+   *   - scenarioCards 非空 或 identity 存在 → 'phase1'
+   *   - 否则 → 'phase0'
+   *
+   * 若没有未完成的 OnboardingSession，返回 { hasActiveSession: false }。
+   */
+  async getProgress(userId: string): Promise<{
+    hasActiveSession: boolean;
+    sessionId?: string;
+    currentPhase?: string;
+    phase0Data?: OnboardingSurveyJson['identity'] | null;
+    phase1Responses?: OnboardingSurveyJson['scenarioCards'] | [];
+    phase2CompletedRoles?: string[];
+  }> {
+    const session = await this.prisma.onboardingSession.findFirst({
+      where: { userId, completed: false },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!session) {
+      return { hasActiveSession: false };
+    }
+
+    const survey =
+      (session.surveyJson as unknown as OnboardingSurveyJson | null) ?? {};
+
+    // 从 surveyJson 字段存在性推断 currentPhase
+    let currentPhase = 'phase0';
+    const chats = survey.roleplayChats ?? [];
+    if (chats.some((c) => c.endedAt > 0)) {
+      currentPhase = 'finalize';
+    } else if (chats.length > 0 || survey.agentProfiles) {
+      currentPhase = 'phase2';
+    } else if (survey.idealPartnerSketch) {
+      currentPhase = 'phase1_6';
+    } else if (survey.personaSketch) {
+      currentPhase = 'phase1_5';
+    } else if ((survey.scenarioCards?.length ?? 0) > 0 || survey.identity) {
+      currentPhase = 'phase1';
+    }
+
+    return {
+      hasActiveSession: true,
+      sessionId: session.id,
+      currentPhase,
+      phase0Data: survey.identity ?? null,
+      phase1Responses: survey.scenarioCards ?? [],
+      phase2CompletedRoles: chats
+        .filter((c) => c.endedAt > 0)
+        .map((c) => c.roleName),
+    };
+  }
+
+  /**
    * Phase 1 — 情境卡片（15 张）
    * 接收用户对 15 张情境卡片的回答，计算维度分数，写入 surveyJson。
    * 允许部分回答（记录 completionRate），P0 最小可行集为 8 张卡。

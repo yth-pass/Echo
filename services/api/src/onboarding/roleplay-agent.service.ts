@@ -52,6 +52,33 @@ export interface ChatSummary {
   endedAt: number;
 }
 
+/** GET /onboarding/roleplay/chats 返回的单条 chat 概要（用于前端同步 completedRoles） */
+export interface RoleplayChatSummary {
+  chatId: string;
+  roleName: RoleName;
+  agentName: string;
+  /** active=可继续聊，ended=已结束（前端应标记为完成） */
+  status: 'active' | 'ended';
+  messageCount: number;
+  startedAt: number;
+  endedAt: number;
+  /** 结束原因：manual=用户点结束按钮，auto_farewell=双方告别自动结束 */
+  endedReason?: 'manual' | 'auto_farewell';
+}
+
+/** POST /onboarding/roleplay/start 返回结构（A3 改造：新增 status / existingMessages / endedReason） */
+export interface StartChatResponse {
+  chatId: string;
+  openingMessage: string;
+  agentName: string;
+  /** chat 当前状态：active=可继续聊，ended=已结束（前端应标记为完成并停留角色屏） */
+  status: 'active' | 'ended';
+  /** 当 status='ended' 时返回历史消息，让前端可展示或选择重新开始 */
+  existingMessages?: Array<{ role: 'user' | 'assistant'; content: string; timestamp: number }>;
+  /** 当 status='ended' 时返回结束原因 */
+  endedReason?: 'manual' | 'auto_farewell';
+}
+
 // ---------- 同音字映射表（拼音输入法常见误选） ----------
 
 const HOMOPHONE_MAP: Record<string, string[]> = {
@@ -100,10 +127,21 @@ export class RoleplayAgentService {
   // Method 1: startChat
   // -----------------------------------------------------------------------
 
+  /**
+   * 启动或复用 roleplay 对话。
+   *
+   * A3 改造后的行为：
+   *   - existingChat 未结束（endedAt=0）→ 复用，返回 status='active'
+   *   - existingChat 已结束（endedAt>0）→ 返回 status='ended' + existingMessages + endedReason
+   *     （不自动新建，把决定权交给前端：前端应标记为完成并停留角色屏）
+   *   - 不存在 → 新建，返回 status='active'
+   *
+   * 这样前端能在 mount 时通过单次调用拿到权威状态，避免 localStorage 与后端不同步。
+   */
   async startChat(
     userId: string,
     roleName: string,
-  ): Promise<{ chatId: string; openingMessage: string; agentName: string }> {
+  ): Promise<StartChatResponse> {
     if (!isValidRoleName(roleName)) {
       throw new BadRequestException(
         `无效角色 "${roleName}"，必须是: stranger / bestfriend / crush / disappointed`,
@@ -114,17 +152,40 @@ export class RoleplayAgentService {
     const userGender = survey.identity?.genderIdentity ?? 'unspecified';
     const role = getRoleDefinition(roleName, userGender);
 
-    // 检查是否已有该角色的未完成对话
+    // 检查是否已有该角色的对话（含已结束和未结束）
     const existingChat = this.findChatByRole(survey, roleName);
-    if (existingChat && !existingChat.endedAt) {
+    if (existingChat) {
+      const existingChatWithId = existingChat as RoleplayChat & { chatId: string };
+
+      if (!existingChat.endedAt) {
+        // 情况 1：未结束 → 复用，返回 active 状态
+        return {
+          chatId: existingChatWithId.chatId,
+          openingMessage:
+            existingChat.messages[0]?.content ?? role.openingMessage,
+          agentName: role.agentName,
+          status: 'active',
+        };
+      }
+
+      // 情况 2：已结束 → 返回 ended 状态 + 历史消息 + 结束原因（不自动新建）
+      // 推断结束原因：qualityFlag='incomplete' 通常是自动告别结束（对话未达 3 轮）
+      // 其他情况（good / low_effort）通常是用户手动结束
+      const endedReason: 'manual' | 'auto_farewell' =
+        existingChat.qualityFlag === 'incomplete' ? 'auto_farewell' : 'manual';
+
       return {
-        chatId: (existingChat as unknown as { chatId: string }).chatId,
-        openingMessage: existingChat.messages[0]?.content ?? role.openingMessage,
+        chatId: existingChatWithId.chatId,
+        openingMessage:
+          existingChat.messages[0]?.content ?? role.openingMessage,
         agentName: role.agentName,
+        status: 'ended',
+        existingMessages: existingChat.messages,
+        endedReason,
       };
     }
 
-    // 构建 context（注入 Persona Sketch 摘要给 Agent）+ 性别感知
+    // 情况 3：不存在 → 新建（原逻辑）
     const genderedPrompt = this.resolveGenderPrompt(role.systemPrompt, survey);
     const personaContext = this.buildPersonaContext(survey, roleName);
     const systemPrompt = personaContext
@@ -158,6 +219,42 @@ export class RoleplayAgentService {
       chatId,
       openingMessage: role.openingMessage,
       agentName: role.agentName,
+      status: 'active',
+    };
+  }
+
+  // -----------------------------------------------------------------------
+  // Method 1.5: listChats (A2 新增 — 用于前端 mount 时同步 completedRoles)
+  // -----------------------------------------------------------------------
+
+  /**
+   * 列出当前用户所有 roleplay chat 的状态概要。
+   * 前端 Phase2Roleplay mount 时调用，避免 localStorage 与后端状态不同步。
+   * 幂等：纯读操作，不修改 surveyJson。
+   */
+  async listChats(userId: string): Promise<{ chats: RoleplayChatSummary[] }> {
+    const { survey } = await this.getActiveSession(userId);
+    const chats = survey.roleplayChats ?? [];
+
+    return {
+      chats: chats.map((c) => {
+        const chatWithId = c as RoleplayChat & { chatId: string };
+        const isEnded = c.endedAt > 0;
+        return {
+          chatId: chatWithId.chatId,
+          roleName: c.roleName,
+          agentName: c.agentName,
+          status: isEnded ? 'ended' : 'active',
+          messageCount: c.messages.length,
+          startedAt: c.startedAt,
+          endedAt: c.endedAt,
+          endedReason: isEnded
+            ? c.qualityFlag === 'incomplete'
+              ? 'auto_farewell'
+              : 'manual'
+            : undefined,
+        };
+      }),
     };
   }
 

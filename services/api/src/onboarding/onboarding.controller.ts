@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../common/jwt-auth.guard';
 import { CurrentUser } from '../common/current-user.decorator';
@@ -54,6 +54,18 @@ export class OnboardingController {
     return this.onboarding.submitSurvey(userId, dto as Record<string, unknown>);
   }
 
+  // ---------- 进度查询（恢复用，幂等） ----------
+
+  /**
+   * GET /onboarding/progress
+   * 返回当前用户未完成入驻的整体进度（currentPhase + 各 phase 已保存字段）。
+   * 前端 mount 时调用以支持跨设备/清缓存后恢复。
+   */
+  @Get('progress')
+  getProgress(@CurrentUser() userId: string) {
+    return this.onboarding.getProgress(userId);
+  }
+
   @Post('dialogue/start')
   startDialogue(@CurrentUser() userId: string, @Body() dto: DialogueStartDto) {
     return this.onboarding.startDialogue(userId, dto.sessionId);
@@ -106,6 +118,16 @@ export class OnboardingController {
   }
 
   // ---------- Phase 2: 对话式角色扮演 ----------
+
+  /**
+   * GET /onboarding/roleplay/chats
+   * 返回当前用户所有 roleplay chat 的状态列表（active/ended）。
+   * 前端 Phase2Roleplay mount 时调用以同步 completedRoles，避免与后端状态不同步。
+   */
+  @Get('roleplay/chats')
+  listRoleplayChats(@CurrentUser() userId: string) {
+    return this.roleplayAgent.listChats(userId);
+  }
 
   @Post('roleplay/start')
   roleplayStart(@CurrentUser() userId: string, @Body() dto: RoleplayStartDto) {
