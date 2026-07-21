@@ -245,6 +245,8 @@ docker compose --env-file deploy/.env.production -f deploy/docker-compose.prod.y
 
 3. **绝对不要提交 SSL 证书或 .env.production。** 它们已被 gitignore。
 
+4. **绝对不要将 GitHub Token 提交到仓库。** GitHub Secret Scanning 会阻止推送并吊销 Token。在文档中使用 `<GH_TOKEN>` 占位符。详见 §10.8。
+
 ---
 
 ## 7. 当前集成
@@ -382,6 +384,34 @@ curl http://localhost:4000/v1/health
 **症状**：在 Windows CMD 或 PowerShell 中运行 `git add` / `git commit` / `git push` 报错 `'git' 不是内部或外部命令，也不是可运行的程序`
 **原因**：Git 不在 Windows 系统 PATH 中。这是正常的 —— Git for Windows 安装到 `C:\Program Files\Git\` 但不一定会添加到 PATH。
 **修复**：见 §6 方式 A 顶部的警告框。使用 Git Bash（`C:\Program Files\Git\bin\bash.exe`）或 Agent 的 Bash 工具。在 Git Bash 中使用 Unix 风格路径：`cd /c/Users/Administrator/Desktop/Echo`。
+
+### 10.8 GitHub 因密钥扫描阻止推送（Token 被提交到仓库）
+**症状**：`git push` 失败，提示 `GH013: Repository rule violations found. Push cannot contain secrets`，检测到 `GitHub Personal Access Token`。
+**原因**：GitHub Personal Access Token 被提交进了仓库（比如写在了文档或脚本里）。GitHub 的 Push Protection / Secret Scanning 自动阻止包含 Token 的推送。
+**修复**：
+1. 从所有已提交的文件中移除 Token（替换为 `<GH_TOKEN>` 占位符）。
+2. `git add` 清理后的文件，`git commit --amend --no-edit` 更新最近一次提交。
+3. 重新 `git push`。
+4. **立即吊销泄露的 Token**，访问 https://github.com/settings/tokens。
+5. 生成新 Token 并更新本地推送命令。
+6. **预防**：绝不在文档中写入真实 Token，用 `<GH_TOKEN>` 等占位符代替。
+
+### 10.9 Git push 被本地代理干扰
+**症状**：`git push` 返回 exit code 1 但无明显错误信息，或非常慢。`GIT_CURL_VERBOSE=1` 显示连接经过 `127.0.0.1:7897`（本地代理）。
+**原因**：本地 HTTP 代理（VPN、Clash、V2Ray 等）拦截了 git 的 HTTPS 流量，可能限速或丢弃大上传。
+**修复**：
+1. 绕过代理推送：`git -c http.proxy= push https://<GH_TOKEN>@github.com/yth-pass/Echo.git main`
+2. 如果成功，用 `git ls-remote origin main` 和 `git rev-parse HEAD` 验证 —— 两者一致即为成功。
+3. 如果代理是联网必须的，接受代理清理阶段的 exit code 1 可能是假阴性，用步骤 2 确认。
+
+### 10.10 大文件导致推送过慢或失败
+**症状**：`git push` 上传数百 MB，耗时数分钟甚至超时。`git status --short` 显示大量未跟踪的二进制文件（PNG、ZIP 等）。
+**原因**：大型二进制目录（`outputs/images/`、`phase1/`、`phase2/`、`wenjuan/`、`node_modules/` 等）被 `git add` 并提交了。这些目录不应进入仓库，会永久膨胀仓库历史。
+**修复**：
+1. 将大目录加入 `.gitignore`：`echo "phase1/\nphase2/\nwenjuan/\noutputs/images/\n**/node_modules/" >> .gitignore`
+2. 从 Git 跟踪中移除：`git rm -r --cached phase1/ phase2/ wenjuan/`（不删除磁盘文件）
+3. `git commit -m "chore: remove large binaries from repo"` 并推送。
+4. 预防：每次 `git add -A` 前先用 `git status --short` 检查，发现大目录先加 `.gitignore`。
 
 ---
 

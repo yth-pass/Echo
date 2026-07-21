@@ -256,6 +256,8 @@ docker compose --env-file deploy/.env.production -f deploy/docker-compose.prod.y
 
 3. **Never commit SSL certificates or .env.production.** They are gitignored.
 
+4. **Never commit GitHub tokens to the repository.** GitHub Secret Scanning will block the push and revoke the token. Use `<GH_TOKEN>` placeholders in documentation. See §10.8.
+
 ---
 
 ## 7. Current Integrations
@@ -508,6 +510,35 @@ REDIS_URL=redis://:gBLMA7pD2OWxNq6EHls1E8gAYv%2FG08WD@redis:6379
 **Symptom**: Running `git add` / `git commit` / `git push` in Windows CMD or PowerShell gives `'git' 不是内部或外部命令，也不是可运行的程序`
 **Cause**: Git is not on the Windows system PATH. This is normal — Git for Windows installs to `C:\Program Files\Git\` but doesn't always add itself to PATH.
 **Fix**: See §6 warning box at the top of this section. Use Git Bash (`C:\Program Files\Git\bin\bash.exe`) or the agent's Bash tool. In Git Bash, use Unix-style paths: `cd /c/Users/Administrator/Desktop/Echo`.
+
+### 10.8 GitHub blocks push due to Secret Scanning (committed token)
+**Symptom**: `git push` fails with `GH013: Repository rule violations found. Push cannot contain secrets` and `GitHub Personal Access Token` detected in commits.
+**Cause**: A GitHub Personal Access Token was committed into the repository (e.g., in a doc or script). GitHub's Push Protection / Secret Scanning automatically blocks pushes that contain tokens.
+**Fix**:
+1. Remove the token from all committed files (replace with `<GH_TOKEN>` placeholder).
+2. `git add` the cleaned files and `git commit --amend --no-edit` to update the last commit.
+3. `git push` again.
+4. **Revoke the leaked token immediately** at https://github.com/settings/tokens — it's now compromised.
+5. Generate a new token and update your local push command.
+6. **Prevention**: Never write real tokens in documentation. Use placeholders like `<GH_TOKEN>` in docs, and keep the real token only in your password manager / shell history.
+
+### 10.9 Git push fails silently or through local proxy
+**Symptom**: `git push` returns exit code 1 with no clear error message, or takes very long. `GIT_CURL_VERBOSE=1` shows connections going through `127.0.0.1:7897` (a local proxy).
+**Cause**: A local HTTP proxy (VPN, Clash, V2Ray, etc.) is intercepting git's HTTPS traffic. The proxy may throttle or drop large uploads.
+**Fix**:
+1. Push bypassing the proxy: `git -c http.proxy= push https://<GH_TOKEN>@github.com/yth-pass/Echo.git main`
+2. If successful, verify with `git ls-remote origin main` and `git rev-parse HEAD` — if they match, the push worked.
+3. If the proxy is required for internet access, accept that exit code 1 from the proxy cleanup may be a false negative — verify with step 2.
+
+### 10.10 Push takes too long or fails on large files
+**Symptom**: `git push` uploads hundreds of MB and takes several minutes, or times out. `git status --short` shows many untracked binary files (PNGs, ZIPs, etc.).
+**Cause**: Large binary directories (`outputs/images/`, `phase1/`, `phase2/`, `wenjuan/`, `node_modules/`, etc.) were `git add`-ed and committed. These should never be in the repository because they bloat the repo history permanently.
+**Fix**:
+1. Add large directories to `.gitignore`: `echo "phase1/\nphase2/\nwenjuan/\noutputs/images/\n**/node_modules/" >> .gitignore`
+2. Remove them from Git tracking: `git rm -r --cached phase1/ phase2/ wenjuan/` (does NOT delete the files from disk)
+3. `git commit -m "chore: remove large binaries from repo"` and push.
+4. If already committed in earlier commits, use `git filter-branch` or BFG Repo-Cleaner to purge from history (advanced — only needed if repo is very large).
+5. **Prevention**: Always review `git status --short` before `git add -A`. If you see large directories, add them to `.gitignore` first.
 
 ---
 

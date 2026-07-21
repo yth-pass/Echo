@@ -38,3 +38,18 @@ apps/android/local.properties
 # Prisma / misc
 *.tsbuildinfo
 tmp/echo-update.tar.gz
+
+# Large binary / generated directories — never commit these
+**/node_modules/
+**/dist/
+Echo/node_modules/
+Echo/logo/
+Echo/public/illustrations/
+outputs/images/
+phase1/
+phase2/
+wenjuan/
+tmp/
+.workbuddy/
+mcp-wan-image/
+*_overview*.md
