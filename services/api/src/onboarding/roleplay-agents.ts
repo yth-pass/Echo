@@ -446,8 +446,8 @@ export function detectAiSpeech(text: string): string[] {
 export const IMPERFECTION_PROBS = {
   /** 分段发送概率 */
   splitMessage: 0.30,
-  /** 偶尔打错字概率 */
-  typo: 0.05,
+  /** 偶尔打错字概率（仅 typoEnabled=true 的角色） */
+  typo: 0.03,
   /** 话题跑偏概率（注入 system hint） */
   topicDrift: 0.20,
   /** 忘记前文概率（注入 system hint） */

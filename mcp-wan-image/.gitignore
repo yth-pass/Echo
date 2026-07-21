@@ -1,0 +1,12 @@
+# 密钥
+.env
+
+# 生成的图片
+../outputs/images/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/

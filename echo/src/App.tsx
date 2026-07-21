@@ -483,8 +483,16 @@ export default function App() {
 
 function PostRoute({ posts, onBack }: { posts: Post[]; onBack: () => void }) {
   const { id = '' } = useParams();
+  const navigate = useNavigate();
   const initialPost = posts.find((p) => p.id === id);
-  return <PostDetailView postId={id} initialPost={initialPost} onBack={onBack} />;
+  return (
+    <PostDetailView
+      postId={id}
+      initialPost={initialPost}
+      onBack={onBack}
+      onOpenProfile={(userId) => navigate(`/user/${userId}`)}
+    />
+  );
 }
 
 function MatchRoute({
@@ -521,7 +529,16 @@ function SessionRoute({ onBack }: { onBack: () => void }) {
 
 function UserProfileRoute({ currentUserId, onBack }: { currentUserId: string; onBack: () => void }) {
   const { userId = '' } = useParams();
-  return <UserProfileView userId={userId} currentUserId={currentUserId} onBack={onBack} />;
+  const navigate = useNavigate();
+  return (
+    <UserProfileView
+      userId={userId}
+      currentUserId={currentUserId}
+      onBack={onBack}
+      onViewAllPosts={(uid) => navigate(`/feed?author=${uid}`)}
+      onOpenPost={(postId) => navigate(`/post/${postId}`)}
+    />
+  );
 }
 
 // ---------------------------------------------------------------------------

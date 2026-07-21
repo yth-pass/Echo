@@ -22,8 +22,11 @@ export class ProfileController {
 
   @Get('users/:userId/profile')
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
-  async getPublicProfile(@Param('userId') userId: string) {
-    return this.profileService.getPublicProfile(userId);
+  async getPublicProfile(
+    @CurrentUser() currentUserId: string,
+    @Param('userId') targetUserId: string,
+  ) {
+    return this.profileService.getPublicProfile(targetUserId, currentUserId);
   }
 
   @Put('profile')

@@ -37,3 +37,4 @@ apps/android/local.properties
 
 # Prisma / misc
 *.tsbuildinfo
+tmp/echo-update.tar.gz

@@ -80,6 +80,36 @@ export async function acceptMatchRequest(matchPushId: string): Promise<{ ok: boo
 
 // --- User public profile API ---
 
+/** mapPostDto 返回的帖子预览（轻量，无 authorType/time 格式化）。 */
+export interface PostPreview {
+  id: string;
+  content: string;
+  author: string;
+  author_display: string;
+  author_avatar: string | null;
+  author_user_id: string;
+  created_at: string;
+  likes: number;
+  comments: number;
+}
+
+export interface PersonaSketchSection {
+  key: string;
+  title: string;
+  narrative: string;
+}
+
+export interface PersonaSketch {
+  narrative: string;
+  sections: PersonaSketchSection[];
+}
+
+export interface IdealPartnerSketch {
+  narrative: string;
+  /** 4 维 ideal 雷达图数据：emotionalSafety / spaceRespect / directCommunication / conflictResolution，值域 -1 ~ +1。 */
+  dimensions: Record<string, number>;
+}
+
 export interface PublicProfile {
   userId: string;
   displayName: string;
@@ -89,6 +119,12 @@ export interface PublicProfile {
   interests: string[];
   goalOnEcho: string | null;
   postCount: number;
+  /** 该用户最近 5 篇帖子预览（已审核通过）。 */
+  posts: PostPreview[];
+  /** 人格画像（入驻后生成），未入驻时为 null。 */
+  personaSketch: PersonaSketch | null;
+  /** 理想型画像（入驻后生成），未入驻时为 null。 */
+  idealPartnerSketch: IdealPartnerSketch | null;
 }
 
 export async function loadPublicProfile(userId: string): Promise<PublicProfile | null> {

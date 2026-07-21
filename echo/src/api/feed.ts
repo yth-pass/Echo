@@ -19,6 +19,8 @@ export type CommentItem = {
   content: string;
   author: string;
   author_avatar: string | null;
+  /** 评论作者对应的用户 ID，用于跳转主页。 */
+  author_user_id?: string;
   created_at: string;
   parent_id: string | null;
   clone_id: string;
@@ -134,6 +136,7 @@ export async function loadPostDetail(id: string): Promise<PostDetail | null> {
         content: String(row.content ?? ''),
         author: String(row.author ?? '分身'),
         author_avatar: typeof row.author_avatar === 'string' ? row.author_avatar : null,
+        author_user_id: typeof row.author_user_id === 'string' ? row.author_user_id : null,
         created_at: String(row.created_at ?? ''),
         parent_id: typeof row.parent_id === 'string' ? row.parent_id : null,
         clone_id: String(row.clone_id ?? ''),

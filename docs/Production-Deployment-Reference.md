@@ -416,6 +416,75 @@ NEW_PW=$(openssl rand -base64 24 | tr -d '/+=' | head -c 24)
 # For Redis: delete volume and recreate (see step 4 above)
 ```
 
+#### 10.2.1 Actual incident log — 2026-07-20 deployment
+
+During the 2026-07-20 onboarding bug fix deployment, this issue was hit in full. Below is the exact sequence of what happened and how it was resolved, as a reference for future deployments.
+
+**Initial state** (`.env.production` before deployment):
+```ini
+DB_PASSWORD=/YQ+h/D9EYPL56v6UWV0GyxJoOmk7XI5      # contains / and +
+REDIS_PASSWORD=gBLMA7pD2OWxNq6EHls1E8gAYv/G08WD    # contains /
+```
+
+**Symptoms after `docker compose up -d --build app`**:
+1. `Error: connect ECONNREFUSED 127.0.0.1:6379` — ioredis parsed `redis://:gBLMA7pD2OWxNq6EHls1E8gAYv/G08WD@redis:6379` and the `/` in the password terminated the authority component, making the host empty (defaulted to `127.0.0.1`)
+2. `PrismaClientInitializationError: Authentication failed (P1000)` — `DATABASE_URL` built from `${DB_PASSWORD}` was also malformed
+
+**Resolution steps applied**:
+
+```bash
+cd /opt/echo
+
+# Step 1: Change DB_PASSWORD to a clean password (no special chars)
+sed -i 's|^DB_PASSWORD=.*|DB_PASSWORD=MqxbAd4nughVkEdNt0pRsBGq|' deploy/.env.production
+
+# Step 2: Add explicit DATABASE_URL and REDIS_URL to .env.production
+# - DB: clean password, no encoding needed
+# - Redis: keep old password but URL-encode / as %2F (so --requirepass still uses the raw password)
+sed -i '/^DATABASE_URL=/d' deploy/.env.production
+sed -i '/^REDIS_URL=/d' deploy/.env.production
+cat >> deploy/.env.production << 'EOF'
+DATABASE_URL=postgresql://echo_user:MqxbAd4nughVkEdNt0pRsBGq@postgres:5432/echo_db?sslmode=disable
+REDIS_URL=redis://:gBLMA7pD2OWxNq6EHls1E8gAYv%2FG08WD@redis:6379
+EOF
+
+# Step 3: Change compose file to use ${DATABASE_URL} / ${REDIS_URL} from .env.production
+# (instead of building URLs from ${DB_PASSWORD} / ${REDIS_PASSWORD})
+sed -i 's|REDIS_URL:.*|REDIS_URL: ${REDIS_URL}|' deploy/docker-compose.prod.yml
+sed -i 's|DATABASE_URL:.*|DATABASE_URL: ${DATABASE_URL}|' deploy/docker-compose.prod.yml
+
+# Step 4: Update PostgreSQL internal password (volume was initialized with old password)
+# Connect with OLD password, set NEW password
+docker compose --env-file deploy/.env.production -f deploy/docker-compose.prod.yml exec \
+  -e PGPASSWORD='/YQ+h/D9EYPL56v6UWV0GyxJoOmk7XI5' \
+  postgres psql -U echo_user -d echo_db -c "ALTER USER echo_user WITH PASSWORD 'MqxbAd4nughVkEdNt0pRsBGq';"
+
+# Step 5: Delete Redis volume (old volume had no password issue, but container needed restart with correct --requirepass)
+docker compose --env-file deploy/.env.production -f deploy/docker-compose.prod.yml stop redis
+docker compose --env-file deploy/.env.production -f deploy/docker-compose.prod.yml rm -f redis
+docker volume rm deploy_redis_data
+docker compose --env-file deploy/.env.production -f deploy/docker-compose.prod.yml up -d redis
+
+# Step 6: Rebuild app
+docker compose --env-file deploy/.env.production -f deploy/docker-compose.prod.yml up -d --build app
+sleep 30 && docker compose --env-file deploy/.env.production -f deploy/docker-compose.prod.yml logs app --tail=10
+# Expected: "Nest application successfully started" + "Echo API listening on http://localhost:4000/v1"
+```
+
+**Final `.env.production` password-related lines**:
+```ini
+DB_PASSWORD=MqxbAd4nughVkEdNt0pRsBGq
+REDIS_PASSWORD=gBLMA7pD2OWxNq6EHls1E8gAYv/G08WD
+DATABASE_URL=postgresql://echo_user:MqxbAd4nughVkEdNt0pRsBGq@postgres:5432/echo_db?sslmode=disable
+REDIS_URL=redis://:gBLMA7pD2OWxNq6EHls1E8gAYv%2FG08WD@redis:6379
+```
+
+**Key learnings**:
+1. Docker Compose `--env-file` only provides variables for `${...}` substitution in the compose file — it does NOT automatically inject env vars into containers. Only the `environment:` section injects vars.
+2. `REDIS_PASSWORD` (raw, for `--requirepass`) and `REDIS_URL` (URL-encoded, for ioredis) can use different representations of the same password.
+3. `POSTGRES_PASSWORD` only sets the password during first volume initialization. To change it later, use `ALTER USER`.
+4. Prisma tolerates raw `/` in `DATABASE_URL` passwords, but ioredis does NOT — always URL-encode special characters in Redis URLs.
+
 ### 10.3 GitHub unreachable from server
 **Symptom**: `git pull` fails with `Failed to connect to github.com port 443`
 **Workaround**: Use SCP (Method B in Section 6).

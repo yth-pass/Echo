@@ -3,13 +3,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { BlockFilterService } from '../common/block-filter.service';
+import { mapPostDto } from '../feed/feed.helper';
 import { UpdateProfileDto } from './profile.dto';
 
 @Injectable()
 export class ProfileService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly blockFilter: BlockFilterService,
+  ) {}
 
   /** 获取完整 profile（含头像、匹配偏好、隐私设置）。 */
   async getProfile(userId: string) {
@@ -64,8 +69,16 @@ export class ProfileService {
     };
   }
 
-  /** 获取其他用户的公开资料（头像、昵称、城市、帖子数等）。 */
-  async getPublicProfile(targetUserId: string) {
+  /** 获取其他用户的公开资料（头像、昵称、城市、帖子列表、人格线索、理想型等）。 */
+  async getPublicProfile(targetUserId: string, currentUserId?: string) {
+    // 拉黑兜底：若当前用户与目标用户存在双向拉黑关系，直接 403
+    if (currentUserId) {
+      const blockedIds = await this.blockFilter.getBlockedUserIds(currentUserId);
+      if (blockedIds.includes(targetUserId)) {
+        throw new ForbiddenException('无法查看该用户主页');
+      }
+    }
+
     const profile = await this.prisma.profile.findUnique({
       where: { userId: targetUserId },
       select: {
@@ -78,21 +91,48 @@ export class ProfileService {
     });
     if (!profile) throw new NotFoundException('User not found');
 
-    // 查询该用户的帖子数量（已通过审核的）
+    // 查询该用户的帖子数量 + 前 5 条预览
     const clone = await this.prisma.digitalClone.findUnique({
       where: { userId: targetUserId },
     });
     let postCount = 0;
+    let posts: ReturnType<typeof mapPostDto>[] = [];
     if (clone) {
       postCount = await this.prisma.post.count({
         where: { cloneId: clone.id, moderationStatus: 'approved' },
       });
+      const rawPosts = await this.prisma.post.findMany({
+        where: { cloneId: clone.id, moderationStatus: 'approved' },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+        include: {
+          clone: { include: { user: { include: { profile: true } } } },
+          _count: { select: { likes: true, comments: true } },
+        },
+      });
+      posts = rawPosts.map(mapPostDto);
     }
 
-    // 提取 bio 摘要（interests 和 goalOnEcho）
+    // 解析 bioJson（复用 clones.service.ts 的 persona/ideal 解析逻辑）
     const bioJson = profile.bioJson as Record<string, unknown> | null;
     const interests = Array.isArray(bioJson?.interests) ? bioJson!.interests : [];
     const goalOnEcho = typeof bioJson?.goalOnEcho === 'string' ? bioJson.goalOnEcho : null;
+
+    const personaSketch =
+      bioJson?.personaSketch && (bioJson.personaSketch as any).narrative && (bioJson.personaSketch as any).sections
+        ? {
+            narrative: (bioJson.personaSketch as any).narrative,
+            sections: (bioJson.personaSketch as any).sections,
+          }
+        : null;
+
+    const idealPartnerSketch =
+      bioJson?.idealPartnerSketch && (bioJson.idealPartnerSketch as any).narrative && (bioJson.idealPartnerSketch as any).dimensions
+        ? {
+            narrative: (bioJson.idealPartnerSketch as any).narrative,
+            dimensions: (bioJson.idealPartnerSketch as any).dimensions,
+          }
+        : null;
 
     return {
       userId: targetUserId,
@@ -103,6 +143,9 @@ export class ProfileService {
       interests,
       goalOnEcho,
       postCount,
+      posts,
+      personaSketch,
+      idealPartnerSketch,
     };
   }
 

@@ -21,10 +21,12 @@ export function PostDetailView({
   postId,
   initialPost,
   onBack,
+  onOpenProfile,
 }: {
   postId: string;
   initialPost?: Post;
   onBack: () => void;
+  onOpenProfile?: (userId: string) => void;
 }) {
   const [post, setPost] = useState<PostDetail | null>(
     initialPost ? { ...initialPost, comments_list: [] } : null,
@@ -170,17 +172,24 @@ export function PostDetailView({
         {display && (
           <>
             <div className="flex items-center gap-3 mb-4">
-              {display.authorAvatarUrl ? (
-                <img
-                  src={display.authorAvatarUrl}
-                  alt={display.author}
-                  className="w-10 h-10 rounded-full object-cover"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(43,138,239,0.12)' }}>
-                  <Fingerprint className="w-5 h-5" style={{ color: '#2B8AEF' }} />
-                </div>
-              )}
+              <button
+                type="button"
+                onClick={() => { if (display.authorUserId) onOpenProfile?.(display.authorUserId); }}
+                className="shrink-0 rounded-full disabled:cursor-default"
+                disabled={!display.authorUserId}
+              >
+                {display.authorAvatarUrl ? (
+                  <img
+                    src={display.authorAvatarUrl}
+                    alt={display.author}
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(43,138,239,0.12)' }}>
+                    <Fingerprint className="w-5 h-5" style={{ color: '#2B8AEF' }} />
+                  </div>
+                )}
+              </button>
               <div>
                 <p className="font-bold" style={{ color: '#121c28' }}>{display.author}</p>
                 <p className="text-[10px]" style={{ color: '#7b7487' }}>{display.time}</p>
@@ -207,13 +216,20 @@ export function PostDetailView({
                     <div key={comment.id}>
                       {/* 顶层评论卡片 */}
                       <div className="flex gap-2.5">
-                        {comment.author_avatar ? (
-                          <img src={comment.author_avatar} alt={comment.author} className="w-8 h-8 rounded-full object-cover shrink-0" />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center" style={{ backgroundColor: 'rgba(43,138,239,0.12)' }}>
-                            <Fingerprint className="w-4 h-4" style={{ color: '#2B8AEF' }} />
-                          </div>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => { if (comment.author_user_id) onOpenProfile?.(comment.author_user_id); }}
+                          className="shrink-0 rounded-full disabled:cursor-default"
+                          disabled={!comment.author_user_id}
+                        >
+                          {comment.author_avatar ? (
+                            <img src={comment.author_avatar} alt={comment.author} className="w-8 h-8 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(43,138,239,0.12)' }}>
+                              <Fingerprint className="w-4 h-4" style={{ color: '#2B8AEF' }} />
+                            </div>
+                          )}
+                        </button>
                         <div className="flex-1 min-w-0">
                           <p className="text-[11px] mb-1" style={{ color: '#2B8AEF' }}>{comment.author}</p>
                           <p className="text-sm leading-relaxed" style={{ color: '#121c28' }}>{comment.content}</p>
@@ -262,13 +278,20 @@ export function PostDetailView({
                         <div className="mt-3 pl-[42px]">
                           {visibleReplies.map((r) => (
                             <div key={r.id} className="flex gap-2 mb-3">
-                              {r.author_avatar ? (
-                                <img src={r.author_avatar} alt={r.author} className="w-6 h-6 rounded-full object-cover shrink-0 mt-0.5" />
-                              ) : (
-                                <div className="w-6 h-6 rounded-full shrink-0 flex items-center justify-center mt-0.5" style={{ backgroundColor: 'rgba(43,138,239,0.08)' }}>
-                                  <Fingerprint className="w-3 h-3" style={{ color: '#2B8AEF' }} />
-                                </div>
-                              )}
+                              <button
+                                type="button"
+                                onClick={() => { if (r.author_user_id) onOpenProfile?.(r.author_user_id); }}
+                                className="shrink-0 rounded-full disabled:cursor-default"
+                                disabled={!r.author_user_id}
+                              >
+                                {r.author_avatar ? (
+                                  <img src={r.author_avatar} alt={r.author} className="w-6 h-6 rounded-full object-cover mt-0.5" />
+                                ) : (
+                                  <div className="w-6 h-6 rounded-full flex items-center justify-center mt-0.5" style={{ backgroundColor: 'rgba(43,138,239,0.08)' }}>
+                                    <Fingerprint className="w-3 h-3" style={{ color: '#2B8AEF' }} />
+                                  </div>
+                                )}
+                              </button>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-1.5">
                                   <p className="text-[11px]" style={{ color: '#2B8AEF' }}>{r.author}</p>

@@ -4,6 +4,7 @@ import { ModerationStatus } from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { BlockFilterService } from '../common/block-filter.service';
+import { mapPostDto } from './feed.helper';
 
 
 
@@ -55,7 +56,7 @@ export class FeedService {
 
     const slice = hasMore ? posts.slice(0, limit) : posts;
 
-    const items = slice.map((p) => this.mapPost(p));
+    const items = slice.map((p) => mapPostDto(p));
 
     return {
 
@@ -135,7 +136,7 @@ export class FeedService {
       throw new NotFoundException('Post not found');
     }
 
-    const base = this.mapPost(p);
+    const base = mapPostDto(p);
 
     return {
 
@@ -156,7 +157,7 @@ export class FeedService {
         parent_id: c.parentId ?? null,
 
         clone_id: c.cloneId,
-
+        author_user_id: c.clone.userId,
         likes: c._count.likes,
 
         liked: c.likes.length > 0,
@@ -176,7 +177,7 @@ export class FeedService {
           parent_id: r.parentId ?? null,
 
           clone_id: r.cloneId,
-
+          author_user_id: r.clone.userId,
           likes: r._count.likes,
 
           liked: r.likes.length > 0,
@@ -188,52 +189,4 @@ export class FeedService {
     };
 
   }
-
-
-
-  private mapPost(
-
-    p: {
-
-      id: string;
-
-      content: string;
-
-      createdAt: Date;
-
-      publishedAt: Date | null;
-
-      clone: { userId: string; user: { profile: { displayName: string | null; avatarUrl: string | null } | null } };
-
-      _count: { likes: number; comments: number };
-
-    },
-
-  ) {
-
-    return {
-
-      id: p.id,
-
-      content: p.content,
-
-      author: p.clone.user.profile?.displayName ?? '分身',
-
-      author_display: p.clone.user.profile?.displayName ?? '分身',
-
-      author_avatar: p.clone.user.profile?.avatarUrl ?? null,
-
-      author_user_id: p.clone.userId,
-
-      created_at: (p.publishedAt ?? p.createdAt).toISOString(),
-
-      likes: p._count.likes,
-
-      comments: p._count.comments,
-
-    };
-
-  }
-
 }
-
