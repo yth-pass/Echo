@@ -13,6 +13,7 @@ import {
   generateIdealPartnerSketch,
   adjustIdealPartnerSketch,
 } from './onboarding-v2.api';
+import { PHASE_LABELS } from './phase-labels';
 import { COPY } from '../../../copy';
 import { LottieLoader } from '../../../components/LottieLoader';
 import type { ApiResult } from '../../../api/client';
@@ -116,7 +117,7 @@ export function Phase1_6IdealSketch({ onComplete, onGoBack }: PhaseProps) {
     <div className="min-h-screen flex flex-col max-w-[375px] mx-auto p-6 pb-28" style={{ backgroundColor: '#f8f9ff' }}>
       {/* Header */}
       <div className="mb-6">
-        <h2 className="text-xl font-bold" style={{ color: '#121c28' }}>你需要什么样的人？</h2>
+        <h2 className="text-xl font-bold" style={{ color: '#121c28' }}>{PHASE_LABELS.phase1_6.full}</h2>
       </div>
 
       {/* Narrative Card */}

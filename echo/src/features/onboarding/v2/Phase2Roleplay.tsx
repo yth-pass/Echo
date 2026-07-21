@@ -29,6 +29,7 @@ import {
   listRoleplayChats,
 } from './onboarding-v2.api';
 import type { AgentProfilesResponse } from './onboarding-v2.api';
+import { PHASE_LABELS } from './phase-labels';
 import { COPY } from '../../../copy';
 import type {
   ChatMessage,
@@ -90,8 +91,15 @@ function loadConversation(userId: string, roleId: RoleId): RoleplayConversation 
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     // C2 修复：反序列化 pendingDisplayIds（兼容旧数据：无字段时返回空 Set）
+    // 补全历史消息缺失的 displayedAt（旧数据没有此字段，用 timestamp 兜底）
+    const msgs = (parsed.messages as any[]) || [];
+    const migrated = msgs.map((m: any) => ({
+      ...m,
+      displayedAt: m.displayedAt || m.timestamp,
+    }));
     return {
       ...parsed,
+      messages: migrated,
       pendingDisplayIds: new Set<string>(parsed.pendingDisplayIds ?? []),
       status: 'active',
     } as RoleplayConversation;
@@ -379,6 +387,7 @@ export function Phase2Roleplay({ userId, onComplete }: PhaseProps & { userId: st
           segments: [result.openingMessage],
           displayedSegments: 1,
           timestamp: Date.now(),
+          displayedAt: Date.now(),
         },
       ];
 
@@ -410,12 +419,14 @@ export function Phase2Roleplay({ userId, onComplete }: PhaseProps & { userId: st
     const targetRoleId = conversation.roleId;
     const chatId = conversation.chatId;
 
+    const now = Date.now();
     const userMsg: ChatMessage = {
       id: nextMsgId(),
       role: 'user',
       segments: [inputText.trim()],
       displayedSegments: 1,
-      timestamp: Date.now(),
+      timestamp: now,
+      displayedAt: now,
     };
 
     const newTurnCount = conversation.turnCount + 1;
@@ -516,6 +527,7 @@ export function Phase2Roleplay({ userId, onComplete }: PhaseProps & { userId: st
         segments: [reply.content],
         displayedSegments: 1,
         timestamp: Date.now(),
+        displayedAt: 0, // 揭示时由 setTimeout 更新为实际时间
       }));
       const newIds = new Set(assistantMsgs.map((m) => m.id));
 
@@ -569,6 +581,16 @@ export function Phase2Roleplay({ userId, onComplete }: PhaseProps & { userId: st
               next.delete(msgId);
               if (next.size === 0) setIsTyping(false);
               return next;
+            });
+            // 同步更新 displayedAt 为揭示时间，确保渲染排序正确
+            setConversation((prev) => {
+              if (!prev) return prev;
+              return {
+                ...prev,
+                messages: prev.messages.map((m) =>
+                  m.id === msgId ? { ...m, displayedAt: Date.now() } : m,
+                ),
+              };
             });
           }, cumulativeDelay);
           typingTimersRef.current.push(timer);
@@ -684,7 +706,7 @@ export function Phase2Roleplay({ userId, onComplete }: PhaseProps & { userId: st
     return (
       <div className="min-h-screen flex flex-col max-w-[375px] mx-auto p-6" style={{ backgroundColor: '#f8f9ff' }}>
         <div className="mb-6">
-          <h2 className="text-xl font-bold" style={{ color: '#121c28' }}>和 TA 们聊聊</h2>
+          <h2 className="text-xl font-bold" style={{ color: '#121c28' }}>{PHASE_LABELS.phase2.full}</h2>
           <p className="text-xs mt-1" style={{ color: '#7b7487' }}>
             每个角色聊 6-15 轮，帮助我们捕捉你的语言风格
           </p>
@@ -825,9 +847,12 @@ export function Phase2Roleplay({ userId, onComplete }: PhaseProps & { userId: st
         {(() => {
           // user 消息永远立即显示；assistant 消息仅当不在 pendingDisplayIds 中时显示
           // C3 修复：从 conversation.pendingDisplayIds 读取（替代原独立 state pendingMsgIds）
-          const visibleMessages = conversation.messages.filter(
-            (msg) => msg.role === 'user' || !conversation.pendingDisplayIds.has(msg.id),
-          );
+          // 按 displayedAt 排序（兜底 timestamp），确保 agent 回复按揭示时间显示在最后
+          const visibleMessages = conversation.messages
+            .filter(
+              (msg) => msg.role === 'user' || !conversation.pendingDisplayIds.has(msg.id),
+            )
+            .sort((a, b) => (a.displayedAt || a.timestamp) - (b.displayedAt || b.timestamp));
           return visibleMessages.map((msg, idx) => {
             const prevMsg = idx > 0 ? visibleMessages[idx - 1] : undefined;
             const isConsecutiveAssistant =

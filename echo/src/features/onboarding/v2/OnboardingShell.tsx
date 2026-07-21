@@ -20,6 +20,9 @@ import { useOnboardingSession } from './useOnboardingSession';
 import type { OnboardingPhase, OnboardingSession } from './onboarding-v2.types';
 import { PHASE_ORDER } from './onboarding-v2.types';
 import { generateAgentProfiles, getOnboardingProgress } from './onboarding-v2.api';
+import { PhaseStepper } from './components/PhaseStepper';
+import { EditWarningDialog, shouldShowEditWarning } from './components/EditWarningDialog';
+import { ResumeOnboardingDialog } from './components/ResumeOnboardingDialog';
 
 function nextPhase(current: OnboardingPhase): OnboardingPhase | null {
   const idx = PHASE_ORDER.indexOf(current);
@@ -32,6 +35,9 @@ export function OnboardingShell({ userId, onComplete, onClose }: { userId: strin
   const [ready, setReady] = useState(false);
   const [phaseError, setPhaseError] = useState<string | null>(null);
   const [gender, setGender] = useState<string | undefined>();
+  const [userSelectedPhase, setUserSelectedPhase] = useState<OnboardingPhase | null>(null);
+  const [showEditWarning, setShowEditWarning] = useState(false);
+  const [showResumeDialog, setShowResumeDialog] = useState(false);
 
   // phase 切换时重新读取性别（Phase 0 提交后才写入，mount 时读不到）
   useEffect(() => {
@@ -110,6 +116,7 @@ export function OnboardingShell({ userId, onComplete, onClose }: { userId: strin
   }, [restore, save, userId]);
 
   // session 恢复后设置 phase（校验有效性）
+  // 若已完成至少 1 个 phase 且非 finalize，先弹窗让用户选择；否则直接进入
   useEffect(() => {
     if (!ready) return;
     if (session?.phase) {
@@ -119,7 +126,11 @@ export function OnboardingShell({ userId, onComplete, onClose }: { userId: strin
         (p) => session.completedPhases.includes(p),
       );
       if (allPriorDone) {
+        // 先设置 phase（避免空白屏），再决定是否弹窗
         setPhase(session.phase);
+        if (session.completedPhases.length > 0 && session.phase !== 'finalize') {
+          setShowResumeDialog(true);
+        }
       } else {
         // session 数据不一致（可能是其他用户残留），从头开始
         clear();
@@ -128,9 +139,54 @@ export function OnboardingShell({ userId, onComplete, onClose }: { userId: strin
     }
   }, [ready, session, clear]);
 
-  // 保存并推进 phase
+  // 跳回指定阶段并携带错误信息
+  const goBackToPhase = useCallback(
+    (targetPhase: OnboardingPhase, errorMessage?: string) => {
+      setPhaseError(errorMessage ?? null);
+      setPhase(targetPhase);
+      // 更新 session 以反映回退
+      const newSession: OnboardingSession = {
+        phase: targetPhase,
+        completedPhases: (session?.completedPhases ?? []).filter(
+          (p) => PHASE_ORDER.indexOf(p) < PHASE_ORDER.indexOf(targetPhase),
+        ),
+        savedAt: new Date().toISOString(),
+      };
+      save(newSession);
+    },
+    [session, save],
+  );
+
+  // 用户主动跳回已完成 phase 修改（不清空 completedPhases，保留真实进度）
+  const jumpToPhase = useCallback(
+    (targetPhase: OnboardingPhase) => {
+      if (!(session?.completedPhases ?? []).includes(targetPhase)) return;
+      setUserSelectedPhase(targetPhase);
+      setPhase(targetPhase);
+      // 首次修改提示
+      if (shouldShowEditWarning()) {
+        setShowEditWarning(true);
+      }
+    },
+    [session],
+  );
+
+  // 从跳回的 phase 返回最新 phase（修改完成或取消）
+  const returnToLatestPhase = useCallback(() => {
+    const latestPhase = session?.phase ?? 'phase0';
+    setUserSelectedPhase(null);
+    setPhase(latestPhase);
+  }, [session]);
+
+  // 保存并推进 phase（注：引用 returnToLatestPhase，需定义在其后）
   const advancePhase = useCallback(
     (currentPhase: OnboardingPhase) => {
+      // 如果用户在跳回修改状态，提交后返回最新 phase，不推进
+      if (userSelectedPhase !== null) {
+        returnToLatestPhase();
+        return;
+      }
+
       const np = nextPhase(currentPhase);
       if (!np) {
         // 全部完成
@@ -154,31 +210,23 @@ export function OnboardingShell({ userId, onComplete, onClose }: { userId: strin
       save(newSession);
       setPhase(np);
     },
-    [session, save, clear, onComplete],
+    [session, save, clear, onComplete, userSelectedPhase, returnToLatestPhase],
   );
 
-  // 跳回指定阶段并携带错误信息
-  const goBackToPhase = useCallback(
-    (targetPhase: OnboardingPhase, errorMessage?: string) => {
-      setPhaseError(errorMessage ?? null);
-      setPhase(targetPhase);
-      // 更新 session 以反映回退
-      const newSession: OnboardingSession = {
-        phase: targetPhase,
-        completedPhases: (session?.completedPhases ?? []).filter(
-          (p) => PHASE_ORDER.indexOf(p) < PHASE_ORDER.indexOf(targetPhase),
-        ),
-        savedAt: new Date().toISOString(),
-      };
-      save(newSession);
-    },
-    [session, save],
-  );
+  // 登录恢复弹窗回调
+  const handleResume = useCallback(() => {
+    setShowResumeDialog(false);
+  }, []);
 
-  // 暂时离开
+  const handleEditPrevious = useCallback(() => {
+    setShowResumeDialog(false);
+  }, []);
+
+  // 暂时离开（跳回修改状态下退出时，保存真实最新进度而非当前编辑的 phase）
   const handleExit = () => {
+    const realPhase = userSelectedPhase !== null ? (session?.phase ?? phase) : phase;
     const currentSession: OnboardingSession = {
-      phase,
+      phase: realPhase,
       completedPhases: session?.completedPhases ?? [],
       savedAt: new Date().toISOString(),
     };
@@ -201,17 +249,56 @@ export function OnboardingShell({ userId, onComplete, onClose }: { userId: strin
 
   return (
     <div className="relative min-h-screen" style={{ backgroundColor: '#f8f9ff' }}>
-      {/* 非 Phase0 阶段的退出按钮 */}
-      {phase !== 'finalize' && phase !== 'phase0' && (
-        <button
-          type="button"
-          onClick={handleExit}
-          className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center transition-colors"
-          style={{ backgroundColor: '#d9e3f4', color: '#4a4455' }}
+      {/* 顶部 Stepper + 退出按钮（非 finalize 时显示；phase0 仅在跳回修改时显示） */}
+      {phase !== 'finalize' && (phase !== 'phase0' || userSelectedPhase !== null) && (
+        <div
+          className="sticky top-0 z-40"
+          style={{
+            backgroundColor: 'rgba(248, 249, 255, 0.95)',
+            backdropFilter: 'blur(8px)',
+            borderBottom: '1px solid #e8e0f5',
+          }}
         >
-          <X className="w-4 h-4" />
-        </button>
+          <div className="relative flex items-center justify-center px-12 py-2">
+            <PhaseStepper
+              currentPhase={phase}
+              completedPhases={session?.completedPhases ?? []}
+              userSelectedPhase={userSelectedPhase}
+              onJumpTo={jumpToPhase}
+            />
+            <button
+              type="button"
+              onClick={handleExit}
+              className="absolute top-1/2 right-4 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center transition-colors"
+              style={{ backgroundColor: '#d9e3f4', color: '#4a4455' }}
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          {/* 用户跳回修改时的"返回最新进度"提示条 */}
+          {userSelectedPhase !== null && (
+            <div
+              className="text-center py-1.5 text-xs cursor-pointer"
+              style={{ backgroundColor: '#fff4e0', color: '#8a6a2a' }}
+              onClick={returnToLatestPhase}
+            >
+              你正在修改已完成的内容 · 点击这里返回最新进度 &rarr;
+            </div>
+          )}
+        </div>
       )}
+
+      {/* 登录恢复弹窗 */}
+      <ResumeOnboardingDialog
+        open={showResumeDialog}
+        currentPhase={session?.phase ?? 'phase0'}
+        completedPhases={session?.completedPhases ?? []}
+        onResume={handleResume}
+        onEditPrevious={handleEditPrevious}
+      />
+
+      {/* 首次修改提示弹窗 */}
+      <EditWarningDialog open={showEditWarning} onClose={() => setShowEditWarning(false)} />
 
       <AnimatePresence mode="wait">
         {phase === 'phase0' && (

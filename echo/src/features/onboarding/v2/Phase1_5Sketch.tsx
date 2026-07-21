@@ -15,6 +15,7 @@ import {
   batchAdjustPersonaSketch,
   type PersonaSketchData,
 } from './onboarding-v2.api';
+import { PHASE_LABELS } from './phase-labels';
 import { COPY } from '../../../copy';
 import { LottieLoader } from '../../../components/LottieLoader';
 import type { ApiResult } from '../../../api/client';
@@ -178,7 +179,7 @@ export function Phase1_5Sketch({ onComplete, onGoBack }: PhaseProps) {
   return (
     <div className="min-h-screen flex flex-col max-w-[375px] mx-auto p-6 pb-28" style={{ backgroundColor: '#f8f9ff' }}>
       <div className="mb-6 relative">
-        <h2 className="text-xl font-bold" style={{ color: '#121c28' }}>你的人格画像</h2>
+        <h2 className="text-xl font-bold" style={{ color: '#121c28' }}>{PHASE_LABELS.phase1_5.full}</h2>
 
         {/* 可关闭的操作提示弹窗 */}
         <AnimatePresence>

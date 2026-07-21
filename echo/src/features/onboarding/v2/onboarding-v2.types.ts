@@ -208,6 +208,13 @@ export interface ChatMessage {
   /** 已经显示了多少 segment */
   displayedSegments: number;
   timestamp: number;
+  /**
+   * 消息实际可见的时间（用于渲染排序）。
+   * - user 消息: push 时 = Date.now()（发送时间）
+   * - assistant 消息: 揭示时（setTimeout 触发）= Date.now()
+   * - 历史消息恢复: 兜底用 timestamp
+   */
+  displayedAt: number;
 }
 
 export interface RoleplayConversation {
