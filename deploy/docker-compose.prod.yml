@@ -61,7 +61,7 @@ services:
   # ---- Echo API + Worker ----
   app:
     build:
-      context: ../..  # Repository root
+      context: ..  # Repository root (server: /opt/echo)
       dockerfile: Dockerfile
     container_name: echo-app
     restart: unless-stopped
@@ -70,10 +70,10 @@ services:
       PORT: 4000
 
       # Database (internal Docker network — no TLS needed)
-      DATABASE_URL: postgresql://${DB_USER:-echo_user}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-echo_db}?sslmode=disable
+      DATABASE_URL: ${DATABASE_URL}
 
       # Redis (internal Docker network)
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      REDIS_URL: ${REDIS_URL}
 
       # JWT
       JWT_SECRET: ${JWT_SECRET}
@@ -115,7 +115,7 @@ services:
   # ---- Nginx (frontend + reverse proxy) ----
   nginx:
     build:
-      context: ../..  # Repository root
+      context: ..  # Repository root (server: /opt/echo)
       dockerfile: deploy/nginx/Dockerfile
     container_name: echo-nginx
     restart: unless-stopped
