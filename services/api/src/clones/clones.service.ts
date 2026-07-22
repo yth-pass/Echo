@@ -52,7 +52,7 @@ export interface MyPostDto {
 }
 
 /** personaSketch section key → 中文标题映射（与 persona-sketch.service.ts 解析标题保持一致） */
-const PERSONA_SECTION_TITLES: { key: string; title: string }[] = [
+export const PERSONA_SECTION_TITLES: { key: string; title: string }[] = [
   { key: 'identityNarrative', title: '身份脉络' },
   { key: 'personalityTexture', title: '性格底色' },
   { key: 'coreBeliefs', title: '核心信念' },

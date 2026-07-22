@@ -2,7 +2,7 @@
 
 > **Purpose**: This document describes the live production environment so that any agent or developer can understand what is deployed, where, and how to safely modify it.
 >
-> **Last updated**: 2026-07-21
+> **Last updated**: 2026-07-22
 > **Server**: Tencent Cloud Lighthouse, Shanghai Zone 4
 
 ---
@@ -198,17 +198,49 @@ A template is at `deploy/.env.production.example` (**committed, safe to read**).
 >
 > **Repository URL**: `https://github.com/yth-pass/Echo.git`
 
-There are two code deployment methods. **Method A (GitHub) is preferred.**
+There are two code deployment methods. **The standard workflow uses both: push to GitHub as backup, then SCP for actual deployment.**
 
-### Method A: Git Push + Pull (when GitHub is reachable)
+### Standard Workflow (always do this)
 
-**On your local Windows machine (in Git Bash or agent's Bash tool):**
+**Step 1 — Backup to GitHub (on local, in Git Bash or agent's Bash tool):**
 ```bash
 cd /c/Users/Administrator/Desktop/Echo
 git add -A
 git commit -m "your message"
 git push https://<GH_TOKEN>@github.com/yth-pass/Echo.git main
 ```
+
+> This ensures the code is backed up on GitHub before any server changes. Always push first.
+
+**Step 2 — Deploy to server via SCP (on local, in CMD):**
+
+SCP packages the entire project directory (excluding `node_modules`, `.git`, `dist`) and syncs it to the server via `rsync --delete`. This is the most reliable way to ensure **all changes are on the server** — unlike `git pull` which can miss uncommitted files or have merge conflicts.
+
+```cmd
+cd C:\Users\Administrator\Desktop
+tar czf Echo\tmp\echo-update.tar.gz --exclude="node_modules" --exclude=".git" --exclude="dist" --exclude="Echo\tmp\echo-update.tar.gz" Echo
+scp Echo\tmp\echo-update.tar.gz ubuntu@124.223.73.232:/tmp/
+ssh ubuntu@124.223.73.232 "sudo rm -rf /opt/echo-sync && sudo mkdir -p /opt/echo-sync && sudo tar xzf /tmp/echo-update.tar.gz -C /opt/echo-sync && sudo rsync -av --delete --exclude='deploy/.env.production' /opt/echo-sync/Echo/ /opt/echo/"
+```
+
+> **Why SCP + rsync ensures complete deployment**: The `--delete` flag removes files on the server that don't exist locally, guaranteeing the server is an exact mirror of your local codebase. The only preserved file is `deploy/.env.production` (server-only secrets, never in the tar).
+
+**Step 3 — Rebuild on server (SSH):**
+```bash
+ssh ubuntu@124.223.73.232
+sudo -i
+cd /opt/echo
+# Fix directory casing: Windows tar preserves "Echo" (uppercase), but Dockerfile expects "echo/" (lowercase)
+mv Echo echo 2>/dev/null
+# Fix compose context path
+sed -i 's|context: \.\./\.\.|context: ..|g' deploy/docker-compose.prod.yml
+# Rebuild app + nginx (postgres and redis are not affected)
+docker compose --env-file deploy/.env.production -f deploy/docker-compose.prod.yml up -d --build app nginx
+# Optional: push Prisma schema if changed
+docker compose --env-file deploy/.env.production -f deploy/docker-compose.prod.yml exec app sh -c "cd /app/services/api && npx prisma db push"
+```
+
+### Alternative: Git Pull (when SCP is not available)
 
 **On the server (SSH):**
 ```bash
@@ -218,35 +250,13 @@ cd /opt/echo
 git pull
 # NOTE: git pull resets deploy/docker-compose.prod.yml context path. Fix it:
 sed -i 's|context: \.\./\.\.|context: ..|g' deploy/docker-compose.prod.yml
-# Rebuild app + nginx (postgres and redis are not affected)
+# Rebuild
 docker compose --env-file deploy/.env.production -f deploy/docker-compose.prod.yml up -d --build app nginx
 # If you added new Prisma models/migrations:
 docker compose --env-file deploy/.env.production -f deploy/docker-compose.prod.yml exec app sh -c "cd /app/services/api && npx prisma db push"
 ```
 
-### Method B: SCP (when GitHub is unreachable from China)
-
-**On your local Windows machine:**
-```cmd
-cd C:\Users\Administrator\Desktop
-tar czf Echo\tmp\echo-update.tar.gz --exclude="node_modules" --exclude=".git" --exclude="dist" --exclude="Echo\tmp" Echo
-scp Echo\tmp\echo-update.tar.gz ubuntu@124.223.73.232:/tmp/
-ssh ubuntu@124.223.73.232 "sudo rm -rf /opt/echo-sync && sudo mkdir -p /opt/echo-sync && sudo tar xzf /tmp/echo-update.tar.gz -C /opt/echo-sync && sudo rsync -av --delete --exclude='deploy/.env.production' /opt/echo-sync/Echo/ /opt/echo/"
-```
-
-> **Why `--exclude='deploy/.env.production'` on rsync**: The `--delete` flag removes files on the destination that don't exist in the source. Since `.env.production` is gitignored and not in the tar, rsync would delete it. The `--exclude` prevents this.
-
-Then rebuild on server:
-```bash
-sudo -i
-cd /opt/echo
-# Fix directory casing: Windows tar preserves "Echo" (uppercase), but Dockerfile expects "echo/" (lowercase)
-mv Echo echo 2>/dev/null
-# Fix compose context path
-sed -i 's|context: \.\./\.\.|context: ..|g' deploy/docker-compose.prod.yml
-# Rebuild
-docker compose --env-file deploy/.env.production -f deploy/docker-compose.prod.yml up -d --build app nginx
-```
+> ⚠️ Git pull is less reliable than SCP: it can miss uncommitted files, fail on merge conflicts, and cannot delete files that were removed locally but committed. Use SCP as the primary deployment method.
 
 ### Important Caveats When Updating
 

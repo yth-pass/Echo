@@ -174,7 +174,7 @@ export function UserProfileView({
             </div>
 
             {/* ── 区块 1：人格线索 ── */}
-            {profile.personaSketch && (
+            {profile.personaSketch && Array.isArray(profile.personaSketch.sections) && (
               <div className="p-5 rounded-2xl border mb-4" style={{ backgroundColor: '#ffffff', borderColor: '#d9e3f4' }}>
                 <h3 className="text-sm font-bold mb-3" style={{ color: '#121c28' }}>人格线索</h3>
                 <p className="text-xs leading-relaxed mb-3" style={{ color: '#7b7487' }}>
@@ -214,7 +214,7 @@ export function UserProfileView({
             )}
 
             {/* ── 区块 3：广场动态 ── */}
-            {profile.posts.length > 0 && (
+            {Array.isArray(profile.posts) && profile.posts.length > 0 && (
               <div className="p-5 rounded-2xl border mb-4" style={{ backgroundColor: '#ffffff', borderColor: '#d9e3f4' }}>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-bold" style={{ color: '#121c28' }}>广场动态</h3>
@@ -286,7 +286,7 @@ export function UserProfileView({
             )}
 
             {/* ── 兴趣爱好 ── */}
-            {profile.interests.length > 0 && (
+            {Array.isArray(profile.interests) && profile.interests.length > 0 && (
               <div className="p-4 rounded-2xl border mb-4" style={{ backgroundColor: '#ffffff', borderColor: '#d9e3f4' }}>
                 <p className="text-[10px] mb-2" style={{ color: '#7b7487' }}>兴趣爱好</p>
                 <div className="flex flex-wrap gap-2">

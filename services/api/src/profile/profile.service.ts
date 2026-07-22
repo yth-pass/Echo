@@ -7,6 +7,7 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { PrismaService } from '../prisma/prisma.service';
 import { BlockFilterService } from '../common/block-filter.service';
 import { mapPostDto } from '../feed/feed.helper';
+import { PERSONA_SECTION_TITLES, type PersonaSketchSectionItem } from '../clones/clones.service';
 import { UpdateProfileDto } from './profile.dto';
 
 @Injectable()
@@ -118,13 +119,28 @@ export class ProfileService {
     const interests = Array.isArray(bioJson?.interests) ? bioJson!.interests : [];
     const goalOnEcho = typeof bioJson?.goalOnEcho === 'string' ? bioJson.goalOnEcho : null;
 
-    const personaSketch =
+    // ★ 对齐前端：personaSketch.sections 在数据库里是对象（{identityNarrative, ...}），
+    //   前端期望数组 [{key,title,narrative}]。复用 clones.service.ts 的 PERSONA_SECTION_TITLES
+    //   转换逻辑，避免 getPublicProfile 返回的 sections 跟 getMe 口径不一致导致前端崩溃。
+    const personaSketchRaw =
       bioJson?.personaSketch && (bioJson.personaSketch as any).narrative && (bioJson.personaSketch as any).sections
         ? {
-            narrative: (bioJson.personaSketch as any).narrative,
-            sections: (bioJson.personaSketch as any).sections,
+            narrative: (bioJson.personaSketch as any).narrative as string,
+            sections: (bioJson.personaSketch as any).sections as Record<string, unknown>,
           }
         : null;
+
+    const personaSketch: { narrative: string; sections: PersonaSketchSectionItem[] } | null = personaSketchRaw
+      ? {
+          narrative: personaSketchRaw.narrative,
+          sections: PERSONA_SECTION_TITLES.map(({ key, title }) => {
+            const narrative = personaSketchRaw.sections?.[key];
+            return typeof narrative === 'string' && narrative.trim()
+              ? { key, title, narrative: narrative.trim() }
+              : null;
+          }).filter((x): x is PersonaSketchSectionItem => x !== null),
+        }
+      : null;
 
     const idealPartnerSketch =
       bioJson?.idealPartnerSketch && (bioJson.idealPartnerSketch as any).narrative && (bioJson.idealPartnerSketch as any).dimensions

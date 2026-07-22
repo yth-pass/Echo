@@ -387,7 +387,9 @@ export default function App() {
   // state === 'main'：主界面路由
   // 【缺陷1修复】详情页 /post/:id /match/:id /session/:id 作为独立路由，天然互斥（同时只有一个路由）
   // 不再需要 selectedMatch/Post/Session 三个独立 state，覆盖层叠加问题消除
+  // 【黑屏防御】用 ErrorBoundary 包裹，子组件崩溃时显示可读错误而非黑屏（与 auth/onboarding 路由一致）
   return (
+    <ErrorBoundary>
     <Routes>
       {/* 详情路由（全屏覆盖，互斥由路由保证） */}
       <Route
@@ -473,6 +475,7 @@ export default function App() {
         }
       />
     </Routes>
+    </ErrorBoundary>
   );
 }
 
