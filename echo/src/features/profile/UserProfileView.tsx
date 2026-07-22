@@ -177,9 +177,6 @@ export function UserProfileView({
             {profile.personaSketch && Array.isArray(profile.personaSketch.sections) && (
               <div className="p-5 rounded-2xl border mb-4" style={{ backgroundColor: '#ffffff', borderColor: '#d9e3f4' }}>
                 <h3 className="text-sm font-bold mb-3" style={{ color: '#121c28' }}>人格线索</h3>
-                <p className="text-xs leading-relaxed mb-3" style={{ color: '#7b7487' }}>
-                  {profile.personaSketch.narrative}
-                </p>
                 {(personaExpanded
                   ? profile.personaSketch.sections
                   : profile.personaSketch.sections.slice(0, 3)
